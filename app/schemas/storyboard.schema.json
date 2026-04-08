@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "title",
+    "summary",
+    "learning_objective",
+    "closing_takeaway",
+    "visual_theme",
+    "scenes"
+  ],
+  "properties": {
+    "title": {
+      "type": "string",
+      "minLength": 3
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 12
+    },
+    "learning_objective": {
+      "type": "string",
+      "minLength": 10
+    },
+    "closing_takeaway": {
+      "type": "string",
+      "minLength": 10
+    },
+    "visual_theme": {
+      "type": "string",
+      "enum": [
+        "blueprint",
+        "chalk",
+        "lab",
+        "signal",
+        "midnight",
+        "sunset"
+      ]
+    },
+    "scenes": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "slug",
+          "headline",
+          "hook",
+          "narration",
+          "layout",
+          "scene_variant",
+          "visual_goal",
+          "key_points",
+          "visual_items",
+          "highlight_terms",
+          "equations",
+          "takeaway"
+        ],
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 2
+          },
+          "headline": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 60
+          },
+          "hook": {
+            "type": "string",
+            "minLength": 6,
+            "maxLength": 70
+          },
+          "narration": {
+            "type": "string",
+            "minLength": 45,
+            "maxLength": 320
+          },
+          "layout": {
+            "type": "string",
+            "enum": [
+              "concept_map",
+              "equation",
+              "comparison",
+              "axes",
+              "timeline",
+              "flow",
+              "orbit"
+            ]
+          },
+          "scene_variant": {
+            "type": "string",
+            "enum": [
+              "hero",
+              "split",
+              "spotlight",
+              "compare",
+              "grid",
+              "stage",
+              "orbit",
+              "magazine"
+            ]
+          },
+          "visual_goal": {
+            "type": "string",
+            "minLength": 12
+          },
+          "key_points": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 3,
+            "items": {
+              "type": "string",
+              "minLength": 5,
+              "maxLength": 90
+            }
+          },
+          "visual_items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 4,
+            "items": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 40
+            }
+          },
+          "highlight_terms": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 4,
+            "items": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 24
+            }
+          },
+          "equations": {
+            "type": "array",
+            "maxItems": 2,
+            "items": {
+              "type": "string",
+              "maxLength": 60
+            }
+          },
+          "takeaway": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 90
+          }
+        }
+      }
+    }
+  }
+}

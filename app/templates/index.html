@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="space-y-3">
+    <h1 class="max-w-3xl text-3xl font-semibold tracking-tight sm:text-4xl">Enter a hard math or science topic.</h1>
+    <p class="max-w-2xl text-sm leading-6 text-slate-600">lern generates a short animated explainer with narration and concept-specific visuals.</p>
+</section>
+
+<section class="rounded-lg border border-slate-200 bg-white">
+    <div class="border-b border-slate-200 px-4 py-3 text-sm font-medium">Create video</div>
+    <form action="{{ url_for('main.create_job_view') }}" method="post" class="space-y-4 px-4 py-4">
+        <div>
+            <label for="concept" class="mb-2 block text-sm font-medium text-slate-800">Concept</label>
+            <textarea id="concept" name="concept" rows="4" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500" placeholder="Explain eigenvectors and why they matter in machine learning." required></textarea>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2">
+            <label class="block">
+                <span class="mb-2 block text-sm font-medium text-slate-800">Length</span>
+                <select name="duration_label" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500">
+                    <option value="short">Short</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="long">Long</option>
+                </select>
+            </label>
+            <label class="block">
+                <span class="mb-2 block text-sm font-medium text-slate-800">Render quality</span>
+                <select name="render_quality" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500">
+                    <option value="low" selected>Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                </select>
+            </label>
+        </div>
+        <div class="flex flex-col gap-3 border-t border-slate-200 pt-3 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+            <p>High-school audience, 3 scenes, visual-first rendering.</p>
+            <button type="submit" class="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700">Generate video</button>
+        </div>
+    </form>
+</section>
+
+<section class="rounded-lg border border-slate-200 bg-white">
+    <div class="flex flex-col gap-2 border-b border-slate-200 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+        <h2 class="font-medium">System status</h2>
+        <div class="flex flex-wrap gap-3 text-xs text-slate-600">
+            <span>Codex: <strong class="{{ 'text-emerald-700' if environment.codex else 'text-rose-700' }}">{{ "ready" if environment.codex else "missing" }}</strong></span>
+            <span>Deepgram: <strong class="{{ 'text-emerald-700' if environment.deepgram else 'text-rose-700' }}">{{ "loaded" if environment.deepgram else "missing" }}</strong></span>
+            <span>ffmpeg: <strong class="{{ 'text-emerald-700' if environment.ffmpeg else 'text-rose-700' }}">{{ "ready" if environment.ffmpeg else "missing" }}</strong></span>
+        </div>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+            <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                    <th class="px-4 py-3">Topic</th>
+                    <th class="px-4 py-3">Status</th>
+                    <th class="px-4 py-3">Progress</th>
+                    <th class="px-4 py-3">Created</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for job in jobs %}
+                    <tr class="border-t border-slate-200 align-top">
+                        <td class="px-4 py-3">
+                            <a href="{{ url_for('main.job_detail', job_id=job.id) }}" class="font-medium text-slate-900 hover:underline">{{ job.title or job.concept }}</a>
+                            <div class="mt-1 text-xs text-slate-500">{{ job.current_step }}</div>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="inline-flex px-2 py-1 text-xs font-medium uppercase tracking-wide
+                                {% if job.status == 'completed' %}bg-emerald-50 text-emerald-700
+                                {% elif job.status == 'failed' %}bg-rose-50 text-rose-700
+                                {% elif job.status == 'running' %}bg-sky-50 text-sky-700
+                                {% else %}bg-slate-100 text-slate-700{% endif %}">
+                                {{ job.status }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="w-36 overflow-hidden rounded-full bg-slate-200">
+                                <div class="h-2 rounded-full bg-slate-900 {% if job.is_active %}lern-loading-bar{% endif %}" style="width: {{ job.progress_percent }}%"></div>
+                            </div>
+                            <div class="mt-1 text-xs text-slate-500">{{ job.progress_percent }}%</div>
+                        </td>
+                        <td class="px-4 py-3 text-xs text-slate-500">{{ job.created_at }}</td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="4" class="px-4 py-6 text-sm text-slate-500">No jobs yet.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}
