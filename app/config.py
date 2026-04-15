@@ -20,10 +20,9 @@ def load_local_env(base_dir: Path) -> None:
 
 class Config:
     SECRET_KEY = "dev-secret-change-me"
-    CODEX_MODEL = "gpt-5.4-mini"
-    CODEX_REASONING_EFFORT = "low"
+    CLAUDE_CODE_MODEL = "claude-sonnet-4-6"
+    CLAUDE_CODE_MAX_TURNS = None
     DEEPGRAM_API_KEY = ""
     DEEPGRAM_VOICE_MODEL = "aura-2-thalia-en"
     MAX_WORKERS = 2
-    DEFAULT_RENDER_QUALITY = "low"
     POLL_INTERVAL_MS = 1500

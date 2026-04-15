@@ -7,9 +7,9 @@ from app.db import get_db
 
 
 DURATION_PRESETS = {
-    "short": 50,
-    "medium": 72,
-    "long": 100,
+    "short": 60,
+    "medium": 180,
+    "long": 300,
 }
 
 
@@ -24,7 +24,10 @@ def row_to_dict(row) -> dict:
 def create_job(
     *,
     concept: str,
+    research: str,
     audience: str,
+    provider: str,
+    model: str,
     duration_label: str,
     voice_model: str,
     render_quality: str,
@@ -37,15 +40,19 @@ def create_job(
     db.execute(
         """
         INSERT INTO jobs (
-            id, concept, audience, duration_label, duration_seconds, voice_model,
-            render_quality, style_notes, status, current_step, created_at, updated_at
+            id, concept, research, audience, provider, model, duration_label,
+            duration_seconds, voice_model, render_quality, style_notes, status,
+            current_step, created_at, updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             job_id,
             concept,
+            research,
             audience,
+            provider,
+            model,
             duration_label,
             duration_seconds,
             voice_model,
@@ -65,7 +72,10 @@ def create_job(
 def clone_job(source: dict) -> str:
     return create_job(
         concept=source["concept"],
+        research=source.get("research", ""),
         audience=source["audience"],
+        provider=source.get("provider", "claude-agent-sdk"),
+        model=source.get("model", "claude-sonnet-4-6"),
         duration_label=source["duration_label"],
         voice_model=source["voice_model"],
         render_quality=source["render_quality"],

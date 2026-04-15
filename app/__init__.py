@@ -6,6 +6,7 @@ from flask import Flask
 from .config import Config, load_local_env
 from .db import init_app as init_db
 from .routes import bp as routes_bp
+from .services.claude_cli import resolve_claude_cli_path
 from .services.job_manager import JobManager
 
 
@@ -13,16 +14,17 @@ def create_app() -> Flask:
     base_dir = Path(__file__).resolve().parent.parent
     load_local_env(base_dir)
 
+    claude_max_turns_raw = os.getenv("CLAUDE_CODE_MAX_TURNS", "")
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object(Config)
     app.config.update(
         SECRET_KEY=os.getenv("SECRET_KEY", app.config["SECRET_KEY"]),
-        CODEX_MODEL=os.getenv("CODEX_MODEL", app.config["CODEX_MODEL"]),
-        CODEX_REASONING_EFFORT=os.getenv("CODEX_REASONING_EFFORT", app.config["CODEX_REASONING_EFFORT"]),
+        CLAUDE_CODE_MODEL=os.getenv("CLAUDE_CODE_MODEL", app.config["CLAUDE_CODE_MODEL"]),
+        CLAUDE_CODE_MAX_TURNS=int(claude_max_turns_raw) if claude_max_turns_raw.strip() else None,
+        CLAUDE_CODE_CLI_PATH=os.getenv("CLAUDE_CODE_CLI_PATH", resolve_claude_cli_path() or ""),
         DEEPGRAM_API_KEY=os.getenv("DEEPGRAM_API_KEY", app.config["DEEPGRAM_API_KEY"]),
         DEEPGRAM_VOICE_MODEL=os.getenv("DEEPGRAM_VOICE_MODEL", app.config["DEEPGRAM_VOICE_MODEL"]),
         MAX_WORKERS=int(os.getenv("MAX_WORKERS", str(app.config["MAX_WORKERS"]))),
-        DEFAULT_RENDER_QUALITY=os.getenv("DEFAULT_RENDER_QUALITY", app.config["DEFAULT_RENDER_QUALITY"]),
         POLL_INTERVAL_MS=int(os.getenv("POLL_INTERVAL_MS", str(app.config["POLL_INTERVAL_MS"]))),
     )
     app.config["BASE_DIR"] = str(base_dir)

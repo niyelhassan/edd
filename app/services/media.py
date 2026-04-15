@@ -11,11 +11,7 @@ class MediaError(RuntimeError):
     pass
 
 
-QUALITY_FLAGS = {
-    "low": "-ql",
-    "medium": "-qm",
-    "high": "-qh",
-}
+MANIM_720P_FLAG = "-qm"
 
 
 def extract_scene_class_names(module_path: Path) -> list[str]:
@@ -38,13 +34,13 @@ def extract_scene_class_names(module_path: Path) -> list[str]:
     return names
 
 
-def render_scene(*, module_path: Path, class_name: str, media_dir: Path, quality: str) -> Path:
+def render_scene(*, module_path: Path, class_name: str, media_dir: Path) -> Path:
     media_dir.mkdir(parents=True, exist_ok=True)
     command = [
         sys.executable,
         "-m",
         "manim",
-        QUALITY_FLAGS.get(quality, "-ql"),
+        MANIM_720P_FLAG,
         str(module_path),
         class_name,
         "--media_dir",

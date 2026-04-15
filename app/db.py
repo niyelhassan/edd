@@ -9,9 +9,12 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS jobs (
     id TEXT PRIMARY KEY,
     concept TEXT NOT NULL,
+    research TEXT NOT NULL DEFAULT '',
     audience TEXT NOT NULL,
     duration_label TEXT NOT NULL,
     duration_seconds INTEGER NOT NULL,
+    provider TEXT NOT NULL DEFAULT 'claude-agent-sdk',
+    model TEXT NOT NULL DEFAULT 'claude-sonnet-4-6',
     voice_model TEXT NOT NULL,
     render_quality TEXT NOT NULL,
     style_notes TEXT NOT NULL,
@@ -21,6 +24,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     storyboard_path TEXT,
     code_path TEXT,
     video_path TEXT,
+    token_usage_json TEXT,
     error_message TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
@@ -54,7 +58,21 @@ def close_db(_: BaseException | None = None) -> None:
 def init_db() -> None:
     db = get_db()
     db.executescript(SCHEMA)
+    _migrate_schema(db)
     db.commit()
+
+
+def _migrate_schema(db: sqlite3.Connection) -> None:
+    columns = {row["name"] for row in db.execute("PRAGMA table_info(jobs)").fetchall()}
+    migrations = {
+        "research": "ALTER TABLE jobs ADD COLUMN research TEXT NOT NULL DEFAULT ''",
+        "provider": "ALTER TABLE jobs ADD COLUMN provider TEXT NOT NULL DEFAULT 'claude-agent-sdk'",
+        "model": "ALTER TABLE jobs ADD COLUMN model TEXT NOT NULL DEFAULT 'claude-sonnet-4-6'",
+        "token_usage_json": "ALTER TABLE jobs ADD COLUMN token_usage_json TEXT",
+    }
+    for column, statement in migrations.items():
+        if column not in columns:
+            db.execute(statement)
 
 
 def init_app(app: Flask) -> None:

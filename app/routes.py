@@ -19,6 +19,7 @@ from flask import (
 )
 
 from .services.repository import clone_job, create_job, get_job, get_job_logs, list_jobs
+from .services.claude_cli import resolve_claude_cli_path
 
 
 bp = Blueprint("main", __name__)
@@ -26,7 +27,7 @@ bp = Blueprint("main", __name__)
 
 PIPELINE = [
     "Queued",
-    "Generating storyboard",
+    "Planning storyboard",
     "Synthesizing narration",
     "Preparing scenes",
     "Rendering scenes",
@@ -35,6 +36,30 @@ PIPELINE = [
 
 _AUDIO_DONE_RE = re.compile(r"Scene (\d+)/(\d+) narration synthesized")
 _RENDER_DONE_RE = re.compile(r"Scene (\d+) clip assembled")
+
+
+def _parse_token_usage(raw: str | None) -> dict | None:
+    if not raw:
+        return None
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(parsed, dict):
+        return None
+    if "stage_totals" not in parsed:
+        input_tokens = int(parsed.get("input_tokens") or 0)
+        output_tokens = int(parsed.get("output_tokens") or 0)
+        cache_read_tokens = int(parsed.get("cache_read_input_tokens") or 0)
+        cache_creation_tokens = int(parsed.get("cache_creation_input_tokens") or 0)
+        storyboard_total = input_tokens + output_tokens + cache_read_tokens + cache_creation_tokens
+        parsed["stage_totals"] = {
+            "storyboard": storyboard_total,
+            "scene_prep_and_code": 0,
+            "other": 0,
+        }
+        parsed["total_tokens"] = int(parsed.get("total_tokens") or storyboard_total)
+    return parsed
 
 
 def _progress_metrics(job: dict, logs: list[dict], scene_count: int) -> tuple[int, str, str]:
@@ -66,7 +91,7 @@ def _progress_metrics(job: dict, logs: list[dict], scene_count: int) -> tuple[in
     if worker_started or job.get("status") in {"running", "completed", "failed"}:
         progress = max(progress, 5)
         detail = "Worker started"
-        active_label = "Generating storyboard"
+        active_label = "Planning storyboard"
     if storyboard_done:
         progress = max(progress, 20)
         detail = f"Storyboard ready, {total_scenes} scenes"
@@ -126,8 +151,11 @@ def _build_job_payload(job: dict, include_logs: bool = False) -> dict:
     payload = dict(job)
     payload["video_url"] = None
     payload["storyboard"] = None
-    payload["codex_available"] = bool(shutil.which("codex"))
+    payload["raw_storyboard"] = None
+    payload["claude_available"] = bool(resolve_claude_cli_path())
     payload["deepgram_ready"] = bool(current_app.config["DEEPGRAM_API_KEY"])
+    payload["token_usage"] = _parse_token_usage(payload.get("token_usage_json"))
+    payload["token_usage_message"] = None
 
     if payload.get("video_path"):
         video_path = Path(payload["video_path"])
@@ -141,7 +169,12 @@ def _build_job_payload(job: dict, include_logs: bool = False) -> dict:
     if storyboard_path:
         story_file = Path(storyboard_path)
         if story_file.exists():
-            payload["storyboard"] = json.loads(story_file.read_text(encoding="utf-8"))
+            payload["raw_storyboard"] = story_file.read_text(encoding="utf-8")
+            payload["storyboard"] = json.loads(payload["raw_storyboard"])
+        if not payload["token_usage"] and "/codex/" in storyboard_path:
+            payload["token_usage_message"] = "This is an older job from the pre-SDK path, so no Claude usage was saved."
+        elif not payload["token_usage"] and payload.get("status") == "completed":
+            payload["token_usage_message"] = "This job completed without saved SDK usage data."
 
     payload["scene_count"] = len(payload["storyboard"]["scenes"]) if payload["storyboard"] else 0
     logs = get_job_logs(payload["id"])
@@ -161,7 +194,7 @@ def _build_job_payload(job: dict, include_logs: bool = False) -> dict:
 def index():
     jobs = [_build_job_payload(job) for job in list_jobs()]
     environment = {
-        "codex": bool(shutil.which("codex")),
+        "claude": bool(resolve_claude_cli_path()),
         "deepgram": bool(current_app.config["DEEPGRAM_API_KEY"]),
         "ffmpeg": bool(shutil.which("ffmpeg")),
     }
@@ -174,24 +207,26 @@ def create_job_view():
     if not concept:
         flash("A concept is required.")
         return redirect(url_for("main.index"))
+    research = request.form.get("research", "").strip()
 
     duration_label = request.form.get("duration_label", "medium").strip().lower()
-    render_quality = request.form.get("render_quality", current_app.config["DEFAULT_RENDER_QUALITY"]).strip().lower()
     style_notes = " ".join(
         [
-            "Use striking concept-specific visuals and clean animation beats.",
-            "Keep on-screen text minimal and never repeat the voiceover sentence-for-sentence.",
-            "Prefer motion, spatial relationships, transformations, and diagrams over text boxes and bounded cards.",
-            "Lead with intuition, then give the compact formal reason, then end with a memorable takeaway.",
+            "Keep the plan compact but technically useful for developers.",
+            "Use simple diagrams, equations, arrows, and transformations that basic Manim can render well.",
+            "Prefer precise explanations, clean structure, and high-signal visuals over marketing language.",
         ]
     )
 
     job_id = create_job(
         concept=concept,
-        audience="High school student",
+        research=research,
+        audience="Developer",
+        provider="claude-agent-sdk",
+        model=current_app.config["CLAUDE_CODE_MODEL"],
         duration_label=duration_label,
         voice_model=current_app.config["DEEPGRAM_VOICE_MODEL"],
-        render_quality=render_quality or current_app.config["DEFAULT_RENDER_QUALITY"],
+        render_quality="720p",
         style_notes=style_notes,
     )
     current_app.extensions["job_manager"].enqueue(job_id)

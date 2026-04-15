@@ -2,3 +2,4 @@ Flask>=3.1,<4
 requests>=2.32,<3
 pydub>=0.25,<1
 manim>=0.18,<1
+claude-agent-sdk>=0.1.59,<1

@@ -35,6 +35,38 @@
 <section class="grid gap-6 lg:grid-cols-[1.4fr_0.8fr]">
     <div class="space-y-6">
         <section class="rounded-lg border border-slate-200 bg-white">
+            <div class="border-b border-slate-200 px-4 py-3 text-sm font-medium">Input</div>
+            <div class="space-y-4 px-4 py-4 text-sm">
+                <div>
+                    <p class="mb-1 text-xs uppercase tracking-wide text-slate-500">Concept</p>
+                    <p id="concept-copy" class="text-slate-700">{{ job.concept }}</p>
+                </div>
+                <div>
+                    <p class="mb-1 text-xs uppercase tracking-wide text-slate-500">Research context</p>
+                    <p id="research-copy" class="text-slate-600">{{ job.research or "No extra research context provided." }}</p>
+                </div>
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <div>
+                        <p class="mb-1 text-xs uppercase tracking-wide text-slate-500">Length</p>
+                        <p class="text-slate-700">{{ job.duration_label }} · {{ job.duration_seconds }}s</p>
+                    </div>
+                    <div>
+                        <p class="mb-1 text-xs uppercase tracking-wide text-slate-500">Render</p>
+                        <p class="text-slate-700">{{ job.render_quality }}</p>
+                    </div>
+                    <div>
+                        <p class="mb-1 text-xs uppercase tracking-wide text-slate-500">Provider</p>
+                        <p class="text-slate-700">{{ job.provider }}</p>
+                    </div>
+                    <div>
+                        <p class="mb-1 text-xs uppercase tracking-wide text-slate-500">Model</p>
+                        <p class="text-slate-700">{{ job.model }}</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="rounded-lg border border-slate-200 bg-white">
             <div class="border-b border-slate-200 px-4 py-3 text-sm font-medium">Video</div>
             <div id="video-shell" class="px-4 py-4">
                 {% if job.video_url %}
@@ -79,6 +111,51 @@
                         </li>
                     {% endfor %}
                 </ol>
+                {% if job.token_usage %}
+                    <div class="mt-4 border-t border-slate-200 pt-3 text-xs text-slate-500">
+                        Agent tokens total: {{ job.token_usage.total_tokens }}
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="rounded-lg border border-slate-200 bg-white">
+            <div class="border-b border-slate-200 px-4 py-3 text-sm font-medium">Agent usage</div>
+            <div id="token-shell" class="space-y-4 px-4 py-4 text-sm">
+                {% if job.token_usage %}
+                    <div class="space-y-3">
+                        <div class="rounded-md bg-slate-50 px-3 py-3">
+                            <p class="text-xs uppercase tracking-wide text-slate-500">Storyboard planning</p>
+                            <p class="mt-1 font-medium text-slate-900">{{ job.token_usage.stage_totals.storyboard }}</p>
+                        </div>
+                        <div class="rounded-md bg-slate-50 px-3 py-3">
+                            <p class="text-xs uppercase tracking-wide text-slate-500">Scene prep and code</p>
+                            <p class="mt-1 font-medium text-slate-900">{{ job.token_usage.stage_totals.scene_prep_and_code }}</p>
+                            <p class="mt-1 text-xs text-slate-500">Deterministic local builder unless a future agent stage is added.</p>
+                        </div>
+                        <div class="rounded-md bg-slate-50 px-3 py-3">
+                            <p class="text-xs uppercase tracking-wide text-slate-500">Other agent usage</p>
+                            <p class="mt-1 font-medium text-slate-900">{{ job.token_usage.stage_totals.other }}</p>
+                        </div>
+                        <div class="rounded-md bg-slate-50 px-3 py-3">
+                            <p class="text-xs uppercase tracking-wide text-slate-500">Total</p>
+                            <p class="mt-1 font-medium text-slate-900">{{ job.token_usage.total_tokens }}</p>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-slate-500">{{ job.token_usage_message or "Token breakdown will appear after storyboard planning finishes." }}</div>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="rounded-lg border border-slate-200 bg-white">
+            <div class="border-b border-slate-200 px-4 py-3 text-sm font-medium">Raw AI output</div>
+            <div class="px-4 py-4 text-sm">
+                {% if job.raw_storyboard %}
+                    <pre id="raw-storyboard-shell" class="overflow-x-auto whitespace-pre-wrap break-words rounded-md bg-slate-950 px-4 py-4 text-xs text-slate-100">{{ job.raw_storyboard }}</pre>
+                {% else %}
+                    <div id="raw-storyboard-shell" class="text-slate-500">Raw storyboard JSON pending.</div>
+                {% endif %}
             </div>
         </section>
 
@@ -132,7 +209,7 @@ function renderStoryboard(storyboard, sceneCount) {
     const scenes = storyboard.scenes.map((scene, index) => `
         <article class="space-y-2 border-t border-slate-200 pt-4">
             <h3 class="font-medium">${index + 1}. ${escapeHtml(scene.headline)}</h3>
-            <p class="text-xs uppercase tracking-wide text-slate-500">Layout: ${escapeHtml(scene.layout)} · Format: ${escapeHtml(scene.scene_variant || "split")}</p>
+            <p class="text-xs uppercase tracking-wide text-slate-500">Layout: ${escapeHtml(scene.layout)} · Format: ${escapeHtml(scene.scene_variant || "basic")}</p>
             <p class="text-sm font-medium text-slate-700">${escapeHtml(scene.hook || "")}</p>
             <p class="text-slate-600">${escapeHtml(scene.visual_goal || "")}</p>
         </article>
@@ -146,6 +223,13 @@ function renderStoryboard(storyboard, sceneCount) {
     `;
 }
 
+function renderRawStoryboard(job) {
+    if (!job.raw_storyboard) {
+        return '<div id="raw-storyboard-shell" class="text-slate-500">Raw storyboard JSON pending.</div>';
+    }
+    return `<pre id="raw-storyboard-shell" class="overflow-x-auto whitespace-pre-wrap break-words rounded-md bg-slate-950 px-4 py-4 text-xs text-slate-100">${escapeHtml(job.raw_storyboard)}</pre>`;
+}
+
 function renderLogs(logs) {
     return (logs || []).map((entry) => `
         <div class="grid gap-1 px-4 py-3 sm:grid-cols-[180px_60px_1fr]">
@@ -156,16 +240,47 @@ function renderLogs(logs) {
     `).join("");
 }
 
-function renderPipeline(pipeline) {
+function renderPipeline(job) {
+    const pipeline = job.pipeline || [];
+    const tokenFooter = job.token_usage
+        ? `<div class="mt-4 border-t border-slate-200 pt-3 text-xs text-slate-500">Agent tokens total: ${escapeHtml(job.token_usage.total_tokens)}</div>`
+        : "";
     return `
         <ol class="space-y-2 text-sm">
-            ${(pipeline || []).map((step) => `
+            ${pipeline.map((step) => `
                 <li class="flex items-center gap-3">
                     <span class="h-2 w-2 rounded-full ${step.state === "done" ? "bg-emerald-600" : step.state === "current" ? "bg-sky-600 lern-loading-dot" : "bg-slate-300"}"></span>
                     <span class="${step.state === "current" ? "font-medium text-slate-900" : "text-slate-600"}">${escapeHtml(step.label)}</span>
                 </li>
             `).join("")}
         </ol>
+        ${tokenFooter}
+    `;
+}
+
+function renderTokenUsage(job) {
+    if (!job.token_usage) {
+        return `<div class="text-slate-500">${escapeHtml(job.token_usage_message || "Token breakdown will appear after storyboard planning finishes.")}</div>`;
+    }
+    return `
+        <div class="space-y-3">
+            <div class="rounded-md bg-slate-50 px-3 py-3">
+                <p class="text-xs uppercase tracking-wide text-slate-500">Storyboard planning</p>
+                <p class="mt-1 font-medium text-slate-900">${escapeHtml(job.token_usage.stage_totals.storyboard)}</p>
+            </div>
+            <div class="rounded-md bg-slate-50 px-3 py-3">
+                <p class="text-xs uppercase tracking-wide text-slate-500">Scene prep and code</p>
+                <p class="mt-1 font-medium text-slate-900">${escapeHtml(job.token_usage.stage_totals.scene_prep_and_code)}</p>
+            </div>
+            <div class="rounded-md bg-slate-50 px-3 py-3">
+                <p class="text-xs uppercase tracking-wide text-slate-500">Other agent usage</p>
+                <p class="mt-1 font-medium text-slate-900">${escapeHtml(job.token_usage.stage_totals.other)}</p>
+            </div>
+            <div class="rounded-md bg-slate-50 px-3 py-3">
+                <p class="text-xs uppercase tracking-wide text-slate-500">Total</p>
+                <p class="mt-1 font-medium text-slate-900">${escapeHtml(job.token_usage.total_tokens)}</p>
+            </div>
+        </div>
     `;
 }
 
@@ -179,6 +294,8 @@ async function pollJob() {
     const job = await response.json();
     document.getElementById("job-title").textContent = job.title || job.concept;
     document.getElementById("job-step").textContent = job.current_step;
+    document.getElementById("concept-copy").textContent = job.concept || "";
+    document.getElementById("research-copy").textContent = job.research || "No extra research context provided.";
 
     const status = document.getElementById("job-status");
     status.textContent = job.status;
@@ -188,7 +305,9 @@ async function pollJob() {
     document.getElementById("progress-bar").style.width = `${job.progress_percent}%`;
     document.getElementById("progress-bar").classList.toggle("lern-loading-bar", Boolean(job.is_active));
     document.getElementById("progress-detail").textContent = job.progress_detail || "";
-    document.getElementById("pipeline-shell").innerHTML = renderPipeline(job.pipeline);
+    document.getElementById("pipeline-shell").innerHTML = renderPipeline(job);
+    document.getElementById("token-shell").innerHTML = renderTokenUsage(job);
+    document.getElementById("raw-storyboard-shell").outerHTML = renderRawStoryboard(job);
     document.getElementById("storyboard-shell").innerHTML = renderStoryboard(job.storyboard, job.scene_count);
     document.getElementById("log-shell").innerHTML = renderLogs(job.logs);
 

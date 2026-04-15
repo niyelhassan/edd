@@ -2,37 +2,35 @@
 
 {% block content %}
 <section class="space-y-3">
-    <h1 class="max-w-3xl text-3xl font-semibold tracking-tight sm:text-4xl">Enter a hard math or science topic.</h1>
-    <p class="max-w-2xl text-sm leading-6 text-slate-600">lern generates a short animated explainer with narration and concept-specific visuals.</p>
+    <h1 class="max-w-3xl text-3xl font-semibold tracking-tight sm:text-4xl">Developer explainer video pipeline.</h1>
+    <p class="max-w-3xl text-sm leading-6 text-slate-600">Claude Agent SDK plans the lesson, Deepgram voices it, and a deterministic 720p Manim pipeline renders the output. The job view exposes raw storyboard JSON, token stages, logs, and artifact paths.</p>
 </section>
 
 <section class="rounded-lg border border-slate-200 bg-white">
     <div class="border-b border-slate-200 px-4 py-3 text-sm font-medium">Create video</div>
     <form action="{{ url_for('main.create_job_view') }}" method="post" class="space-y-4 px-4 py-4">
-        <div>
-            <label for="concept" class="mb-2 block text-sm font-medium text-slate-800">Concept</label>
-            <textarea id="concept" name="concept" rows="4" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500" placeholder="Explain eigenvectors and why they matter in machine learning." required></textarea>
+        <div class="grid gap-4 lg:grid-cols-2">
+            <div>
+                <label for="concept" class="mb-2 block text-sm font-medium text-slate-800">Concept</label>
+                <textarea id="concept" name="concept" rows="5" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500" placeholder="Explain eigenvectors and why they matter in machine learning." required></textarea>
+            </div>
+            <div>
+                <label for="research" class="mb-2 block text-sm font-medium text-slate-800">Research context</label>
+                <textarea id="research" name="research" rows="5" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500" placeholder="Optional notes, facts, framing, misconceptions to address, or examples to include."></textarea>
+            </div>
         </div>
         <div class="grid gap-4 sm:grid-cols-2">
             <label class="block">
                 <span class="mb-2 block text-sm font-medium text-slate-800">Length</span>
                 <select name="duration_label" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500">
-                    <option value="short">Short</option>
-                    <option value="medium" selected>Medium</option>
-                    <option value="long">Long</option>
-                </select>
-            </label>
-            <label class="block">
-                <span class="mb-2 block text-sm font-medium text-slate-800">Render quality</span>
-                <select name="render_quality" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-500">
-                    <option value="low" selected>Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
+                    <option value="short">Short (~1 min)</option>
+                    <option value="medium" selected>Medium (~3 min)</option>
+                    <option value="long">Long (~5 min)</option>
                 </select>
             </label>
         </div>
         <div class="flex flex-col gap-3 border-t border-slate-200 pt-3 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between">
-            <p>High-school audience, 3 scenes, visual-first rendering.</p>
+            <p>`claude-sonnet-4-6`, 720p output, dynamic 2-5 scene plans, raw AI output visible in job details.</p>
             <button type="submit" class="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700">Generate video</button>
         </div>
     </form>
@@ -42,7 +40,7 @@
     <div class="flex flex-col gap-2 border-b border-slate-200 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
         <h2 class="font-medium">System status</h2>
         <div class="flex flex-wrap gap-3 text-xs text-slate-600">
-            <span>Codex: <strong class="{{ 'text-emerald-700' if environment.codex else 'text-rose-700' }}">{{ "ready" if environment.codex else "missing" }}</strong></span>
+            <span>Claude Code: <strong class="{{ 'text-emerald-700' if environment.claude else 'text-rose-700' }}">{{ "ready" if environment.claude else "missing" }}</strong></span>
             <span>Deepgram: <strong class="{{ 'text-emerald-700' if environment.deepgram else 'text-rose-700' }}">{{ "loaded" if environment.deepgram else "missing" }}</strong></span>
             <span>ffmpeg: <strong class="{{ 'text-emerald-700' if environment.ffmpeg else 'text-rose-700' }}">{{ "ready" if environment.ffmpeg else "missing" }}</strong></span>
         </div>

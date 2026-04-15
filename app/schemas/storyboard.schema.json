@@ -40,8 +40,8 @@
     },
     "scenes": {
       "type": "array",
-      "minItems": 3,
-      "maxItems": 3,
+      "minItems": 2,
+      "maxItems": 5,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -71,7 +71,7 @@
           },
           "hook": {
             "type": "string",
-            "minLength": 6,
+            "minLength": 0,
             "maxLength": 70
           },
           "narration": {
@@ -82,6 +82,7 @@
           "layout": {
             "type": "string",
             "enum": [
+              "auto",
               "concept_map",
               "equation",
               "comparison",
@@ -94,6 +95,8 @@
           "scene_variant": {
             "type": "string",
             "enum": [
+              "auto",
+              "basic",
               "hero",
               "split",
               "spotlight",
@@ -110,7 +113,7 @@
           },
           "key_points": {
             "type": "array",
-            "minItems": 2,
+            "minItems": 0,
             "maxItems": 3,
             "items": {
               "type": "string",
@@ -120,7 +123,7 @@
           },
           "visual_items": {
             "type": "array",
-            "minItems": 2,
+            "minItems": 0,
             "maxItems": 4,
             "items": {
               "type": "string",
@@ -130,7 +133,7 @@
           },
           "highlight_terms": {
             "type": "array",
-            "minItems": 2,
+            "minItems": 0,
             "maxItems": 4,
             "items": {
               "type": "string",
@@ -148,7 +151,7 @@
           },
           "takeaway": {
             "type": "string",
-            "minLength": 8,
+            "minLength": 0,
             "maxLength": 90
           }
         }
