@@ -7,9 +7,10 @@ from pathlib import Path
 
 from flask import current_app
 
-from .claude_code import ClaudeCodeError, run_claude_json, run_claude_text
+from .claude_code import ClaudeCodeError, run_claude_json
 from .claude_cli import resolve_claude_cli_path
 from .deepgram_tts import DeepgramError, DeepgramTTSClient
+from .manim_builder import build_manim_module
 from .media import MediaError, concat_clips, mux_video_with_audio, render_scene
 from .repository import add_log, get_job, update_job
 
@@ -115,56 +116,6 @@ Return only JSON matching the provided schema.
 """.strip()
 
 
-def _build_scene_code_prompt(job: dict, storyboard: dict) -> str:
-    scene_classes = ", ".join(scene["class_name"] for scene in storyboard["scenes"])
-    return f"""
-Write a complete Manim Community Edition Python module for a narrated explainer video.
-
-Constraints:
-- Audience: developer
-- Output video target: 720p
-- Use only standard Manim objects and animations.
-- No placeholders, no TODO comments, no pseudo-code.
-- No external assets, no network, no local file reads.
-- Keep scenes visually rich and specific to the topic.
-- Do not use a generic template layout. Each scene should feel custom to the concept.
-- Use the exact scene class names listed below.
-- Each class must inherit from Scene.
-- Include `from manim import *`.
-- Include a top-level constant `SCENE_CLASS_NAMES = [...]` with the exact class names in order.
-- The module must run as-is with `python -m manim`.
-- Keep total scene durations roughly aligned to the provided `target_duration_seconds`.
-- Prefer diagrams, transforms, equations, axes, motion, comparisons, and labeled structures over static text.
-- Keep on-screen text sparse and high-signal.
-
-Exact scene class names:
-{scene_classes}
-
-Storyboard JSON:
-{json.dumps(storyboard, indent=2)}
-
-Return only Python code.
-""".strip()
-
-
-def _merge_stage_usage(*, storyboard_usage: dict, scene_code_usage: dict) -> dict:
-    storyboard_total = int(storyboard_usage["stage_totals"]["storyboard"])
-    scene_total = int(scene_code_usage["stage_totals"]["storyboard"])
-    total = storyboard_total + scene_total
-    return {
-        "provider": "claude-agent-sdk",
-        "stage_totals": {
-            "storyboard": storyboard_total,
-            "scene_prep_and_code": scene_total,
-            "other": 0,
-        },
-        "total_tokens": total,
-        "storyboard": storyboard_usage,
-        "scene_code": scene_code_usage,
-        "session_ids": [value for value in (storyboard_usage.get("session_id"), scene_code_usage.get("session_id")) if value],
-    }
-
-
 class VideoWorkflow:
     def __init__(self) -> None:
         self.app = current_app
@@ -197,7 +148,7 @@ class VideoWorkflow:
             storyboard = self._generate_audio(job, storyboard, audio_dir)
 
             self._set_state(job_id, current_step="Preparing scenes")
-            code_path, token_usage = self._build_scene_module(job, storyboard, agent_dir, token_usage)
+            code_path = self._build_scene_module(job, storyboard, agent_dir)
 
             final_video = self._render_and_assemble(job, storyboard, code_path, render_dir, clips_dir, final_dir)
 
@@ -232,7 +183,7 @@ class VideoWorkflow:
         if "current_step" in fields:
             add_log(job_id, fields["current_step"])
 
-    def _generate_storyboard(self, job: dict, agent_dir: Path) -> tuple[dict, dict]:
+    def _generate_storyboard(self, job: dict, agent_dir: Path) -> dict:
         storyboard_path = agent_dir / "storyboard.json"
         min_scene_count, max_scene_count = _storyboard_scene_limits()
         add_log(
@@ -322,7 +273,9 @@ class VideoWorkflow:
                 f"total {token_usage['total_tokens']}"
             ),
         )
-        return storyboard, token_usage
+        if token_usage["stage_totals"]["scene_prep_and_code"] == 0:
+            add_log(job["id"], "Scene prep and code agent tokens: 0 (deterministic local builder, no agent call).")
+        return storyboard
 
     def _generate_audio(self, job: dict, storyboard: dict, audio_dir: Path) -> dict:
         for index, scene in enumerate(storyboard["scenes"], start=1):
@@ -341,32 +294,12 @@ class VideoWorkflow:
         storyboard_file.write_text(json.dumps(storyboard, indent=2), encoding="utf-8")
         return storyboard
 
-    def _build_scene_module(self, job: dict, storyboard: dict, agent_dir: Path, storyboard_usage: dict) -> tuple[Path, dict]:
+    def _build_scene_module(self, job: dict, storyboard: dict, agent_dir: Path) -> Path:
         module_path = agent_dir / "generated_scenes.py"
-        code_prompt = _build_scene_code_prompt(job, storyboard)
-        add_log(job["id"], "Claude Code scene generation started.")
-        _, scene_code_usage = run_claude_text(
-            prompt=code_prompt,
-            workdir=agent_dir,
-            output_path=module_path,
-            model=self.app.config["CLAUDE_CODE_MODEL"],
-            max_turns=self.app.config["CLAUDE_CODE_MAX_TURNS"],
-            cli_path=self.app.config.get("CLAUDE_CODE_CLI_PATH") or None,
-        )
-        combined_usage = _merge_stage_usage(storyboard_usage=storyboard_usage, scene_code_usage=scene_code_usage)
-        update_job(job["id"], code_path=str(module_path), token_usage_json=json.dumps(combined_usage))
-        add_log(
-            job["id"],
-            (
-                "Claude Code tokens: "
-                f"storyboard {combined_usage['stage_totals']['storyboard']}, "
-                f"scene prep/code {combined_usage['stage_totals']['scene_prep_and_code']}, "
-                f"other {combined_usage['stage_totals']['other']}, "
-                f"total {combined_usage['total_tokens']}"
-            ),
-        )
+        build_manim_module(storyboard=storyboard, output_path=module_path)
+        update_job(job["id"], code_path=str(module_path))
         add_log(job["id"], "Scene module prepared.")
-        return module_path, combined_usage
+        return module_path
 
     def _render_and_assemble(
         self,

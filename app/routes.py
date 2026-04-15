@@ -151,6 +151,7 @@ def _build_job_payload(job: dict, include_logs: bool = False) -> dict:
     payload = dict(job)
     payload["video_url"] = None
     payload["storyboard"] = None
+    payload["raw_storyboard"] = None
     payload["claude_available"] = bool(resolve_claude_cli_path())
     payload["deepgram_ready"] = bool(current_app.config["DEEPGRAM_API_KEY"])
     payload["token_usage"] = _parse_token_usage(payload.get("token_usage_json"))
@@ -168,7 +169,8 @@ def _build_job_payload(job: dict, include_logs: bool = False) -> dict:
     if storyboard_path:
         story_file = Path(storyboard_path)
         if story_file.exists():
-            payload["storyboard"] = json.loads(story_file.read_text(encoding="utf-8"))
+            payload["raw_storyboard"] = story_file.read_text(encoding="utf-8")
+            payload["storyboard"] = json.loads(payload["raw_storyboard"])
         if not payload["token_usage"] and "/codex/" in storyboard_path:
             payload["token_usage_message"] = "This is an older job from the pre-SDK path, so no Claude usage was saved."
         elif not payload["token_usage"] and payload.get("status") == "completed":
