@@ -120,3 +120,32 @@ def run_claude_json(
         except (ClaudeCodeError, json.JSONDecodeError) as exc:
             last_error = exc
     raise ClaudeCodeError(str(last_error) if last_error else "Claude Agent SDK failed.")
+
+
+def run_claude_text(
+    *,
+    prompt: str,
+    workdir: Path,
+    output_path: Path,
+    model: str,
+    max_turns: int | None = None,
+    cli_path: str | None = None,
+    timeout_seconds: int = 900,
+) -> tuple[str, dict]:
+    del timeout_seconds
+    workdir = workdir.resolve()
+    output_path = output_path.resolve()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    last_error: Exception | None = None
+    for _ in range(2):
+        try:
+            result = asyncio.run(
+                _run_query(prompt, workdir=workdir, model=model, max_turns=max_turns, cli_path=cli_path)
+            )
+            cleaned = strip_markdown_fences(result.result or "")
+            output_path.write_text(cleaned, encoding="utf-8")
+            return cleaned, _usage_dict(result, max_turns=max_turns)
+        except ClaudeCodeError as exc:
+            last_error = exc
+    raise ClaudeCodeError(str(last_error) if last_error else "Claude Agent SDK failed.")

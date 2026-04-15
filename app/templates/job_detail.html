@@ -131,7 +131,6 @@
                         <div class="rounded-md bg-slate-50 px-3 py-3">
                             <p class="text-xs uppercase tracking-wide text-slate-500">Scene prep and code</p>
                             <p class="mt-1 font-medium text-slate-900">{{ job.token_usage.stage_totals.scene_prep_and_code }}</p>
-                            <p class="mt-1 text-xs text-slate-500">Deterministic local builder unless a future agent stage is added.</p>
                         </div>
                         <div class="rounded-md bg-slate-50 px-3 py-3">
                             <p class="text-xs uppercase tracking-wide text-slate-500">Other agent usage</p>
@@ -148,38 +147,6 @@
             </div>
         </section>
 
-        <section class="rounded-lg border border-slate-200 bg-white">
-            <div class="border-b border-slate-200 px-4 py-3 text-sm font-medium">Raw AI output</div>
-            <div class="px-4 py-4 text-sm">
-                {% if job.raw_storyboard %}
-                    <pre id="raw-storyboard-shell" class="overflow-x-auto whitespace-pre-wrap break-words rounded-md bg-slate-950 px-4 py-4 text-xs text-slate-100">{{ job.raw_storyboard }}</pre>
-                {% else %}
-                    <div id="raw-storyboard-shell" class="text-slate-500">Raw storyboard JSON pending.</div>
-                {% endif %}
-            </div>
-        </section>
-
-        <section class="rounded-lg border border-slate-200 bg-white">
-            <div class="border-b border-slate-200 px-4 py-3 text-sm font-medium">Storyboard</div>
-            <div id="storyboard-shell" class="space-y-4 px-4 py-4 text-sm">
-                {% if job.storyboard %}
-                    <div class="space-y-2">
-                        <p class="text-slate-700">{{ job.storyboard.summary }}</p>
-                        <p class="text-xs text-slate-500">Scenes: {{ job.scene_count }}</p>
-                    </div>
-                    {% for scene in job.storyboard.scenes %}
-                        <article class="space-y-2 border-t border-slate-200 pt-4">
-                            <h3 class="font-medium">{{ loop.index }}. {{ scene.headline }}</h3>
-                            <p class="text-xs uppercase tracking-wide text-slate-500">Layout: {{ scene.layout }} · Format: {{ scene.scene_variant }}</p>
-                            <p class="text-sm font-medium text-slate-700">{{ scene.hook }}</p>
-                            <p class="text-slate-600">{{ scene.visual_goal }}</p>
-                        </article>
-                    {% endfor %}
-                {% else %}
-                    <div class="text-slate-500">Storyboard pending.</div>
-                {% endif %}
-            </div>
-        </section>
     </div>
 </section>
 
@@ -202,32 +169,6 @@ function statusClass(status) {
     if (status === "failed") return "inline-flex px-2 py-1 text-xs font-medium uppercase tracking-wide bg-rose-50 text-rose-700";
     if (status === "running") return "inline-flex px-2 py-1 text-xs font-medium uppercase tracking-wide bg-sky-50 text-sky-700";
     return "inline-flex px-2 py-1 text-xs font-medium uppercase tracking-wide bg-slate-100 text-slate-700";
-}
-
-function renderStoryboard(storyboard, sceneCount) {
-    if (!storyboard) return '<div class="text-slate-500">Storyboard pending.</div>';
-    const scenes = storyboard.scenes.map((scene, index) => `
-        <article class="space-y-2 border-t border-slate-200 pt-4">
-            <h3 class="font-medium">${index + 1}. ${escapeHtml(scene.headline)}</h3>
-            <p class="text-xs uppercase tracking-wide text-slate-500">Layout: ${escapeHtml(scene.layout)} · Format: ${escapeHtml(scene.scene_variant || "basic")}</p>
-            <p class="text-sm font-medium text-slate-700">${escapeHtml(scene.hook || "")}</p>
-            <p class="text-slate-600">${escapeHtml(scene.visual_goal || "")}</p>
-        </article>
-    `).join("");
-    return `
-        <div class="space-y-2">
-            <p class="text-slate-700">${escapeHtml(storyboard.summary)}</p>
-            <p class="text-xs text-slate-500">Scenes: ${sceneCount}</p>
-        </div>
-        ${scenes}
-    `;
-}
-
-function renderRawStoryboard(job) {
-    if (!job.raw_storyboard) {
-        return '<div id="raw-storyboard-shell" class="text-slate-500">Raw storyboard JSON pending.</div>';
-    }
-    return `<pre id="raw-storyboard-shell" class="overflow-x-auto whitespace-pre-wrap break-words rounded-md bg-slate-950 px-4 py-4 text-xs text-slate-100">${escapeHtml(job.raw_storyboard)}</pre>`;
 }
 
 function renderLogs(logs) {
@@ -307,8 +248,6 @@ async function pollJob() {
     document.getElementById("progress-detail").textContent = job.progress_detail || "";
     document.getElementById("pipeline-shell").innerHTML = renderPipeline(job);
     document.getElementById("token-shell").innerHTML = renderTokenUsage(job);
-    document.getElementById("raw-storyboard-shell").outerHTML = renderRawStoryboard(job);
-    document.getElementById("storyboard-shell").innerHTML = renderStoryboard(job.storyboard, job.scene_count);
     document.getElementById("log-shell").innerHTML = renderLogs(job.logs);
 
     const videoShell = document.getElementById("video-shell");
