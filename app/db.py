@@ -25,6 +25,10 @@ CREATE TABLE IF NOT EXISTS jobs (
     code_path TEXT,
     video_path TEXT,
     token_usage_json TEXT,
+    pre_score INTEGER,
+    post_score INTEGER,
+    quiz_json TEXT,
+    survey_json TEXT,
     error_message TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
@@ -69,6 +73,10 @@ def _migrate_schema(db: sqlite3.Connection) -> None:
         "provider": "ALTER TABLE jobs ADD COLUMN provider TEXT NOT NULL DEFAULT 'claude-agent-sdk'",
         "model": "ALTER TABLE jobs ADD COLUMN model TEXT NOT NULL DEFAULT 'claude-sonnet-4-6'",
         "token_usage_json": "ALTER TABLE jobs ADD COLUMN token_usage_json TEXT",
+        "pre_score": "ALTER TABLE jobs ADD COLUMN pre_score INTEGER",
+        "post_score": "ALTER TABLE jobs ADD COLUMN post_score INTEGER",
+        "quiz_json": "ALTER TABLE jobs ADD COLUMN quiz_json TEXT",
+        "survey_json": "ALTER TABLE jobs ADD COLUMN survey_json TEXT",
     }
     for column, statement in migrations.items():
         if column not in columns:

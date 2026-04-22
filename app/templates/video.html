@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="space-y-5">
+    <div class="flex flex-col gap-3 border-b border-neutral-200 pb-4 md:flex-row md:items-end md:justify-between">
+        <div>
+            <p class="eyebrow">Watch</p>
+            <h1 id="job-title" class="mt-2 text-4xl font-semibold tracking-tight">{{ job.title or job.concept }}</h1>
+            <p id="progress-detail" class="mt-2 text-sm text-neutral-600">{{ job.progress_detail }}</p>
+        </div>
+        <a href="{{ url_for('main.library') }}" class="text-sm text-neutral-500 hover:text-neutral-950">Library</a>
+    </div>
+
+    <div id="video-shell" class="aspect-video overflow-hidden rounded-lg bg-neutral-950">
+        {% if job.video_url %}
+            <video id="video-player" controls playsinline class="h-full w-full" src="{{ job.video_url }}"></video>
+        {% else %}
+            <div class="video-waiting">
+                <div class="render-orbit" aria-hidden="true"><span></span><span></span><span></span></div>
+                <div class="w-full max-w-lg">
+                    <div class="mb-4 h-1.5 overflow-hidden rounded-full bg-white/20">
+                        <div id="progress-bar" class="h-full rounded-full bg-white lern-loading-bar" style="width: {{ job.progress_percent }}%"></div>
+                    </div>
+                    <p id="waiting-copy">Rendering scenes and assembling the MP4.</p>
+                    <p id="waiting-meta">{{ job.current_step }}</p>
+                </div>
+        {% endif %}
+    </div>
+    <div class="flex flex-wrap gap-3">
+        {% if job.video_url %}
+            <a id="download-link" href="{{ job.video_url }}" download class="btn-secondary">Download MP4</a>
+        {% else %}
+            <a id="download-link" href="#" download class="hidden btn-secondary">Download MP4</a>
+        {% endif %}
+        <a id="post-link" href="{{ url_for('main.post_quiz', job_id=job.id) }}" class="btn-primary pointer-events-none opacity-40">Post-quiz</a>
+        <a href="{{ url_for('main.debug_job', job_id=job.id) }}" class="btn-secondary">Details</a>
+    </div>
+    {% if job.error_message %}
+        <div id="error-box" class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{{ job.error_message }}</div>
+    {% else %}
+        <div id="error-box" class="hidden rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"></div>
+    {% endif %}
+</section>
+
+<script>
+const jobId = "{{ job.id }}";
+
+function enablePost() {
+    const link = document.getElementById("post-link");
+    link.classList.remove("pointer-events-none", "opacity-40");
+}
+
+function attachPlayer() {
+    const player = document.getElementById("video-player");
+    if (player) player.addEventListener("ended", enablePost, { once: true });
+}
+
+function renderVideo(job) {
+    if (!job.video_url) return;
+    const shell = document.getElementById("video-shell");
+    if (!document.getElementById("video-player")) {
+        shell.innerHTML = `<video id="video-player" controls playsinline class="h-full w-full" src="${job.video_url}"></video>`;
+        attachPlayer();
+    }
+    const download = document.getElementById("download-link");
+    download.href = job.video_url;
+    download.classList.remove("hidden");
+}
+
+async function pollJob() {
+    const response = await fetch(`/api/jobs/${jobId}`, { cache: "no-store" });
+    if (!response.ok) return;
+    const job = await response.json();
+    document.getElementById("job-title").textContent = job.title || job.concept;
+    document.getElementById("progress-detail").textContent = job.progress_detail || "";
+    const bar = document.getElementById("progress-bar");
+    if (bar) bar.style.width = `${job.progress_percent}%`;
+    const meta = document.getElementById("waiting-meta");
+    if (meta) meta.textContent = job.current_step || job.progress_detail || "";
+    renderVideo(job);
+
+    const errorBox = document.getElementById("error-box");
+    if (job.error_message) {
+        errorBox.textContent = job.error_message;
+        errorBox.classList.remove("hidden");
+    }
+    if (job.is_active) window.setTimeout(pollJob, {{ poll_interval_ms }});
+}
+
+attachPlayer();
+if ({{ "true" if job.is_active else "false" }}) pollJob();
+</script>
+{% endblock %}

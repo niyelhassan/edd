@@ -25,6 +25,24 @@ def strip_markdown_fences(text: str) -> str:
     return "\n".join(lines).strip()
 
 
+def extract_json_text(text: str) -> str:
+    cleaned = strip_markdown_fences(text)
+    decoder = json.JSONDecoder()
+    try:
+        _parsed, end = decoder.raw_decode(cleaned)
+        return cleaned[:end].strip()
+    except json.JSONDecodeError:
+        pass
+
+    starts = [index for index in (cleaned.find("{"), cleaned.find("[")) if index >= 0]
+    if not starts:
+        return cleaned
+
+    start = min(starts)
+    _parsed, end = decoder.raw_decode(cleaned[start:])
+    return cleaned[start : start + end].strip()
+
+
 def _usage_dict(message: ResultMessage, *, max_turns: int | None) -> dict:
     usage = dict(message.usage or {})
     model_usage = dict(message.model_usage or {})
@@ -113,7 +131,7 @@ def run_claude_json(
             result = asyncio.run(
                 _run_query(prompt, workdir=workdir, model=model, max_turns=max_turns, cli_path=cli_path)
             )
-            cleaned = strip_markdown_fences(result.result or "")
+            cleaned = extract_json_text(result.result or "")
             parsed = json.loads(cleaned)
             output_path.write_text(cleaned, encoding="utf-8")
             return parsed, _usage_dict(result, max_turns=max_turns)

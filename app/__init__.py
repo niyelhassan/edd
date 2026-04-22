@@ -20,6 +20,7 @@ def create_app() -> Flask:
     app.config.update(
         SECRET_KEY=os.getenv("SECRET_KEY", app.config["SECRET_KEY"]),
         CLAUDE_CODE_MODEL=os.getenv("CLAUDE_CODE_MODEL", app.config["CLAUDE_CODE_MODEL"]),
+        CLAUDE_QUESTION_MODEL=os.getenv("CLAUDE_QUESTION_MODEL", app.config["CLAUDE_QUESTION_MODEL"]),
         CLAUDE_CODE_MAX_TURNS=int(claude_max_turns_raw) if claude_max_turns_raw.strip() else None,
         CLAUDE_CODE_CLI_PATH=os.getenv("CLAUDE_CODE_CLI_PATH", resolve_claude_cli_path() or ""),
         DEEPGRAM_API_KEY=os.getenv("DEEPGRAM_API_KEY", app.config["DEEPGRAM_API_KEY"]),

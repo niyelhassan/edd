@@ -37,6 +37,7 @@ The app reads `.env` automatically. Important variables:
 - `DEEPGRAM_API_KEY`
 - `DEEPGRAM_VOICE_MODEL`
 - `CLAUDE_CODE_MODEL`
+- `CLAUDE_QUESTION_MODEL`
 - `CLAUDE_CODE_MAX_TURNS`
 - `DEFAULT_RENDER_QUALITY`
 

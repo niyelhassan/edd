@@ -221,13 +221,32 @@ class VideoWorkflow:
         storyboard["visual_theme"] = storyboard.get("visual_theme") or _default_visual_theme(
             storyboard.get("title") or job["concept"]
         )
+        storyboard["title"] = storyboard.get("title") or job["concept"]
+        storyboard["summary"] = storyboard.get("summary") or f"A concise explainer about {job['concept']}."
+        storyboard["learning_objective"] = storyboard.get("learning_objective") or f"Understand the core idea behind {job['concept']}."
+        storyboard["closing_takeaway"] = storyboard.get("closing_takeaway") or f"Use {job['concept']} by tracking the assumptions, changes, and result."
 
         for index, scene in enumerate(scenes, start=1):
-            scene["slug"] = _slugify(scene.get("slug") or scene.get("headline") or f"scene-{index}")
+            headline = (scene.get("headline") or scene.get("title") or f"{job['concept']} part {index}").strip()
+            scene["headline"] = headline[:60]
+            scene["slug"] = _slugify(scene.get("slug") or scene["headline"] or f"scene-{index}")
             scene["class_name"] = _class_name(index, scene["slug"])
-            scene["hook"] = (scene.get("hook") or scene.get("takeaway") or scene["headline"]).strip()
+            scene["hook"] = (scene.get("hook") or scene.get("takeaway") or scene["headline"]).strip()[:70]
+            scene["takeaway"] = (scene.get("takeaway") or scene["hook"]).strip()[:90]
+            scene["narration"] = (
+                scene.get("narration")
+                or f"This scene introduces {scene['headline']} as part of {job['concept']}. It focuses on the main relationship, a simple example, and why the idea matters for the full explanation."
+            ).strip()
+            scene["visual_goal"] = (
+                scene.get("visual_goal")
+                or f"Show {scene['headline']} with simple labels, arrows, and a compact comparison."
+            ).strip()
             scene["layout"] = (scene.get("layout") or "auto").strip() or "auto"
+            if scene["layout"] not in {"auto", "concept_map", "equation", "comparison", "axes", "timeline", "flow", "orbit"}:
+                scene["layout"] = "auto"
             scene["scene_variant"] = scene.get("scene_variant") or _default_scene_variant(index, scene["layout"])
+            if scene["scene_variant"] != "basic":
+                scene["scene_variant"] = "basic"
             scene["highlight_terms"] = _normalize_short_list(
                 scene.get("highlight_terms"),
                 [scene["headline"]],
