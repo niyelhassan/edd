@@ -1,115 +1,136 @@
-{% extends "base.html" %}
-
-{% block site_header %}{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block site_header %}{% endblock %} {% block content
+%}
 <section class="fixed inset-0 z-50 overflow-hidden bg-white">
-    <a href="{{ url_for('main.home') }}" class="absolute left-5 top-5 z-20 text-xl font-semibold tracking-tight">lern</a>
-    <form action="{{ url_for('main.onboarding_done') }}" method="post" class="absolute right-4 top-4 z-20">
-        <button class="rounded-md px-3 py-2 text-sm text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950">Skip</button>
-    </form>
+  <a
+    href="{{ url_for('main.home') }}"
+    class="absolute left-5 top-5 z-20 text-xl font-semibold tracking-tight"
+    >lern</a
+  >
+  <form
+    action="{{ url_for('main.onboarding_done') }}"
+    method="post"
+    class="absolute right-4 top-4 z-20"
+  >
+    <button
+      class="rounded-md px-3 py-2 text-sm text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950"
+    >
+      Skip
+    </button>
+  </form>
 
-    <div class="onboarding-stage">
-        <article class="onboarding-slide active">
-            <div>
-                <p class="eyebrow">Instructions</p>
-                <h1>Generate. Watch. Compare.</h1>
-            </div>
-            <div class="walkthrough-video">
-                <div class="walkthrough-toolbar"><span></span><span></span><span></span></div>
-                <div class="walkthrough-lines">
-                    <i></i><i></i><i></i>
-                </div>
-                <div class="walkthrough-play"></div>
-            </div>
-        </article>
+  <div class="onboarding-stage">
+    <article class="onboarding-slide active">
+      <div>
+        <p class="eyebrow">Instructions</p>
+        <h1>Generate. Watch. Compare.</h1>
+      </div>
+      <div class="walkthrough-video">
+        <div class="walkthrough-toolbar">
+          <span></span><span></span><span></span>
+        </div>
+        <div class="walkthrough-lines"><i></i><i></i><i></i></div>
+        <div class="walkthrough-play"></div>
+      </div>
+    </article>
 
-        <article class="onboarding-slide">
-            <div>
-                <p class="eyebrow">Generate</p>
-                <h1>Describe the concept.</h1>
-            </div>
-            <div class="walkthrough-video form-demo">
-                <b>Bayes theorem for genetics data</b>
-                <span>Common misconception: base rates</span>
-                <button>Generate video</button>
-            </div>
-        </article>
+    <article class="onboarding-slide">
+      <div>
+        <p class="eyebrow">Generate</p>
+        <h1>Describe the concept.</h1>
+      </div>
+      <div class="walkthrough-video form-demo">
+        <b>Bayes theorem for genetics data</b>
+        <span>Common misconception: base rates</span>
+        <button>Generate video</button>
+      </div>
+    </article>
 
-        <article class="onboarding-slide">
-            <div>
-                <p class="eyebrow">Assess</p>
-                <h1>Answer the pre-quiz.</h1>
-            </div>
-            <div class="walkthrough-video quiz-demo">
-                <strong>Question 1 of 5</strong>
-                <span></span><span></span><span></span>
-            </div>
-        </article>
+    <article class="onboarding-slide">
+      <div>
+        <p class="eyebrow">Assess</p>
+        <h1>Answer the pre-quiz.</h1>
+      </div>
+      <div class="walkthrough-video quiz-demo">
+        <strong>Question 1 of 5</strong>
+        <span></span><span></span><span></span>
+      </div>
+    </article>
 
-        <article class="onboarding-slide">
-            <div>
-                <p class="eyebrow">Watch</p>
-                <h1>Watch the video.</h1>
-            </div>
-            <div class="walkthrough-video player-demo">
-                <div class="walkthrough-play"></div>
-                <div class="player-demo-bar"><span></span></div>
-            </div>
-        </article>
+    <article class="onboarding-slide">
+      <div>
+        <p class="eyebrow">Watch</p>
+        <h1>Watch the video.</h1>
+      </div>
+      <div class="walkthrough-video player-demo">
+        <div class="walkthrough-play"></div>
+        <div class="player-demo-bar"><span></span></div>
+      </div>
+    </article>
 
-        <article class="onboarding-slide">
-            <div>
-                <p class="eyebrow">Results</p>
-                <h1>See the change.</h1>
-                <form action="{{ url_for('main.onboarding_done') }}" method="post" class="mt-6">
-                    <button class="btn-primary">Get started</button>
-                </form>
-            </div>
-            <div class="walkthrough-video results-demo">
-                <div><small>Pre</small><strong>2/5</strong></div>
-                <div><small>Post</small><strong>4/5</strong></div>
-                <div><small>Gain</small><strong>+2</strong></div>
-            </div>
-        </article>
-    </div>
+    <article class="onboarding-slide">
+      <div>
+        <p class="eyebrow">Results</p>
+        <h1>See the change.</h1>
+        <form
+          action="{{ url_for('main.onboarding_done') }}"
+          method="post"
+          class="mt-6"
+        >
+          <button class="btn-primary">Get started</button>
+        </form>
+      </div>
+      <div class="walkthrough-video results-demo">
+        <div><small>Pre</small><strong>2/5</strong></div>
+        <div><small>Post</small><strong>4/5</strong></div>
+        <div><small>Gain</small><strong>+2</strong></div>
+      </div>
+    </article>
+  </div>
 
-    <div class="onboarding-controls">
-        <button type="button" id="prevSlide" class="btn-secondary">Back</button>
-        <div id="onboardingDots" class="flex gap-2"></div>
-        <button type="button" id="nextSlide" class="btn-primary">Next</button>
-    </div>
+  <div class="onboarding-controls">
+    <button type="button" id="prevSlide" class="btn-secondary">Back</button>
+    <div id="onboardingDots" class="flex gap-2"></div>
+    <button type="button" id="nextSlide" class="btn-primary">Next</button>
+  </div>
 </section>
 
 <script>
-const slides = Array.from(document.querySelectorAll(".onboarding-slide"));
-const dots = document.getElementById("onboardingDots");
-let activeSlide = 0;
+  const slides = Array.from(document.querySelectorAll(".onboarding-slide"));
+  const dots = document.getElementById("onboardingDots");
+  let activeSlide = 0;
 
-slides.forEach((_, index) => {
+  slides.forEach((_, index) => {
     const dot = document.createElement("button");
     dot.type = "button";
     dot.className = "onboarding-dot";
     dot.addEventListener("click", () => showSlide(index));
     dots.appendChild(dot);
-});
+  });
 
-function showSlide(index) {
+  function showSlide(index) {
     activeSlide = Math.max(0, Math.min(slides.length - 1, index));
-    slides.forEach((slide, slideIndex) => slide.classList.toggle("active", slideIndex === activeSlide));
-    Array.from(dots.children).forEach((dot, dotIndex) => dot.classList.toggle("active", dotIndex === activeSlide));
-    document.getElementById("prevSlide").style.visibility = activeSlide === 0 ? "hidden" : "visible";
-    document.getElementById("nextSlide").textContent = activeSlide === slides.length - 1 ? "Start" : "Next";
-}
+    slides.forEach((slide, slideIndex) =>
+      slide.classList.toggle("active", slideIndex === activeSlide),
+    );
+    Array.from(dots.children).forEach((dot, dotIndex) =>
+      dot.classList.toggle("active", dotIndex === activeSlide),
+    );
+    document.getElementById("prevSlide").style.visibility =
+      activeSlide === 0 ? "hidden" : "visible";
+    document.getElementById("nextSlide").textContent =
+      activeSlide === slides.length - 1 ? "Start" : "Next";
+  }
 
-document.getElementById("prevSlide").addEventListener("click", () => showSlide(activeSlide - 1));
-document.getElementById("nextSlide").addEventListener("click", () => {
+  document
+    .getElementById("prevSlide")
+    .addEventListener("click", () => showSlide(activeSlide - 1));
+  document.getElementById("nextSlide").addEventListener("click", () => {
     if (activeSlide === slides.length - 1) {
-        document.querySelector("form[action$='/onboarding/done']").submit();
+      document.querySelector("form[action$='/onboarding/done']").submit();
     } else {
-        showSlide(activeSlide + 1);
+      showSlide(activeSlide + 1);
     }
-});
-showSlide(0);
+  });
+  showSlide(0);
 </script>
 {% endblock %}

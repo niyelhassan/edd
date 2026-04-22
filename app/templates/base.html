@@ -1,64 +1,91 @@
 <!doctype html>
 <html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>lern</title>
-    <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+    <link
+      rel="icon"
+      href="{{ url_for('static', filename='favicon.svg') }}"
+      type="image/svg+xml"
+    />
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='styles.css') }}"
+    />
     {% block head_extra %}{% endblock %}
     <style>
-        @keyframes candy-cane {
-            from { background-position: 0 0; }
-            to { background-position: 40px 0; }
+      @keyframes candy-cane {
+        from {
+          background-position: 0 0;
         }
-        @keyframes soft-blink {
-            0%, 100% { opacity: 0.45; transform: scale(1); }
-            50% { opacity: 1; transform: scale(1.18); }
+        to {
+          background-position: 40px 0;
         }
-        .lern-loading-bar {
-            background-image:
-                linear-gradient(
-                    135deg,
-                    rgba(255,255,255,0.16) 25%,
-                    transparent 25%,
-                    transparent 50%,
-                    rgba(255,255,255,0.16) 50%,
-                    rgba(255,255,255,0.16) 75%,
-                    transparent 75%,
-                    transparent
-                );
-            background-size: 36px 36px;
-            animation: candy-cane 1s linear infinite;
+      }
+      @keyframes soft-blink {
+        0%,
+        100% {
+          opacity: 0.45;
+          transform: scale(1);
         }
-        .lern-loading-dot {
-            animation: soft-blink 1s ease-in-out infinite;
+        50% {
+          opacity: 1;
+          transform: scale(1.18);
         }
+      }
+      .lern-loading-bar {
+        background-image: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.16) 25%,
+          transparent 25%,
+          transparent 50%,
+          rgba(255, 255, 255, 0.16) 50%,
+          rgba(255, 255, 255, 0.16) 75%,
+          transparent 75%,
+          transparent
+        );
+        background-size: 36px 36px;
+        animation: candy-cane 1s linear infinite;
+      }
+      .lern-loading-dot {
+        animation: soft-blink 1s ease-in-out infinite;
+      }
     </style>
-</head>
-<body class="min-h-screen bg-[#f7f8fb] text-neutral-950">
+  </head>
+  <body class="min-h-screen bg-[#f7f8fb] text-neutral-950">
     <div class="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-        {% block site_header %}
-        <header class="mb-7 flex items-center justify-between border-b border-neutral-200 pb-4">
-            <a href="{{ url_for('main.home') }}" class="text-xl font-semibold tracking-tight">lern</a>
-            <nav class="flex items-center gap-4 text-sm text-neutral-500">
-                <a href="{{ url_for('main.onboarding') }}" class="hover:text-neutral-950">Instructions</a>
-            </nav>
-        </header>
-        {% endblock %}
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-                <section class="mb-4 space-y-2">
-                    {% for message in messages %}
-                        <div class="border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">{{ message }}</div>
-                    {% endfor %}
-                </section>
-            {% endif %}
-        {% endwith %}
-        <main class="space-y-6">
-            {% block content %}{% endblock %}
-        </main>
+      {% block site_header %}
+      <header
+        class="mb-7 flex items-center justify-between border-b border-neutral-200 pb-4"
+      >
+        <a
+          href="{{ url_for('main.home') }}"
+          class="text-xl font-semibold tracking-tight"
+          >lern</a
+        >
+        <nav class="flex items-center gap-4 text-sm text-neutral-500">
+          <a
+            href="{{ url_for('main.onboarding') }}"
+            class="hover:text-neutral-950"
+            >Instructions</a
+          >
+        </nav>
+      </header>
+      {% endblock %} {% with messages = get_flashed_messages() %} {% if messages
+      %}
+      <section class="mb-4 space-y-2">
+        {% for message in messages %}
+        <div
+          class="border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+        >
+          {{ message }}
+        </div>
+        {% endfor %}
+      </section>
+      {% endif %} {% endwith %}
+      <main class="space-y-6">{% block content %}{% endblock %}</main>
     </div>
-</body>
+  </body>
 </html>
