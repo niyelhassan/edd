@@ -1,341 +1,102 @@
 {% extends "base.html" %}
 
 {% block content %}
-<section class="flex flex-col gap-3 border-b border-slate-200 pb-4">
-    <a href="{{ url_for('main.index') }}" class="text-sm text-slate-600 hover:text-slate-900">← Back</a>
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div class="space-y-2">
-            <p class="text-xs uppercase tracking-[0.2em] text-slate-500">Job {{ job.id }}</p>
-            <h1 id="job-title" class="text-3xl font-semibold tracking-tight">{{ job.title or job.concept }}</h1>
-            <p id="job-step" class="text-sm text-slate-600">{{ job.current_step }}</p>
+<section class="space-y-6">
+    <div class="flex flex-col gap-3 border-b border-neutral-200 pb-4 md:flex-row md:items-start md:justify-between">
+        <div>
+            <a href="{{ url_for('main.home') }}" class="text-sm text-neutral-500 hover:text-neutral-950">Back home</a>
+            <p class="eyebrow mt-4">Job {{ job.id }}</p>
+            <h1 class="mt-2 text-4xl font-semibold tracking-tight">{{ job.title or job.concept }}</h1>
+            <p class="mt-2 text-sm text-neutral-600">{{ job.current_step }}</p>
         </div>
-        <div class="flex items-center gap-3">
-            <span id="job-status" class="inline-flex px-2 py-1 text-xs font-medium uppercase tracking-wide
-                {% if job.status == 'completed' %}bg-emerald-50 text-emerald-700
-                {% elif job.status == 'failed' %}bg-rose-50 text-rose-700
-                {% elif job.status == 'running' %}bg-sky-50 text-sky-700
-                {% else %}bg-slate-100 text-slate-700{% endif %}">{{ job.status }}</span>
-            <form method="post" action="{{ url_for('main.rerun_job', job_id=job.id) }}">
-                <button type="submit" class="border border-slate-300 px-3 py-2 text-sm hover:bg-slate-100">Rerun</button>
-            </form>
-        </div>
+        <form method="post" action="{{ url_for('main.rerun_job', job_id=job.id) }}">
+            <button type="submit" class="btn-secondary">Rerun</button>
+        </form>
     </div>
-    <div class="space-y-2">
-        <div class="flex items-center justify-between text-xs text-slate-500">
-            <span>Progress</span>
-            <span id="progress-label">{{ job.progress_percent }}%</span>
-        </div>
-        <div class="overflow-hidden rounded-full bg-slate-200">
-            <div id="progress-bar" class="h-2 rounded-full bg-slate-900 transition-all duration-500 ease-out {% if job.is_active %}lern-loading-bar{% endif %}" style="width: {{ job.progress_percent }}%"></div>
-        </div>
-        <p id="progress-detail" class="text-xs text-slate-500">{{ job.progress_detail }}</p>
-    </div>
-</section>
 
-<section class="grid gap-6 lg:grid-cols-[1.4fr_0.8fr]">
-    <div class="space-y-6">
-        <section class="rounded-lg border border-slate-200 bg-white">
-            <div class="border-b border-slate-200 px-4 py-3 text-sm font-medium">Input</div>
-            <div class="space-y-4 px-4 py-4 text-sm">
-                <div>
-                    <p class="mb-1 text-xs uppercase tracking-wide text-slate-500">Concept</p>
-                    <p id="concept-copy" class="text-slate-700">{{ job.concept }}</p>
+    <div class="grid gap-4 md:grid-cols-3">
+        <section class="debug-card">
+            <div class="debug-card-header">Status</div>
+            <div class="debug-card-body text-sm text-neutral-600">
+                <p class="font-medium text-neutral-950">{{ job.status }}</p>
+                <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-neutral-200">
+                    <div class="h-full rounded-full bg-neutral-950 {% if job.is_active %}lern-loading-bar{% endif %}" style="width: {{ job.progress_percent }}%"></div>
                 </div>
-                <div>
-                    <p class="mb-1 text-xs uppercase tracking-wide text-slate-500">Research context</p>
-                    <p id="research-copy" class="text-slate-600">{{ job.research or "No extra research context provided." }}</p>
-                </div>
-                <div class="grid gap-3 sm:grid-cols-2">
-                    <div>
-                        <p class="mb-1 text-xs uppercase tracking-wide text-slate-500">Length</p>
-                        <p class="text-slate-700">{{ job.duration_label }} · {{ job.duration_seconds }}s</p>
-                    </div>
-                    <div>
-                        <p class="mb-1 text-xs uppercase tracking-wide text-slate-500">Render</p>
-                        <p class="text-slate-700">{{ job.render_quality }}</p>
-                    </div>
-                    <div>
-                        <p class="mb-1 text-xs uppercase tracking-wide text-slate-500">Provider</p>
-                        <p class="text-slate-700">{{ job.provider }}</p>
-                    </div>
-                    <div>
-                        <p class="mb-1 text-xs uppercase tracking-wide text-slate-500">Model</p>
-                        <p class="text-slate-700">{{ job.model }}</p>
-                    </div>
-                </div>
+                <p class="mt-2">{{ job.progress_percent }}% · {{ job.progress_detail }}</p>
             </div>
         </section>
 
-        <section class="rounded-lg border border-slate-200 bg-white">
-            <div class="border-b border-slate-200 px-4 py-3 text-sm font-medium">Video</div>
-            <div id="video-shell" class="px-4 py-4">
-                {% if job.video_url %}
-                    <video id="video-player" controls class="w-full bg-black" src="{{ job.video_url }}"></video>
+        <section class="debug-card">
+            <div class="debug-card-header">Input</div>
+            <div class="debug-card-body text-sm text-neutral-600">
+                <p class="font-medium text-neutral-950">{{ job.concept }}</p>
+                <p class="mt-2">{{ job.research or "No research context." }}</p>
+            </div>
+        </section>
+
+        <section class="debug-card">
+            <div class="debug-card-header">Agent usage</div>
+            <div class="debug-card-body text-sm text-neutral-600">
+                {% if job.token_usage %}
+                    <p><span class="font-medium text-neutral-950">{{ job.token_usage.stage_totals.storyboard }}</span> planning tokens</p>
+                    {% if job.token_usage.cost_usd is not none %}
+                        <p class="mt-2"><span class="font-medium text-neutral-950">${{ "%.4f"|format(job.token_usage.cost_usd) }}</span> estimated cost</p>
+                    {% endif %}
+                    <p class="mt-2 text-xs">Input {{ job.token_usage.input_tokens or 0 }} · Output {{ job.token_usage.output_tokens or 0 }} · Cache {{ (job.token_usage.cache_read_input_tokens or 0) + (job.token_usage.cache_creation_input_tokens or 0) }}</p>
                 {% else %}
-                    <div class="text-sm text-slate-500">The MP4 will appear here when rendering finishes.</div>
+                    <p>{{ job.token_usage_message or "Usage appears after planning." }}</p>
                 {% endif %}
             </div>
-            {% if job.error_message %}
-                <div class="border-t border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800" id="error-box">{{ job.error_message }}</div>
-            {% else %}
-                <div class="hidden border-t border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800" id="error-box"></div>
-            {% endif %}
         </section>
+    </div>
 
-        <section class="rounded-lg border border-slate-200 bg-white">
-            <div class="border-b border-slate-200 px-4 py-3 text-sm font-medium">Execution log</div>
-            <div id="log-shell" class="divide-y divide-slate-200 text-sm">
-                {% for entry in job.logs %}
-                    <div class="grid gap-1 px-4 py-3 sm:grid-cols-[180px_60px_1fr]">
-                        <span class="font-mono text-xs text-slate-500">{{ entry.timestamp }}</span>
-                        <strong class="text-xs uppercase tracking-wide text-slate-500">{{ entry.level }}</strong>
-                        <p class="text-slate-700">{{ entry.message }}</p>
-                    </div>
+    {% if job.error_message %}
+        <section class="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">{{ job.error_message }}</section>
+    {% endif %}
+
+    <section class="debug-card">
+        <div class="debug-card-header">Storyboard</div>
+        <div class="debug-card-body space-y-4 text-sm">
+            {% if job.storyboard %}
+                <div>
+                    <p class="text-neutral-700">{{ job.storyboard.summary }}</p>
+                    <p class="mt-1 text-xs text-neutral-500">Scenes: {{ job.scene_count }}</p>
+                </div>
+                {% for scene in job.storyboard.scenes %}
+                    <article class="border-t border-neutral-200 pt-4">
+                        <h3 class="font-medium">{{ loop.index }}. {{ scene.headline }}</h3>
+                        <p class="mt-1 text-xs uppercase tracking-wide text-neutral-500">{{ scene.layout }} · {{ scene.scene_variant }}</p>
+                        <p class="mt-2 text-neutral-700">{{ scene.visual_goal }}</p>
+                    </article>
                 {% endfor %}
-            </div>
-        </section>
-    </div>
+            {% else %}
+                <p class="text-neutral-500">Storyboard pending.</p>
+            {% endif %}
+        </div>
+    </section>
 
-    <div class="space-y-6">
-        <section class="rounded-lg border border-slate-200 bg-white">
-            <div class="border-b border-slate-200 px-4 py-3 text-sm font-medium">Pipeline</div>
-            <div id="pipeline-shell" class="px-4 py-3">
-                <ol class="space-y-2 text-sm">
-                    {% for step in job.pipeline %}
-                        <li class="flex items-center gap-3">
-                            <span class="h-2 w-2 rounded-full
-                                {% if step.state == 'done' %}bg-emerald-600
-                                {% elif step.state == 'current' %}bg-sky-600 lern-loading-dot
-                                {% else %}bg-slate-300{% endif %}"></span>
-                            <span class="{% if step.state == 'current' %}font-medium text-slate-900{% else %}text-slate-600{% endif %}">{{ step.label }}</span>
-                        </li>
-                    {% endfor %}
-                </ol>
-                {% if job.token_usage %}
-                    <div class="mt-4 border-t border-slate-200 pt-3 text-xs text-slate-500">
-                        Agent tokens total: {{ job.token_usage.total_tokens }}
-                    </div>
-                {% endif %}
-            </div>
-        </section>
+    <section class="debug-card">
+        <div class="debug-card-header">Execution log</div>
+        <div class="divide-y divide-neutral-200 text-sm">
+            {% for entry in job.logs %}
+                <div class="grid gap-1 px-4 py-3 md:grid-cols-[180px_70px_1fr]">
+                    <span class="font-mono text-xs text-neutral-500">{{ entry.timestamp }}</span>
+                    <strong class="text-xs uppercase tracking-wide text-neutral-500">{{ entry.level }}</strong>
+                    <p class="text-neutral-700">{{ entry.message }}</p>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
 
-        <section class="rounded-lg border border-slate-200 bg-white">
-            <div class="border-b border-slate-200 px-4 py-3 text-sm font-medium">Agent usage</div>
-            <div id="token-shell" class="space-y-4 px-4 py-4 text-sm">
-                {% if job.token_usage %}
-                    <div class="space-y-3">
-                        <div class="rounded-md bg-slate-50 px-3 py-3">
-                            <p class="text-xs uppercase tracking-wide text-slate-500">Storyboard planning</p>
-                            <p class="mt-1 font-medium text-slate-900">{{ job.token_usage.stage_totals.storyboard }}</p>
-                        </div>
-                        <div class="rounded-md bg-slate-50 px-3 py-3">
-                            <p class="text-xs uppercase tracking-wide text-slate-500">Scene prep and code</p>
-                            <p class="mt-1 font-medium text-slate-900">{{ job.token_usage.stage_totals.scene_prep_and_code }}</p>
-                            <p class="mt-1 text-xs text-slate-500">Deterministic local builder unless a future agent stage is added.</p>
-                        </div>
-                        <div class="rounded-md bg-slate-50 px-3 py-3">
-                            <p class="text-xs uppercase tracking-wide text-slate-500">Other agent usage</p>
-                            <p class="mt-1 font-medium text-slate-900">{{ job.token_usage.stage_totals.other }}</p>
-                        </div>
-                        <div class="rounded-md bg-slate-50 px-3 py-3">
-                            <p class="text-xs uppercase tracking-wide text-slate-500">Total</p>
-                            <p class="mt-1 font-medium text-slate-900">{{ job.token_usage.total_tokens }}</p>
-                        </div>
-                    </div>
-                {% else %}
-                    <div class="text-slate-500">{{ job.token_usage_message or "Token breakdown will appear after storyboard planning finishes." }}</div>
-                {% endif %}
-            </div>
-        </section>
-
-        <section class="rounded-lg border border-slate-200 bg-white">
-            <div class="border-b border-slate-200 px-4 py-3 text-sm font-medium">Raw AI output</div>
-            <div class="px-4 py-4 text-sm">
-                {% if job.raw_storyboard %}
-                    <pre id="raw-storyboard-shell" class="overflow-x-auto whitespace-pre-wrap break-words rounded-md bg-slate-950 px-4 py-4 text-xs text-slate-100">{{ job.raw_storyboard }}</pre>
-                {% else %}
-                    <div id="raw-storyboard-shell" class="text-slate-500">Raw storyboard JSON pending.</div>
-                {% endif %}
-            </div>
-        </section>
-
-        <section class="rounded-lg border border-slate-200 bg-white">
-            <div class="border-b border-slate-200 px-4 py-3 text-sm font-medium">Storyboard</div>
-            <div id="storyboard-shell" class="space-y-4 px-4 py-4 text-sm">
-                {% if job.storyboard %}
-                    <div class="space-y-2">
-                        <p class="text-slate-700">{{ job.storyboard.summary }}</p>
-                        <p class="text-xs text-slate-500">Scenes: {{ job.scene_count }}</p>
-                    </div>
-                    {% for scene in job.storyboard.scenes %}
-                        <article class="space-y-2 border-t border-slate-200 pt-4">
-                            <h3 class="font-medium">{{ loop.index }}. {{ scene.headline }}</h3>
-                            <p class="text-xs uppercase tracking-wide text-slate-500">Layout: {{ scene.layout }} · Format: {{ scene.scene_variant }}</p>
-                            <p class="text-sm font-medium text-slate-700">{{ scene.hook }}</p>
-                            <p class="text-slate-600">{{ scene.visual_goal }}</p>
-                        </article>
-                    {% endfor %}
-                {% else %}
-                    <div class="text-slate-500">Storyboard pending.</div>
-                {% endif %}
-            </div>
-        </section>
-    </div>
+    <section class="debug-card">
+        <div class="debug-card-header">Raw AI output</div>
+        <div class="debug-card-body">
+            {% if job.raw_storyboard %}
+                <pre class="max-h-[640px] overflow-auto whitespace-pre-wrap break-words rounded-md bg-neutral-950 px-4 py-4 text-xs text-neutral-100">{{ job.raw_storyboard }}</pre>
+            {% else %}
+                <p class="text-sm text-neutral-500">Raw storyboard JSON pending.</p>
+            {% endif %}
+        </div>
+    </section>
 </section>
-
-<script>
-const jobId = "{{ job.id }}";
-const pollInterval = {{ poll_interval_ms }};
-let pollHandle = null;
-
-function escapeHtml(value) {
-    return String(value ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#39;");
-}
-
-function statusClass(status) {
-    if (status === "completed") return "inline-flex px-2 py-1 text-xs font-medium uppercase tracking-wide bg-emerald-50 text-emerald-700";
-    if (status === "failed") return "inline-flex px-2 py-1 text-xs font-medium uppercase tracking-wide bg-rose-50 text-rose-700";
-    if (status === "running") return "inline-flex px-2 py-1 text-xs font-medium uppercase tracking-wide bg-sky-50 text-sky-700";
-    return "inline-flex px-2 py-1 text-xs font-medium uppercase tracking-wide bg-slate-100 text-slate-700";
-}
-
-function renderStoryboard(storyboard, sceneCount) {
-    if (!storyboard) return '<div class="text-slate-500">Storyboard pending.</div>';
-    const scenes = storyboard.scenes.map((scene, index) => `
-        <article class="space-y-2 border-t border-slate-200 pt-4">
-            <h3 class="font-medium">${index + 1}. ${escapeHtml(scene.headline)}</h3>
-            <p class="text-xs uppercase tracking-wide text-slate-500">Layout: ${escapeHtml(scene.layout)} · Format: ${escapeHtml(scene.scene_variant || "basic")}</p>
-            <p class="text-sm font-medium text-slate-700">${escapeHtml(scene.hook || "")}</p>
-            <p class="text-slate-600">${escapeHtml(scene.visual_goal || "")}</p>
-        </article>
-    `).join("");
-    return `
-        <div class="space-y-2">
-            <p class="text-slate-700">${escapeHtml(storyboard.summary)}</p>
-            <p class="text-xs text-slate-500">Scenes: ${sceneCount}</p>
-        </div>
-        ${scenes}
-    `;
-}
-
-function renderRawStoryboard(job) {
-    if (!job.raw_storyboard) {
-        return '<div id="raw-storyboard-shell" class="text-slate-500">Raw storyboard JSON pending.</div>';
-    }
-    return `<pre id="raw-storyboard-shell" class="overflow-x-auto whitespace-pre-wrap break-words rounded-md bg-slate-950 px-4 py-4 text-xs text-slate-100">${escapeHtml(job.raw_storyboard)}</pre>`;
-}
-
-function renderLogs(logs) {
-    return (logs || []).map((entry) => `
-        <div class="grid gap-1 px-4 py-3 sm:grid-cols-[180px_60px_1fr]">
-            <span class="font-mono text-xs text-slate-500">${escapeHtml(entry.timestamp)}</span>
-            <strong class="text-xs uppercase tracking-wide text-slate-500">${escapeHtml(entry.level)}</strong>
-            <p class="text-slate-700">${escapeHtml(entry.message)}</p>
-        </div>
-    `).join("");
-}
-
-function renderPipeline(job) {
-    const pipeline = job.pipeline || [];
-    const tokenFooter = job.token_usage
-        ? `<div class="mt-4 border-t border-slate-200 pt-3 text-xs text-slate-500">Agent tokens total: ${escapeHtml(job.token_usage.total_tokens)}</div>`
-        : "";
-    return `
-        <ol class="space-y-2 text-sm">
-            ${pipeline.map((step) => `
-                <li class="flex items-center gap-3">
-                    <span class="h-2 w-2 rounded-full ${step.state === "done" ? "bg-emerald-600" : step.state === "current" ? "bg-sky-600 lern-loading-dot" : "bg-slate-300"}"></span>
-                    <span class="${step.state === "current" ? "font-medium text-slate-900" : "text-slate-600"}">${escapeHtml(step.label)}</span>
-                </li>
-            `).join("")}
-        </ol>
-        ${tokenFooter}
-    `;
-}
-
-function renderTokenUsage(job) {
-    if (!job.token_usage) {
-        return `<div class="text-slate-500">${escapeHtml(job.token_usage_message || "Token breakdown will appear after storyboard planning finishes.")}</div>`;
-    }
-    return `
-        <div class="space-y-3">
-            <div class="rounded-md bg-slate-50 px-3 py-3">
-                <p class="text-xs uppercase tracking-wide text-slate-500">Storyboard planning</p>
-                <p class="mt-1 font-medium text-slate-900">${escapeHtml(job.token_usage.stage_totals.storyboard)}</p>
-            </div>
-            <div class="rounded-md bg-slate-50 px-3 py-3">
-                <p class="text-xs uppercase tracking-wide text-slate-500">Scene prep and code</p>
-                <p class="mt-1 font-medium text-slate-900">${escapeHtml(job.token_usage.stage_totals.scene_prep_and_code)}</p>
-            </div>
-            <div class="rounded-md bg-slate-50 px-3 py-3">
-                <p class="text-xs uppercase tracking-wide text-slate-500">Other agent usage</p>
-                <p class="mt-1 font-medium text-slate-900">${escapeHtml(job.token_usage.stage_totals.other)}</p>
-            </div>
-            <div class="rounded-md bg-slate-50 px-3 py-3">
-                <p class="text-xs uppercase tracking-wide text-slate-500">Total</p>
-                <p class="mt-1 font-medium text-slate-900">${escapeHtml(job.token_usage.total_tokens)}</p>
-            </div>
-        </div>
-    `;
-}
-
-async function pollJob() {
-    const response = await fetch(`/api/jobs/${jobId}`, {
-        cache: "no-store",
-        headers: { "Cache-Control": "no-cache" }
-    });
-    if (!response.ok) return;
-
-    const job = await response.json();
-    document.getElementById("job-title").textContent = job.title || job.concept;
-    document.getElementById("job-step").textContent = job.current_step;
-    document.getElementById("concept-copy").textContent = job.concept || "";
-    document.getElementById("research-copy").textContent = job.research || "No extra research context provided.";
-
-    const status = document.getElementById("job-status");
-    status.textContent = job.status;
-    status.className = statusClass(job.status);
-
-    document.getElementById("progress-label").textContent = `${job.progress_percent}%`;
-    document.getElementById("progress-bar").style.width = `${job.progress_percent}%`;
-    document.getElementById("progress-bar").classList.toggle("lern-loading-bar", Boolean(job.is_active));
-    document.getElementById("progress-detail").textContent = job.progress_detail || "";
-    document.getElementById("pipeline-shell").innerHTML = renderPipeline(job);
-    document.getElementById("token-shell").innerHTML = renderTokenUsage(job);
-    document.getElementById("raw-storyboard-shell").outerHTML = renderRawStoryboard(job);
-    document.getElementById("storyboard-shell").innerHTML = renderStoryboard(job.storyboard, job.scene_count);
-    document.getElementById("log-shell").innerHTML = renderLogs(job.logs);
-
-    const videoShell = document.getElementById("video-shell");
-    if (job.video_url) {
-        videoShell.innerHTML = `<video id="video-player" controls class="w-full bg-black" src="${job.video_url}"></video>`;
-    }
-
-    const errorBox = document.getElementById("error-box");
-    if (job.error_message) {
-        errorBox.textContent = job.error_message;
-        errorBox.classList.remove("hidden");
-    } else {
-        errorBox.textContent = "";
-        errorBox.classList.add("hidden");
-    }
-
-    if (pollHandle) {
-        window.clearTimeout(pollHandle);
-        pollHandle = null;
-    }
-    if (job.is_active) {
-        pollHandle = window.setTimeout(pollJob, pollInterval);
-    }
-}
-
-if ({{ "true" if job.is_active else "false" }}) {
-    pollJob();
-}
-</script>
 {% endblock %}

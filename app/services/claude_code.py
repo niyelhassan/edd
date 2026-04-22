@@ -54,6 +54,10 @@ def _usage_dict(message: ResultMessage, *, max_turns: int | None) -> dict:
     return {
         "provider": "claude-agent-sdk",
         "total_tokens": storyboard_total,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "cache_read_input_tokens": cache_read_tokens,
+        "cache_creation_input_tokens": cache_creation_tokens,
         "stage_totals": {
             "storyboard": storyboard_total,
             "scene_prep_and_code": 0,

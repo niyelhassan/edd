@@ -4,8 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>lern</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    {% block head_extra %}{% endblock %}
     <style>
         @keyframes candy-cane {
             from { background-position: 0 0; }
@@ -37,13 +39,14 @@
 </head>
 <body class="min-h-screen bg-[#f7f8fb] text-neutral-950">
     <div class="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+        {% block site_header %}
         <header class="mb-7 flex items-center justify-between border-b border-neutral-200 pb-4">
-            <a href="{{ url_for('main.library') }}" class="text-xl font-semibold tracking-tight">lern</a>
+            <a href="{{ url_for('main.home') }}" class="text-xl font-semibold tracking-tight">lern</a>
             <nav class="flex items-center gap-4 text-sm text-neutral-500">
-                <a href="{{ url_for('main.onboarding') }}" class="hover:text-neutral-950">Walkthrough</a>
-                <a href="{{ url_for('main.library') }}" class="hover:text-neutral-950">Library</a>
+                <a href="{{ url_for('main.onboarding') }}" class="hover:text-neutral-950">Instructions</a>
             </nav>
         </header>
+        {% endblock %}
         {% with messages = get_flashed_messages() %}
             {% if messages %}
                 <section class="mb-4 space-y-2">

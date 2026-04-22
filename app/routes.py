@@ -260,23 +260,11 @@ def _build_job_payload(job: dict, include_logs: bool = False) -> dict:
 def index():
     if request.cookies.get("onboarded") != "1":
         return redirect(url_for("main.onboarding"))
-    return redirect(url_for("main.library"))
+    return redirect(url_for("main.home"))
 
 
-@bp.get("/onboarding")
-def onboarding():
-    return render_template("onboarding.html")
-
-
-@bp.post("/onboarding/done")
-def onboarding_done():
-    response = make_response(redirect(url_for("main.library")))
-    response.set_cookie("onboarded", "1", max_age=60 * 60 * 24 * 365, samesite="Lax")
-    return response
-
-
-@bp.get("/library")
-def library():
+@bp.get("/home")
+def home():
     jobs = [_build_job_payload(job) for job in list_jobs()]
     environment = {
         "claude": bool(resolve_claude_cli_path()),
@@ -288,6 +276,23 @@ def library():
         "video": current_app.config["CLAUDE_CODE_MODEL"],
     }
     return render_template("index.html", jobs=jobs, environment=environment, models=models)
+
+
+@bp.get("/onboarding")
+def onboarding():
+    return render_template("onboarding.html")
+
+
+@bp.post("/onboarding/done")
+def onboarding_done():
+    response = make_response(redirect(url_for("main.home")))
+    response.set_cookie("onboarded", "1", max_age=60 * 60 * 24 * 365, samesite="Lax")
+    return response
+
+
+@bp.get("/library")
+def library():
+    return redirect(url_for("main.home"))
 
 
 @bp.post("/jobs")
@@ -442,15 +447,22 @@ def results(job_id: str):
     return render_template("results.html", job=_build_job_payload(job))
 
 
+@bp.get("/jobs/<job_id>/survey")
+def survey(job_id: str):
+    job = get_job(job_id)
+    if job is None:
+        abort(404)
+    if job.get("post_score") is None:
+        return redirect(url_for("main.results", job_id=job_id))
+    return render_template("survey.html", job=_build_job_payload(job))
+
+
 @bp.post("/jobs/<job_id>/survey")
 def submit_survey(job_id: str):
     if get_job(job_id) is None:
         abort(404)
-    survey = {
-        "usefulness": request.form.get("usefulness", ""),
-        "ease": request.form.get("ease", ""),
-        "comments": request.form.get("comments", "").strip(),
-    }
+    survey = request.form.to_dict(flat=False)
+    survey["improvement"] = [request.form.get("improvement", "").strip()]
     update_job(job_id, survey_json=json.dumps(survey))
     return render_template("thanks.html")
 

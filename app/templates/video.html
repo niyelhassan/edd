@@ -1,22 +1,25 @@
 {% extends "base.html" %}
 
+{% block head_extra %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.css">
+<script src="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.polyfilled.js"></script>
+{% endblock %}
+
 {% block content %}
 <section class="space-y-5">
-    <div class="flex flex-col gap-3 border-b border-neutral-200 pb-4 md:flex-row md:items-end md:justify-between">
+    <div class="border-b border-neutral-200 pb-4">
         <div>
             <p class="eyebrow">Watch</p>
             <h1 id="job-title" class="mt-2 text-4xl font-semibold tracking-tight">{{ job.title or job.concept }}</h1>
             <p id="progress-detail" class="mt-2 text-sm text-neutral-600">{{ job.progress_detail }}</p>
         </div>
-        <a href="{{ url_for('main.library') }}" class="text-sm text-neutral-500 hover:text-neutral-950">Library</a>
     </div>
 
-    <div id="video-shell" class="aspect-video overflow-hidden rounded-lg bg-neutral-950">
+    <div id="video-shell" class="video-shell aspect-video">
         {% if job.video_url %}
-            <video id="video-player" controls playsinline class="h-full w-full" src="{{ job.video_url }}"></video>
+            <video id="video-player" class="plyr-video" playsinline controls preload="metadata" src="{{ job.video_url }}"></video>
         {% else %}
             <div class="video-waiting">
-                <div class="render-orbit" aria-hidden="true"><span></span><span></span><span></span></div>
                 <div class="w-full max-w-lg">
                     <div class="mb-4 h-1.5 overflow-hidden rounded-full bg-white/20">
                         <div id="progress-bar" class="h-full rounded-full bg-white lern-loading-bar" style="width: {{ job.progress_percent }}%"></div>
@@ -24,13 +27,15 @@
                     <p id="waiting-copy">Rendering scenes and assembling the MP4.</p>
                     <p id="waiting-meta">{{ job.current_step }}</p>
                 </div>
+            </div>
         {% endif %}
     </div>
+
     <div class="flex flex-wrap gap-3">
         {% if job.video_url %}
-            <a id="download-link" href="{{ job.video_url }}" download class="btn-secondary">Download MP4</a>
+            <a id="download-link" href="{{ job.video_url }}" download class="btn-secondary">Download</a>
         {% else %}
-            <a id="download-link" href="#" download class="hidden btn-secondary">Download MP4</a>
+            <a id="download-link" href="#" download class="hidden btn-secondary">Download</a>
         {% endif %}
         <a id="post-link" href="{{ url_for('main.post_quiz', job_id=job.id) }}" class="btn-primary pointer-events-none opacity-40">Post-quiz</a>
         <a href="{{ url_for('main.debug_job', job_id=job.id) }}" class="btn-secondary">Details</a>
@@ -44,23 +49,35 @@
 
 <script>
 const jobId = "{{ job.id }}";
+let playerInstance = null;
 
 function enablePost() {
     const link = document.getElementById("post-link");
     link.classList.remove("pointer-events-none", "opacity-40");
 }
 
-function attachPlayer() {
+function setupPlayer() {
     const player = document.getElementById("video-player");
-    if (player) player.addEventListener("ended", enablePost, { once: true });
+    if (!player || player.dataset.ready === "1") return;
+    player.dataset.ready = "1";
+    if (window.Plyr) {
+        playerInstance = new Plyr(player, {
+            controls: ["play-large", "play", "progress", "current-time", "duration", "mute", "volume", "fullscreen"],
+            ratio: "16:9",
+            invertTime: false,
+            tooltips: { controls: true, seek: true }
+        });
+    }
+    player.addEventListener("ended", enablePost, { once: true });
 }
 
 function renderVideo(job) {
     if (!job.video_url) return;
     const shell = document.getElementById("video-shell");
     if (!document.getElementById("video-player")) {
-        shell.innerHTML = `<video id="video-player" controls playsinline class="h-full w-full" src="${job.video_url}"></video>`;
-        attachPlayer();
+        shell.className = "video-shell aspect-video";
+        shell.innerHTML = `<video id="video-player" class="plyr-video" playsinline controls preload="metadata" src="${job.video_url}"></video>`;
+        setupPlayer();
     }
     const download = document.getElementById("download-link");
     download.href = job.video_url;
@@ -87,7 +104,7 @@ async function pollJob() {
     if (job.is_active) window.setTimeout(pollJob, {{ poll_interval_ms }});
 }
 
-attachPlayer();
+setupPlayer();
 if ({{ "true" if job.is_active else "false" }}) pollJob();
 </script>
 {% endblock %}
