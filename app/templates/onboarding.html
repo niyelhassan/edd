@@ -12,65 +12,137 @@
     class="absolute right-4 top-4 z-20"
   >
     <button
-      class="rounded-md px-3 py-2 text-sm text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950"
+      class="rounded-md px-3 py-2 text-sm text-neutral-400 hover:bg-neutral-100 hover:text-neutral-950 transition-colors"
     >
       Skip
     </button>
   </form>
 
   <div class="onboarding-stage">
+
+    <!-- Slide 1: Overview -->
     <article class="onboarding-slide active">
       <div>
-        <p class="eyebrow">Instructions</p>
+        <p class="eyebrow">Welcome</p>
         <h1>Generate. Watch. Compare.</h1>
+        <p>AI-powered lessons that measure what you learn — before and after.</p>
       </div>
-      <div class="walkthrough-video">
-        <div class="walkthrough-toolbar">
-          <span></span><span></span><span></span>
+      <div class="ob-card">
+        <div class="ob-chrome"><span></span><span></span><span></span></div>
+        <div class="ob-hero-flow">
+          <div class="ob-step">
+            <div class="ob-step-num">01</div>
+            <div class="ob-step-text">
+              <strong>Describe</strong>
+              <span>Enter any concept or topic</span>
+            </div>
+          </div>
+          <div class="ob-step">
+            <div class="ob-step-num">02</div>
+            <div class="ob-step-text">
+              <strong>Pre-quiz</strong>
+              <span>Baseline your understanding</span>
+            </div>
+          </div>
+          <div class="ob-step">
+            <div class="ob-step-num">03</div>
+            <div class="ob-step-text">
+              <strong>Watch</strong>
+              <span>AI-generated video lesson</span>
+            </div>
+          </div>
+          <div class="ob-step">
+            <div class="ob-step-num">04</div>
+            <div class="ob-step-text">
+              <strong>Results</strong>
+              <span>See how much you improved</span>
+            </div>
+          </div>
         </div>
-        <div class="walkthrough-lines"><i></i><i></i><i></i></div>
-        <div class="walkthrough-play"></div>
       </div>
     </article>
 
+    <!-- Slide 2: Generate -->
     <article class="onboarding-slide">
       <div>
         <p class="eyebrow">Generate</p>
         <h1>Describe the concept.</h1>
+        <p>Enter any topic. Claude generates a focused video lesson tailored exactly to what you need to learn.</p>
       </div>
-      <div class="walkthrough-video form-demo">
-        <b>Bayes theorem for genetics data</b>
-        <span>Common misconception: base rates</span>
-        <button>Generate video</button>
+      <div class="ob-card">
+        <div class="ob-chrome"><span></span><span></span><span></span></div>
+        <div class="ob-body">
+          <div class="ob-input-group">
+            <div class="ob-input-label">Topic</div>
+            <div class="ob-input-mock ob-focused">Bayes theorem for genetics data</div>
+          </div>
+          <div class="ob-input-group">
+            <div class="ob-input-label">Misconception to address <span style="font-weight:400;text-transform:none;letter-spacing:0;opacity:0.55">— optional</span></div>
+            <div class="ob-input-mock dim">e.g. ignoring base rates when reading test results</div>
+          </div>
+          <div class="ob-submit">Generate video &rarr;</div>
+        </div>
       </div>
     </article>
 
+    <!-- Slide 3: Quiz -->
     <article class="onboarding-slide">
       <div>
         <p class="eyebrow">Assess</p>
         <h1>Answer the pre-quiz.</h1>
+        <p>Five quick questions before you watch. This creates a baseline so the improvement is measurable.</p>
       </div>
-      <div class="walkthrough-video quiz-demo">
-        <strong>Question 1 of 5</strong>
-        <span></span><span></span><span></span>
+      <div class="ob-card">
+        <div class="ob-chrome"><span></span><span></span><span></span></div>
+        <div class="ob-body">
+          <div class="ob-quiz-header">
+            <div class="ob-input-label">Question 1 of 5</div>
+          </div>
+          <div class="ob-progress-track">
+            <div class="ob-progress-fill"></div>
+          </div>
+          <div class="ob-question">In Bayesian reasoning, what is a "prior probability"?</div>
+          <div class="ob-option ob-selected">
+            <div class="ob-radio"></div>
+            <span>Your belief before seeing new evidence</span>
+          </div>
+          <div class="ob-option">
+            <div class="ob-radio"></div>
+            <span>The probability of a positive test result</span>
+          </div>
+          <div class="ob-option">
+            <div class="ob-radio"></div>
+            <span>The likelihood the hypothesis is true</span>
+          </div>
+        </div>
       </div>
     </article>
 
+    <!-- Slide 4: Watch -->
     <article class="onboarding-slide">
       <div>
         <p class="eyebrow">Watch</p>
         <h1>Watch the video.</h1>
+        <p>A concise AI-generated lesson focused exactly on your topic — no fluff, no searching.</p>
       </div>
-      <div class="walkthrough-video player-demo">
-        <div class="walkthrough-play"></div>
-        <div class="player-demo-bar"><span></span></div>
+      <div class="ob-card ob-card-dark">
+        <div class="ob-chrome ob-chrome-dark"><span></span><span></span><span></span></div>
+        <div class="ob-player">
+          <div class="ob-play-btn"></div>
+          <div class="ob-player-bar">
+            <div class="ob-scrubber"><div class="ob-scrubber-fill"></div></div>
+            <div class="ob-player-time"><span>0:42</span><span>3:18</span></div>
+          </div>
+        </div>
       </div>
     </article>
 
+    <!-- Slide 5: Results -->
     <article class="onboarding-slide">
       <div>
         <p class="eyebrow">Results</p>
         <h1>See the change.</h1>
+        <p>Your pre and post scores side by side. Know exactly how much you gained from the lesson.</p>
         <form
           action="{{ url_for('main.onboarding_done') }}"
           method="post"
@@ -79,12 +151,28 @@
           <button class="btn-primary">Get started</button>
         </form>
       </div>
-      <div class="walkthrough-video results-demo">
-        <div><small>Pre</small><strong>2/5</strong></div>
-        <div><small>Post</small><strong>4/5</strong></div>
-        <div><small>Gain</small><strong>+2</strong></div>
+      <div class="ob-card">
+        <div class="ob-chrome"><span></span><span></span><span></span></div>
+        <div class="ob-results-body">
+          <div class="ob-results-grid">
+            <div class="ob-metric">
+              <small>Pre</small>
+              <strong>2/5</strong>
+            </div>
+            <div class="ob-metric">
+              <small>Post</small>
+              <strong>4/5</strong>
+            </div>
+            <div class="ob-metric">
+              <small>Gain</small>
+              <strong>+2</strong>
+            </div>
+          </div>
+          <div class="ob-results-note">Scored 40% &rarr; 80% after watching</div>
+        </div>
       </div>
     </article>
+
   </div>
 
   <div class="onboarding-controls">
@@ -98,6 +186,7 @@
   const slides = Array.from(document.querySelectorAll(".onboarding-slide"));
   const dots = document.getElementById("onboardingDots");
   let activeSlide = 0;
+  let animating = false;
 
   slides.forEach((_, index) => {
     const dot = document.createElement("button");
@@ -108,12 +197,26 @@
   });
 
   function showSlide(index) {
+    if (animating) return;
+    const prev = activeSlide;
     activeSlide = Math.max(0, Math.min(slides.length - 1, index));
-    slides.forEach((slide, slideIndex) =>
-      slide.classList.toggle("active", slideIndex === activeSlide),
-    );
-    Array.from(dots.children).forEach((dot, dotIndex) =>
-      dot.classList.toggle("active", dotIndex === activeSlide),
+    if (prev === activeSlide) return;
+
+    animating = true;
+    const goingForward = activeSlide > prev;
+    const exitClass = goingForward ? "ob-exit-left" : "ob-exit-right";
+
+    slides[prev].classList.remove("active");
+    slides[prev].classList.add(exitClass);
+    setTimeout(() => {
+      slides[prev].classList.remove(exitClass);
+      animating = false;
+    }, 580);
+
+    slides[activeSlide].classList.add("active");
+
+    Array.from(dots.children).forEach((dot, i) =>
+      dot.classList.toggle("active", i === activeSlide),
     );
     document.getElementById("prevSlide").style.visibility =
       activeSlide === 0 ? "hidden" : "visible";
