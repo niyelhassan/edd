@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import csv
 import json
 import re
 import shutil
+from datetime import datetime
 from threading import Thread
 from pathlib import Path
 
@@ -23,7 +25,94 @@ from flask import (
 from .services.claude_code import extract_json_text
 from .services.question_generation import fallback_quiz, generate_quiz
 from .services.repository import add_log, clone_job, create_job, get_job, get_job_logs, list_jobs, update_job
-from .services.claude_cli import resolve_claude_cli_path
+
+
+RESULTS_CSV_FIELDNAMES = [
+    "timestamp",
+    "job_id",
+    "name",
+    "grade",
+    "enrollment",
+    "difficulty_frequency",
+    "first_resource",
+    "resource_satisfaction",
+    "first_video_time",
+    "understanding_change",
+    "video_quality",
+    "appropriate_length",
+    "easy_without_guidance",
+    "use_again",
+    "improvement",
+    "pre_score",
+    "pre_percentage",
+    "post_score",
+    "post_percentage",
+]
+
+
+def _survey_csv_path() -> Path:
+    base_dir = Path(current_app.config["BASE_DIR"])
+    csv_path = base_dir / "survey_results.csv"
+    csv_path.parent.mkdir(parents=True, exist_ok=True)
+    return csv_path
+
+
+def _quiz_question_count(job: dict) -> int:
+    try:
+        quiz = json.loads(job.get("quiz_json") or "{}")
+    except json.JSONDecodeError:
+        return 0
+    if isinstance(quiz, dict):
+        return len(quiz.get("questions") or [])
+    if isinstance(quiz, list):
+        return len(quiz)
+    return 0
+
+
+def _score_percentage(score: int | None, question_count: int) -> float | str:
+    if score is None or not question_count:
+        return ""
+    return round((score / question_count) * 100, 1)
+
+
+def _upsert_results_csv_row(row: dict[str, str | int | float | None]) -> None:
+    csv_path = _survey_csv_path()
+    rows: list[dict[str, str]] = []
+    if csv_path.exists():
+        with csv_path.open(newline="", encoding="utf-8") as csvfile:
+            rows = list(csv.DictReader(csvfile))
+
+    normalized = {key: row.get(key, "") for key in RESULTS_CSV_FIELDNAMES}
+    job_id = str(normalized.get("job_id", ""))
+    for index, existing in enumerate(rows):
+        if existing.get("job_id") == job_id:
+            merged = {key: existing.get(key, "") for key in RESULTS_CSV_FIELDNAMES}
+            merged.update({key: value for key, value in normalized.items() if value not in ("", None)})
+            rows[index] = merged
+            break
+    else:
+        rows.append(normalized)
+
+    with csv_path.open("w", newline="", encoding="utf-8") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=RESULTS_CSV_FIELDNAMES)
+        writer.writeheader()
+        writer.writerows({key: row.get(key, "") for key in RESULTS_CSV_FIELDNAMES} for row in rows)
+
+
+def _save_quiz_results_to_csv(job_id: str, job: dict) -> None:
+    question_count = _quiz_question_count(job)
+    pre_score = job.get("pre_score")
+    post_score = job.get("post_score")
+    _upsert_results_csv_row(
+        {
+            "timestamp": datetime.utcnow().isoformat(),
+            "job_id": job_id,
+            "pre_score": pre_score if pre_score is not None else "",
+            "pre_percentage": _score_percentage(pre_score, question_count),
+            "post_score": post_score if post_score is not None else "",
+            "post_percentage": _score_percentage(post_score, question_count),
+        }
+    )
 
 
 bp = Blueprint("main", __name__)
@@ -84,7 +173,6 @@ def _generate_quiz_for_job(app, job_id: str, concept: str, research: str) -> Non
                 workdir=quiz_dir,
                 output_path=quiz_dir / "questions.json",
                 model=app.config["CLAUDE_QUESTION_MODEL"],
-                cli_path=app.config.get("CLAUDE_CODE_CLI_PATH") or None,
             )
         except Exception as exc:
             update_job(job_id, quiz_json=json.dumps({"status": "error", "error": str(exc)}))
@@ -218,7 +306,7 @@ def _build_job_payload(job: dict, include_logs: bool = False) -> dict:
     payload["video_url"] = None
     payload["storyboard"] = None
     payload["raw_storyboard"] = None
-    payload["claude_available"] = bool(resolve_claude_cli_path())
+    payload["claude_available"] = True
     payload["deepgram_ready"] = bool(current_app.config["DEEPGRAM_API_KEY"])
     payload["token_usage"] = _parse_token_usage(payload.get("token_usage_json"))
     payload["token_usage_message"] = None
@@ -267,7 +355,7 @@ def index():
 def home():
     jobs = [_build_job_payload(job) for job in list_jobs()]
     environment = {
-        "claude": bool(resolve_claude_cli_path()),
+        "claude": True,
         "deepgram": bool(current_app.config["DEEPGRAM_API_KEY"]),
         "ffmpeg": bool(shutil.which("ffmpeg")),
     }
@@ -391,7 +479,10 @@ def submit_pre_quiz(job_id: str):
     if not quiz:
         flash("Question generation is not ready yet.")
         return redirect(url_for("main.pre_quiz", job_id=job_id))
-    update_job(job_id, pre_score=_score_quiz(request.form, quiz))
+    pre_score = _score_quiz(request.form, quiz)
+    update_job(job_id, pre_score=pre_score)
+    updated_job = get_job(job_id) or {**job, "pre_score": pre_score}
+    _save_quiz_results_to_csv(job_id, updated_job)
     return redirect(url_for("main.video_page", job_id=job_id))
 
 
@@ -433,7 +524,10 @@ def submit_post_quiz(job_id: str):
     if not quiz:
         flash("Question generation is not ready yet.")
         return redirect(url_for("main.post_quiz", job_id=job_id))
-    update_job(job_id, post_score=_score_quiz(request.form, quiz))
+    post_score = _score_quiz(request.form, quiz)
+    update_job(job_id, post_score=post_score)
+    updated_job = get_job(job_id) or {**job, "post_score": post_score}
+    _save_quiz_results_to_csv(job_id, updated_job)
     return redirect(url_for("main.results", job_id=job_id))
 
 
@@ -459,11 +553,59 @@ def survey(job_id: str):
 
 @bp.post("/jobs/<job_id>/survey")
 def submit_survey(job_id: str):
-    if get_job(job_id) is None:
+    job = get_job(job_id)
+    if job is None:
         abort(404)
-    survey = request.form.to_dict(flat=False)
-    survey["improvement"] = [request.form.get("improvement", "").strip()]
-    update_job(job_id, survey_json=json.dumps(survey))
+
+    name = request.form.get("name", "").strip()
+    grade = request.form.get("grade", "").strip()
+    enrollment = "; ".join(request.form.getlist("enrollment"))
+    difficulty_frequency = request.form.get("difficulty_frequency", "").strip()
+    first_resource = request.form.get("first_resource", "").strip()
+    first_resource_other = request.form.get("first_resource_other", "").strip()
+    if first_resource == "Other" and first_resource_other:
+        first_resource = f"Other: {first_resource_other}"
+    resource_satisfaction = request.form.get("resource_satisfaction", "").strip()
+    first_video_time = request.form.get("first_video_time", "").strip()
+    understanding_change = request.form.get("understanding_change", "").strip()
+    video_quality = request.form.get("video_quality", "").strip()
+    appropriate_length = request.form.get("appropriate_length", "").strip()
+    easy_without_guidance = request.form.get("easy_without_guidance", "").strip()
+    use_again = request.form.get("use_again", "").strip()
+    improvement = request.form.get("improvement", "").strip()
+
+    question_count = _quiz_question_count(job)
+    pre_score = job.get("pre_score")
+    post_score = job.get("post_score")
+    survey_payload = {
+        "name": name,
+        "grade": grade,
+        "enrollment": enrollment,
+        "difficulty_frequency": difficulty_frequency,
+        "first_resource": first_resource,
+        "resource_satisfaction": resource_satisfaction,
+        "first_video_time": first_video_time,
+        "understanding_change": understanding_change,
+        "video_quality": video_quality,
+        "appropriate_length": appropriate_length,
+        "easy_without_guidance": easy_without_guidance,
+        "use_again": use_again,
+        "improvement": improvement,
+    }
+
+    update_job(job_id, survey_json=json.dumps(survey_payload))
+    _upsert_results_csv_row(
+        {
+            "timestamp": datetime.utcnow().isoformat(),
+            "job_id": job_id,
+            **survey_payload,
+            "pre_score": pre_score if pre_score is not None else "",
+            "pre_percentage": _score_percentage(pre_score, question_count),
+            "post_score": post_score if post_score is not None else "",
+            "post_percentage": _score_percentage(post_score, question_count),
+        }
+    )
+
     return render_template("thanks.html")
 
 

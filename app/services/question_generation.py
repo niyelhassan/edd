@@ -127,11 +127,10 @@ def generate_quiz(
     workdir: Path,
     output_path: Path,
     model: str,
-    cli_path: str | None,
 ) -> list[dict]:
     workdir.mkdir(parents=True, exist_ok=True)
     command = [
-        cli_path or "claude",
+        "claude",
         "-p",
         "--model",
         model,

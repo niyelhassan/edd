@@ -1,87 +1,212 @@
-{% extends "base.html" %}
-
-{% block content %}
+{% extends "base.html" %} {% block content %}
 <section class="mx-auto max-w-3xl space-y-6">
-    <div class="border-b border-neutral-200 pb-4">
-        <p class="eyebrow">Feedback</p>
-        <h1 class="mt-2 text-4xl font-semibold tracking-tight">Product survey</h1>
-    </div>
+  <div class="border-b border-neutral-200 pb-4">
+    <p class="eyebrow">Feedback</p>
+    <h1 class="mt-2 text-4xl font-semibold tracking-tight">Product survey</h1>
+  </div>
 
-    <form method="post" action="{{ url_for('main.submit_survey', job_id=job.id) }}" class="survey-form">
-        <fieldset>
-            <legend>1. What grade are you currently in?</legend>
-            <label><input type="radio" name="grade" value="9th" required> 9th</label>
-            <label><input type="radio" name="grade" value="10th"> 10th</label>
-            <label><input type="radio" name="grade" value="11th"> 11th</label>
-        </fieldset>
+  <form
+    method="post"
+    action="{{ url_for('main.submit_survey', job_id=job.id) }}"
+    class="survey-form"
+  >
+    <fieldset>
+      <legend>Your name</legend>
+      <label
+        ><input
+          type="text"
+          name="name"
+          class="field"
+          required
+          placeholder="Enter your name"
+      /></label>
+    </fieldset>
 
-        <fieldset>
-            <legend>2. Are you currently enrolled in any of the following?</legend>
-            <label><input type="checkbox" name="enrollment" value="Research Practicum"> Research Practicum</label>
-            <label><input type="checkbox" name="enrollment" value="ITR"> ITR</label>
-            <label><input type="checkbox" name="enrollment" value="Neither / Independent Research"> Neither / Independent Research</label>
-        </fieldset>
+    <fieldset>
+      <legend>1. What grade are you currently in?</legend>
+      <label
+        ><input type="radio" name="grade" value="9th" required /> 9th</label
+      >
+      <label><input type="radio" name="grade" value="10th" /> 10th</label>
+      <label><input type="radio" name="grade" value="11th" /> 11th</label>
+    </fieldset>
 
-        {% set frequency = ["Never", "Rarely", "Sometimes", "Often", "Very Often"] %}
-        {% set satisfaction = ["Very Unsatisfied", "Unsatisfied", "Neutral", "Satisfied", "Very Satisfied"] %}
-        {% set time_options = ["Under 3 min", "3-5 min", "5-10 min", "More than 10 min"] %}
-        {% set better_options = ["Much worse", "Slightly worse", "No change", "Slightly better", "Much better"] %}
-        {% set quality = ["Very Poor", "Poor", "Neutral", "Good", "Excellent"] %}
-        {% set agreement = ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"] %}
-        {% set likelihood = ["Very Unlikely", "Unlikely", "Neutral", "Likely", "Very Likely"] %}
+    <fieldset>
+      <legend>2. Are you currently enrolled in any of the following?</legend>
+      <label
+        ><input type="checkbox" name="enrollment" value="Research Practicum" />
+        Research Practicum</label
+      >
+      <label><input type="checkbox" name="enrollment" value="ITR" /> ITR</label>
+      <label
+        ><input
+          type="checkbox"
+          name="enrollment"
+          value="Neither / Independent Research"
+        />
+        Neither / Independent Research</label
+      >
+    </fieldset>
 
-        <fieldset>
-            <legend>3. How often do you encounter difficult scientific or mathematical concepts in your coursework?</legend>
-            {% for option in frequency %}<label><input type="radio" name="difficulty_frequency" value="{{ option }}" required> {{ option }}</label>{% endfor %}
-        </fieldset>
+    {% set frequency = ["Never", "Rarely", "Sometimes", "Often", "Very Often"]
+    %} {% set satisfaction = ["Very Unsatisfied", "Unsatisfied", "Neutral",
+    "Satisfied", "Very Satisfied"] %} {% set time_options = ["Under 3 min", "3-5
+    min", "5-10 min", "More than 10 min"] %} {% set better_options = ["Much
+    worse", "Slightly worse", "No change", "Slightly better", "Much better"] %}
+    {% set quality = ["Very Poor", "Poor", "Neutral", "Good", "Excellent"] %} {%
+    set agreement = ["Strongly Disagree", "Disagree", "Neutral", "Agree",
+    "Strongly Agree"] %} {% set likelihood = ["Very Unlikely", "Unlikely",
+    "Neutral", "Likely", "Very Likely"] %}
 
-        <fieldset>
-            <legend>4. When you encounter a concept you don't understand, which resource do you turn to first?</legend>
-            {% for option in ["YouTube", "Wikipedia", "Textbook", "Ask a teacher/peer"] %}<label><input type="radio" name="first_resource" value="{{ option }}" required> {{ option }}</label>{% endfor %}
-            <label class="other-field"><input type="radio" name="first_resource" value="Other"> Other <input type="text" name="first_resource_other" class="field" aria-label="Other resource"></label>
-        </fieldset>
+    <fieldset>
+      <legend>
+        3. How often do you encounter difficult scientific or mathematical
+        concepts in your coursework?
+      </legend>
+      {% for option in frequency %}<label
+        ><input
+          type="radio"
+          name="difficulty_frequency"
+          value="{{ option }}"
+          required
+        />
+        {{ option }}</label
+      >{% endfor %}
+    </fieldset>
 
-        <fieldset>
-            <legend>5. How satisfied are you with current resources for advanced STEM concepts?</legend>
-            {% for option in satisfaction %}<label><input type="radio" name="resource_satisfaction" value="{{ option }}" required> {{ option }}</label>{% endfor %}
-        </fieldset>
+    <fieldset>
+      <legend>
+        4. When you encounter a concept you don't understand, which resource do
+        you turn to first?
+      </legend>
+      {% for option in ["YouTube", "Wikipedia", "Textbook", "Ask a
+      teacher/peer"] %}<label
+        ><input
+          type="radio"
+          name="first_resource"
+          value="{{ option }}"
+          required
+        />
+        {{ option }}</label
+      >{% endfor %}
+      <label class="other-field"
+        ><input type="radio" name="first_resource" value="Other" /> Other
+        <input
+          type="text"
+          name="first_resource_other"
+          class="field"
+          aria-label="Other resource"
+      /></label>
+    </fieldset>
 
-        <fieldset>
-            <legend>6. How long did it take to successfully generate your first video?</legend>
-            {% for option in time_options %}<label><input type="radio" name="first_video_time" value="{{ option }}" required> {{ option }}</label>{% endfor %}
-        </fieldset>
+    <fieldset>
+      <legend>
+        5. How satisfied are you with current resources for advanced STEM
+        concepts?
+      </legend>
+      {% for option in satisfaction %}<label
+        ><input
+          type="radio"
+          name="resource_satisfaction"
+          value="{{ option }}"
+          required
+        />
+        {{ option }}</label
+      >{% endfor %}
+    </fieldset>
 
-        <fieldset>
-            <legend>7. After watching, how well did you understand the concept compared to before?</legend>
-            {% for option in better_options %}<label><input type="radio" name="understanding_change" value="{{ option }}" required> {{ option }}</label>{% endfor %}
-        </fieldset>
+    <fieldset>
+      <legend>
+        6. How long did it take to successfully generate your first video?
+      </legend>
+      {% for option in time_options %}<label
+        ><input
+          type="radio"
+          name="first_video_time"
+          value="{{ option }}"
+          required
+        />
+        {{ option }}</label
+      >{% endfor %}
+    </fieldset>
 
-        <fieldset>
-            <legend>8. How would you rate the quality and clarity of the video?</legend>
-            {% for option in quality %}<label><input type="radio" name="video_quality" value="{{ option }}" required> {{ option }}</label>{% endfor %}
-        </fieldset>
+    <fieldset>
+      <legend>
+        7. After watching, how well did you understand the concept compared to
+        before?
+      </legend>
+      {% for option in better_options %}<label
+        ><input
+          type="radio"
+          name="understanding_change"
+          value="{{ option }}"
+          required
+        />
+        {{ option }}</label
+      >{% endfor %}
+    </fieldset>
 
-        <fieldset>
-            <legend>9. The video was an appropriate length for explaining the concept.</legend>
-            {% for option in agreement %}<label><input type="radio" name="appropriate_length" value="{{ option }}" required> {{ option }}</label>{% endfor %}
-        </fieldset>
+    <fieldset>
+      <legend>
+        8. How would you rate the quality and clarity of the video?
+      </legend>
+      {% for option in quality %}<label
+        ><input
+          type="radio"
+          name="video_quality"
+          value="{{ option }}"
+          required
+        />
+        {{ option }}</label
+      >{% endfor %}
+    </fieldset>
 
-        <fieldset>
-            <legend>10. The tool was easy to use without guidance or instruction.</legend>
-            {% for option in agreement %}<label><input type="radio" name="easy_without_guidance" value="{{ option }}" required> {{ option }}</label>{% endfor %}
-        </fieldset>
+    <fieldset>
+      <legend>
+        9. The video was an appropriate length for explaining the concept.
+      </legend>
+      {% for option in agreement %}<label
+        ><input
+          type="radio"
+          name="appropriate_length"
+          value="{{ option }}"
+          required
+        />
+        {{ option }}</label
+      >{% endfor %}
+    </fieldset>
 
-        <fieldset>
-            <legend>11. How likely are you to use this tool again?</legend>
-            {% for option in likelihood %}<label><input type="radio" name="use_again" value="{{ option }}" required> {{ option }}</label>{% endfor %}
-        </fieldset>
+    <fieldset>
+      <legend>
+        10. The tool was easy to use without guidance or instruction.
+      </legend>
+      {% for option in agreement %}<label
+        ><input
+          type="radio"
+          name="easy_without_guidance"
+          value="{{ option }}"
+          required
+        />
+        {{ option }}</label
+      >{% endfor %}
+    </fieldset>
 
-        <label class="block">
-            <span class="mb-2 block text-sm font-medium">12. What is one thing you would change or improve?</span>
-            <textarea name="improvement" rows="5" class="field" required></textarea>
-        </label>
+    <fieldset>
+      <legend>11. How likely are you to use this tool again?</legend>
+      {% for option in likelihood %}<label
+        ><input type="radio" name="use_again" value="{{ option }}" required />
+        {{ option }}</label
+      >{% endfor %}
+    </fieldset>
 
-        <button class="btn-primary">Submit</button>
-    </form>
+    <fieldset>
+      <legend>12. What is one thing you would change or improve?</legend>
+      <label class="block">
+        <textarea name="improvement" rows="5" class="field" required></textarea>
+      </label>
+    </fieldset>
+
+    <button class="btn-primary">Submit</button>
+  </form>
 </section>
 {% endblock %}

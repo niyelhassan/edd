@@ -6,7 +6,6 @@ from flask import Flask
 from .config import Config, load_local_env
 from .db import init_app as init_db
 from .routes import bp as routes_bp
-from .services.claude_cli import resolve_claude_cli_path
 from .services.job_manager import JobManager
 
 
@@ -22,7 +21,6 @@ def create_app() -> Flask:
         CLAUDE_CODE_MODEL=os.getenv("CLAUDE_CODE_MODEL", app.config["CLAUDE_CODE_MODEL"]),
         CLAUDE_QUESTION_MODEL=os.getenv("CLAUDE_QUESTION_MODEL", app.config["CLAUDE_QUESTION_MODEL"]),
         CLAUDE_CODE_MAX_TURNS=int(claude_max_turns_raw) if claude_max_turns_raw.strip() else None,
-        CLAUDE_CODE_CLI_PATH=os.getenv("CLAUDE_CODE_CLI_PATH", resolve_claude_cli_path() or ""),
         DEEPGRAM_API_KEY=os.getenv("DEEPGRAM_API_KEY", app.config["DEEPGRAM_API_KEY"]),
         DEEPGRAM_VOICE_MODEL=os.getenv("DEEPGRAM_VOICE_MODEL", app.config["DEEPGRAM_VOICE_MODEL"]),
         MAX_WORKERS=int(os.getenv("MAX_WORKERS", str(app.config["MAX_WORKERS"]))),

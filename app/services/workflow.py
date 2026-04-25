@@ -8,7 +8,6 @@ from pathlib import Path
 from flask import current_app
 
 from .claude_code import ClaudeCodeError, run_claude_json
-from .claude_cli import resolve_claude_cli_path
 from .deepgram_tts import DeepgramError, DeepgramTTSClient
 from .manim_builder import build_manim_module
 from .media import MediaError, concat_clips, mux_video_with_audio, render_scene
@@ -170,8 +169,6 @@ class VideoWorkflow:
 
     def _require_tools(self) -> None:
         missing = []
-        if not self.app.config.get("CLAUDE_CODE_CLI_PATH") and not resolve_claude_cli_path():
-            missing.append("claude")
         for tool in ("ffmpeg", "ffprobe"):
             if shutil.which(tool) is None:
                 missing.append(tool)
@@ -200,7 +197,6 @@ class VideoWorkflow:
             output_path=storyboard_path,
             model=self.app.config["CLAUDE_CODE_MODEL"],
             max_turns=self.app.config["CLAUDE_CODE_MAX_TURNS"],
-            cli_path=self.app.config.get("CLAUDE_CODE_CLI_PATH") or None,
         )
         scenes = storyboard.get("scenes") or []
         if not scenes:
