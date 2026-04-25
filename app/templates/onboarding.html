@@ -1,136 +1,1256 @@
-{% extends "base.html" %} {% block site_header %}{% endblock %} {% block content
-%}
-<section class="fixed inset-0 z-50 overflow-hidden bg-white">
-  <a
-    href="{{ url_for('main.home') }}"
-    class="absolute left-5 top-5 z-20 text-xl font-semibold tracking-tight"
-    >lern</a
-  >
-  <form
-    action="{{ url_for('main.onboarding_done') }}"
-    method="post"
-    class="absolute right-4 top-4 z-20"
-  >
-    <button
-      class="rounded-md px-3 py-2 text-sm text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950"
+{% extends "base.html" %} {% block site_header %}{% endblock %} {% block
+head_extra %}
+<style>
+  :root {
+    --ease-apple: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  html,
+  body {
+    overflow: hidden;
+    background: #fafafa;
+  }
+
+  .ob-root {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: radial-gradient(
+        ellipse at 20% 0%,
+        rgba(0, 0, 0, 0.04),
+        transparent 60%
+      ),
+      radial-gradient(
+        ellipse at 80% 100%,
+        rgba(0, 0, 0, 0.05),
+        transparent 60%
+      ),
+      #fafafa;
+    overflow: hidden;
+    color: #0a0a0a;
+  }
+
+  /* ------- animated blurred blobs ------- */
+  .ob-blobs {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .ob-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(90px);
+    opacity: 0.55;
+    will-change: transform;
+  }
+  .ob-blob.b1 {
+    width: 520px;
+    height: 520px;
+    left: -120px;
+    top: -140px;
+    background: radial-gradient(
+      circle,
+      rgba(0, 0, 0, 0.18),
+      rgba(0, 0, 0, 0)
+    );
+    animation: drift1 22s var(--ease-apple) infinite alternate;
+  }
+  .ob-blob.b2 {
+    width: 640px;
+    height: 640px;
+    right: -180px;
+    top: 10%;
+    background: radial-gradient(
+      circle,
+      rgba(20, 20, 20, 0.14),
+      rgba(0, 0, 0, 0)
+    );
+    animation: drift2 28s var(--ease-apple) infinite alternate;
+  }
+  .ob-blob.b3 {
+    width: 560px;
+    height: 560px;
+    left: 30%;
+    bottom: -200px;
+    background: radial-gradient(
+      circle,
+      rgba(0, 0, 0, 0.12),
+      rgba(0, 0, 0, 0)
+    );
+    animation: drift3 32s var(--ease-apple) infinite alternate;
+  }
+  .ob-blob.b4 {
+    width: 380px;
+    height: 380px;
+    right: 12%;
+    bottom: 6%;
+    background: radial-gradient(
+      circle,
+      rgba(0, 0, 0, 0.1),
+      rgba(0, 0, 0, 0)
+    );
+    animation: drift4 24s var(--ease-apple) infinite alternate;
+  }
+  .ob-grain {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.035;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+
+  @keyframes drift1 {
+    0% {
+      transform: translate(0, 0) scale(1);
+    }
+    100% {
+      transform: translate(120px, 80px) scale(1.15);
+    }
+  }
+  @keyframes drift2 {
+    0% {
+      transform: translate(0, 0) scale(1);
+    }
+    100% {
+      transform: translate(-160px, 140px) scale(1.1);
+    }
+  }
+  @keyframes drift3 {
+    0% {
+      transform: translate(0, 0) scale(1);
+    }
+    100% {
+      transform: translate(-90px, -120px) scale(1.2);
+    }
+  }
+  @keyframes drift4 {
+    0% {
+      transform: translate(0, 0) scale(1);
+    }
+    100% {
+      transform: translate(140px, -100px) scale(0.92);
+    }
+  }
+
+  /* ------- chrome ------- */
+  .ob-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 28px;
+  }
+  .ob-logo {
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: #0a0a0a;
+  }
+  .ob-skip {
+    font-size: 0.82rem;
+    color: rgba(10, 10, 10, 0.5);
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 999px;
+    padding: 8px 14px;
+    transition: all 240ms var(--ease-apple);
+  }
+  .ob-skip:hover {
+    color: #0a0a0a;
+    background: rgba(255, 255, 255, 0.85);
+  }
+
+  /* ------- stage ------- */
+  .ob-stage {
+    position: relative;
+    z-index: 10;
+    height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 80px 32px 120px;
+  }
+
+  .ob-slide {
+    position: absolute;
+    inset: 80px 32px 120px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 40px;
+    align-items: center;
+    justify-items: center;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(28px) scale(0.985);
+    transition:
+      opacity 700ms var(--ease-apple),
+      transform 800ms var(--ease-apple),
+      filter 700ms var(--ease-apple);
+    filter: blur(8px);
+  }
+  .ob-slide.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+  .ob-slide.exit-up {
+    transform: translateY(-28px) scale(0.985);
+  }
+
+  @media (min-width: 960px) {
+    .ob-slide {
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 80px;
+      padding: 0 6vw;
+    }
+  }
+
+  .ob-copy {
+    max-width: 520px;
+    text-align: center;
+  }
+  @media (min-width: 960px) {
+    .ob-copy {
+      text-align: left;
+    }
+  }
+
+  .ob-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(10, 10, 10, 0.55);
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 999px;
+    padding: 6px 12px;
+  }
+  .ob-eyebrow::before {
+    content: "";
+    width: 5px;
+    height: 5px;
+    border-radius: 999px;
+    background: #0a0a0a;
+  }
+  .ob-copy h1 {
+    margin-top: 22px;
+    font-size: clamp(2.6rem, 6.4vw, 5.4rem);
+    font-weight: 600;
+    letter-spacing: -0.045em;
+    line-height: 0.98;
+    color: #0a0a0a;
+  }
+  .ob-copy p.ob-sub {
+    margin-top: 22px;
+    font-size: 1.05rem;
+    color: rgba(10, 10, 10, 0.6);
+    line-height: 1.55;
+    max-width: 460px;
+  }
+  @media (min-width: 960px) {
+    .ob-copy p.ob-sub {
+      margin-left: 0;
+    }
+  }
+  .ob-copy p.ob-sub {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* ------- demo card (glass) ------- */
+  .ob-demo {
+    position: relative;
+    width: min(560px, 100%);
+    aspect-ratio: 4 / 3.05;
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.9) inset,
+      0 30px 70px -20px rgba(0, 0, 0, 0.18),
+      0 8px 20px -10px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transform-style: preserve-3d;
+  }
+  .ob-demo::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.5),
+      rgba(255, 255, 255, 0) 30%
+    );
+  }
+  .ob-demo-bar {
+    display: flex;
+    gap: 7px;
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    background: rgba(255, 255, 255, 0.4);
+  }
+  .ob-demo-bar i {
+    width: 11px;
+    height: 11px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.08);
+  }
+  .ob-demo-bar i:nth-child(1) {
+    background: rgba(0, 0, 0, 0.12);
+  }
+  .ob-demo-body {
+    position: relative;
+    height: calc(100% - 41px);
+    padding: 28px;
+  }
+
+  /* slide 1 — hero compose */
+  .demo-hero {
+    display: grid;
+    place-items: center;
+    height: 100%;
+    gap: 22px;
+  }
+  .demo-hero .pill {
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(10, 10, 10, 0.5);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 999px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.6);
+  }
+  .demo-hero .glyph {
+    width: 110px;
+    height: 110px;
+    border-radius: 28px;
+    background: linear-gradient(155deg, #0a0a0a, #2a2a2a);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.18) inset,
+      0 30px 60px -10px rgba(0, 0, 0, 0.45);
+    display: grid;
+    place-items: center;
+    color: white;
+    position: relative;
+    animation: float 5.5s ease-in-out infinite;
+  }
+  .demo-hero .glyph::after {
+    content: "";
+    width: 0;
+    height: 0;
+    border-left: 22px solid white;
+    border-top: 14px solid transparent;
+    border-bottom: 14px solid transparent;
+    margin-left: 6px;
+  }
+  .demo-hero .ring {
+    position: absolute;
+    inset: -14px;
+    border-radius: 36px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    animation: pulseRing 3.4s ease-out infinite;
+  }
+  .demo-hero .ring:nth-child(2) {
+    animation-delay: 1.1s;
+  }
+  @keyframes pulseRing {
+    0% {
+      transform: scale(0.92);
+      opacity: 0.7;
+    }
+    100% {
+      transform: scale(1.45);
+      opacity: 0;
+    }
+  }
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-6px);
+    }
+  }
+
+  /* slide 2 — generate (typing) */
+  .demo-gen {
+    display: grid;
+    align-content: center;
+    gap: 14px;
+    height: 100%;
+  }
+  .demo-gen label {
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(10, 10, 10, 0.45);
+  }
+  .demo-gen .input {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: white;
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 0.96rem;
+    color: #0a0a0a;
+    min-height: 48px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    position: relative;
+    overflow: hidden;
+  }
+  .demo-gen .input.misc {
+    color: rgba(10, 10, 10, 0.55);
+    font-size: 0.88rem;
+  }
+  .demo-gen .typed::after {
+    content: "";
+    display: inline-block;
+    width: 1.5px;
+    height: 1em;
+    background: #0a0a0a;
+    margin-left: 2px;
+    vertical-align: -2px;
+    animation: caret 1s step-end infinite;
+  }
+  @keyframes caret {
+    50% {
+      opacity: 0;
+    }
+  }
+  .demo-gen .gen-btn {
+    margin-top: 6px;
+    align-self: start;
+    background: #0a0a0a;
+    color: white;
+    border-radius: 12px;
+    padding: 12px 18px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border: 0;
+    box-shadow: 0 8px 18px -8px rgba(0, 0, 0, 0.5);
+    position: relative;
+    overflow: hidden;
+  }
+  .demo-gen .gen-btn::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      120deg,
+      transparent 30%,
+      rgba(255, 255, 255, 0.25) 50%,
+      transparent 70%
+    );
+    transform: translateX(-100%);
+    animation: shimmer 3.5s var(--ease-apple) infinite;
+  }
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    60%,
+    100% {
+      transform: translateX(120%);
+    }
+  }
+
+  /* slide 3 — quiz */
+  .demo-quiz {
+    display: grid;
+    align-content: center;
+    gap: 12px;
+    height: 100%;
+  }
+  .demo-quiz .q {
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(10, 10, 10, 0.5);
+  }
+  .demo-quiz .qtitle {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #0a0a0a;
+    letter-spacing: -0.01em;
+    margin-bottom: 6px;
+  }
+  .demo-quiz .opt {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: white;
+    border-radius: 12px;
+    padding: 13px 16px;
+    font-size: 0.92rem;
+    color: rgba(10, 10, 10, 0.75);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 320ms var(--ease-apple);
+  }
+  .demo-quiz .opt .dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    border: 1.5px solid rgba(0, 0, 0, 0.2);
+    flex-shrink: 0;
+    position: relative;
+  }
+  .demo-quiz .opt.selected {
+    border-color: #0a0a0a;
+    background: #0a0a0a;
+    color: white;
+    transform: translateX(4px);
+  }
+  .demo-quiz .opt.selected .dot {
+    border-color: white;
+    background: white;
+  }
+  .demo-quiz .opt.selected .dot::after {
+    content: "";
+    position: absolute;
+    inset: 4px;
+    border-radius: 999px;
+    background: #0a0a0a;
+  }
+
+  /* slide 4 — player */
+  .demo-player {
+    height: 100%;
+    background: #0a0a0a;
+    border-radius: 14px;
+    position: relative;
+    overflow: hidden;
+    margin: -28px;
+    margin-top: -28px;
+  }
+  .demo-player-canvas {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+        ellipse at 30% 30%,
+        rgba(255, 255, 255, 0.08),
+        transparent 50%
+      ),
+      radial-gradient(
+        ellipse at 70% 70%,
+        rgba(255, 255, 255, 0.06),
+        transparent 50%
+      ),
+      #0a0a0a;
+  }
+  .demo-player-canvas svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .demo-player-play {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 64px;
+    height: 64px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.95);
+    display: grid;
+    place-items: center;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+    animation: float 4.5s ease-in-out infinite;
+  }
+  .demo-player-play::after {
+    content: "";
+    width: 0;
+    height: 0;
+    border-left: 14px solid #0a0a0a;
+    border-top: 9px solid transparent;
+    border-bottom: 9px solid transparent;
+    margin-left: 4px;
+  }
+  .demo-player-bar {
+    position: absolute;
+    bottom: 18px;
+    left: 18px;
+    right: 18px;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.18);
+    overflow: hidden;
+  }
+  .demo-player-bar span {
+    display: block;
+    height: 100%;
+    background: white;
+    border-radius: inherit;
+    animation: scrub 4s var(--ease-apple) infinite alternate;
+  }
+  .demo-player-time {
+    position: absolute;
+    bottom: 30px;
+    left: 18px;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.55);
+    letter-spacing: 0.05em;
+  }
+  .demo-player-time.right {
+    left: auto;
+    right: 18px;
+  }
+
+  /* slide 5 — results */
+  .demo-results {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+    height: 100%;
+    align-content: center;
+  }
+  .demo-result-card {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: white;
+    border-radius: 14px;
+    padding: 18px;
+    display: grid;
+    align-content: space-between;
+    min-height: 150px;
+    position: relative;
+    overflow: hidden;
+  }
+  .demo-result-card .lbl {
+    font-size: 0.68rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(10, 10, 10, 0.45);
+  }
+  .demo-result-card .val {
+    font-size: 2.4rem;
+    font-weight: 600;
+    letter-spacing: -0.04em;
+    color: #0a0a0a;
+    line-height: 1;
+  }
+  .demo-result-card .delta {
+    font-size: 0.78rem;
+    color: rgba(10, 10, 10, 0.55);
+  }
+  .demo-result-card.gain {
+    background: #0a0a0a;
+    color: white;
+  }
+  .demo-result-card.gain .lbl,
+  .demo-result-card.gain .delta {
+    color: rgba(255, 255, 255, 0.55);
+  }
+  .demo-result-card.gain .val {
+    color: white;
+  }
+  .demo-result-card .spark {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 38px;
+    opacity: 0.4;
+  }
+
+  /* ------- bottom controls ------- */
+  .ob-bottom {
+    position: absolute;
+    z-index: 30;
+    bottom: 28px;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    flex-direction: column;
+  }
+  .ob-dots {
+    display: flex;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 999px;
+    padding: 10px 14px;
+  }
+  .ob-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(10, 10, 10, 0.18);
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    transition:
+      width 380ms var(--ease-apple),
+      background 380ms var(--ease-apple);
+  }
+  .ob-dot.active {
+    width: 22px;
+    background: #0a0a0a;
+  }
+  .ob-nav {
+    display: flex;
+    gap: 10px;
+  }
+  .ob-btn {
+    height: 44px;
+    padding: 0 22px;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    border: 0;
+    cursor: pointer;
+    transition: all 260ms var(--ease-apple);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ob-btn.primary {
+    background: #0a0a0a;
+    color: white;
+    box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.5);
+  }
+  .ob-btn.primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.6);
+  }
+  .ob-btn.ghost {
+    background: rgba(255, 255, 255, 0.65);
+    color: #0a0a0a;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+  }
+  .ob-btn.ghost:hover {
+    background: rgba(255, 255, 255, 0.92);
+  }
+  .ob-btn[hidden] {
+    display: none;
+  }
+  .ob-arrow {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+  }
+
+  .ob-progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: transparent;
+    z-index: 25;
+  }
+  .ob-progress span {
+    display: block;
+    height: 100%;
+    background: #0a0a0a;
+    width: 0;
+    transition: width 700ms var(--ease-apple);
+  }
+
+  .ob-counter {
+    position: absolute;
+    bottom: 28px;
+    right: 28px;
+    z-index: 30;
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    color: rgba(10, 10, 10, 0.45);
+    font-variant-numeric: tabular-nums;
+  }
+  @media (max-width: 720px) {
+    .ob-counter {
+      display: none;
+    }
+  }
+
+  /* shared anims for fade-in stagger */
+  .ob-slide.active .ob-eyebrow {
+    animation: rise 700ms var(--ease-apple) both;
+  }
+  .ob-slide.active h1 {
+    animation: rise 800ms 80ms var(--ease-apple) both;
+  }
+  .ob-slide.active p.ob-sub {
+    animation: rise 800ms 160ms var(--ease-apple) both;
+  }
+  .ob-slide.active .ob-demo {
+    animation: riseDemo 1100ms 160ms var(--ease-apple) both;
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes riseDemo {
+    from {
+      opacity: 0;
+      transform: translateY(24px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  @keyframes scrub {
+    0% {
+      width: 12%;
+    }
+    100% {
+      width: 78%;
+    }
+  }
+</style>
+{% endblock %} {% block content %}
+<section class="ob-root" id="obRoot">
+  <div class="ob-blobs" aria-hidden="true">
+    <div class="ob-blob b1"></div>
+    <div class="ob-blob b2"></div>
+    <div class="ob-blob b3"></div>
+    <div class="ob-blob b4"></div>
+  </div>
+  <div class="ob-grain" aria-hidden="true"></div>
+
+  <div class="ob-progress"><span id="obProgress"></span></div>
+
+  <header class="ob-top">
+    <a href="{{ url_for('main.home') }}" class="ob-logo">lern</a>
+    <form
+      action="{{ url_for('main.onboarding_done') }}"
+      method="post"
+      class="m-0"
     >
-      Skip
-    </button>
-  </form>
+      <button class="ob-skip" type="submit">Skip intro</button>
+    </form>
+  </header>
 
-  <div class="onboarding-stage">
-    <article class="onboarding-slide active">
-      <div>
-        <p class="eyebrow">Instructions</p>
-        <h1>Generate. Watch. Compare.</h1>
+  <div class="ob-counter"><span id="obIndex">01</span> / 05</div>
+
+  <div class="ob-stage" id="obStage">
+    <!-- 1 -->
+    <article class="ob-slide active" data-slide="0">
+      <div class="ob-copy">
+        <span class="ob-eyebrow">Welcome</span>
+        <h1>Learn anything, in motion.</h1>
+        <p class="ob-sub">
+          A quiet, focused way to turn questions into short, illustrated videos —
+          measured by how much more you understand afterwards.
+        </p>
       </div>
-      <div class="walkthrough-video">
-        <div class="walkthrough-toolbar">
-          <span></span><span></span><span></span>
+      <div class="ob-demo">
+        <div class="ob-demo-bar"><i></i><i></i><i></i></div>
+        <div class="ob-demo-body">
+          <div class="demo-hero">
+            <span class="pill">Press play</span>
+            <div class="glyph">
+              <span class="ring"></span>
+              <span class="ring"></span>
+            </div>
+            <span class="pill">A 90-second tour</span>
+          </div>
         </div>
-        <div class="walkthrough-lines"><i></i><i></i><i></i></div>
-        <div class="walkthrough-play"></div>
       </div>
     </article>
 
-    <article class="onboarding-slide">
-      <div>
-        <p class="eyebrow">Generate</p>
+    <!-- 2 -->
+    <article class="ob-slide" data-slide="1">
+      <div class="ob-copy">
+        <span class="ob-eyebrow">Step one — Generate</span>
         <h1>Describe the concept.</h1>
+        <p class="ob-sub">
+          Write what you want to understand. Optionally add the misconception
+          you keep falling into. We turn it into a short animated lesson.
+        </p>
       </div>
-      <div class="walkthrough-video form-demo">
-        <b>Bayes theorem for genetics data</b>
-        <span>Common misconception: base rates</span>
-        <button>Generate video</button>
-      </div>
-    </article>
-
-    <article class="onboarding-slide">
-      <div>
-        <p class="eyebrow">Assess</p>
-        <h1>Answer the pre-quiz.</h1>
-      </div>
-      <div class="walkthrough-video quiz-demo">
-        <strong>Question 1 of 5</strong>
-        <span></span><span></span><span></span>
-      </div>
-    </article>
-
-    <article class="onboarding-slide">
-      <div>
-        <p class="eyebrow">Watch</p>
-        <h1>Watch the video.</h1>
-      </div>
-      <div class="walkthrough-video player-demo">
-        <div class="walkthrough-play"></div>
-        <div class="player-demo-bar"><span></span></div>
+      <div class="ob-demo">
+        <div class="ob-demo-bar"><i></i><i></i><i></i></div>
+        <div class="ob-demo-body">
+          <div class="demo-gen">
+            <label>Topic</label>
+            <div class="input"><span class="typed" id="typedTopic"></span></div>
+            <label>Common misconception (optional)</label>
+            <div class="input misc" id="miscLine">
+              <span id="typedMisc"></span>
+            </div>
+            <button class="gen-btn" type="button">Generate video →</button>
+          </div>
+        </div>
       </div>
     </article>
 
-    <article class="onboarding-slide">
-      <div>
-        <p class="eyebrow">Results</p>
-        <h1>See the change.</h1>
+    <!-- 3 -->
+    <article class="ob-slide" data-slide="2">
+      <div class="ob-copy">
+        <span class="ob-eyebrow">Step two — Assess</span>
+        <h1>A quick pre-quiz.</h1>
+        <p class="ob-sub">
+          Five short questions to anchor what you already think — so the gain
+          afterwards is real, not imagined.
+        </p>
+      </div>
+      <div class="ob-demo">
+        <div class="ob-demo-bar"><i></i><i></i><i></i></div>
+        <div class="ob-demo-body">
+          <div class="demo-quiz">
+            <div class="q">Question 2 of 5</div>
+            <div class="qtitle">If a test is 99% accurate, a positive means…</div>
+            <div class="opt"><span class="dot"></span>You almost certainly have it</div>
+            <div class="opt selected" id="quizSel">
+              <span class="dot"></span>It depends on the base rate
+            </div>
+            <div class="opt"><span class="dot"></span>The test is wrong 1% of the time</div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 4 -->
+    <article class="ob-slide" data-slide="3">
+      <div class="ob-copy">
+        <span class="ob-eyebrow">Step three — Watch</span>
+        <h1>A short, animated explainer.</h1>
+        <p class="ob-sub">
+          Hand-crafted visuals, narrated. Roughly a minute. No filler, no
+          tangents — just the idea, shown clearly.
+        </p>
+      </div>
+      <div class="ob-demo">
+        <div class="ob-demo-bar"><i></i><i></i><i></i></div>
+        <div class="ob-demo-body" style="padding: 0">
+          <div class="demo-player">
+            <div class="demo-player-canvas">
+              <svg viewBox="0 0 400 260" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                  <linearGradient id="gline" x1="0" x2="1">
+                    <stop offset="0" stop-color="rgba(255,255,255,0.05)" />
+                    <stop offset=".5" stop-color="rgba(255,255,255,0.4)" />
+                    <stop offset="1" stop-color="rgba(255,255,255,0.05)" />
+                  </linearGradient>
+                </defs>
+                <g stroke="url(#gline)" stroke-width="1" fill="none">
+                  <circle cx="200" cy="130" r="60">
+                    <animate
+                      attributeName="r"
+                      values="60;72;60"
+                      dur="6s"
+                      repeatCount="indefinite"
+                    />
+                  </circle>
+                  <circle cx="200" cy="130" r="92">
+                    <animate
+                      attributeName="r"
+                      values="92;104;92"
+                      dur="6s"
+                      repeatCount="indefinite"
+                    />
+                  </circle>
+                  <circle cx="200" cy="130" r="124" opacity=".6">
+                    <animate
+                      attributeName="r"
+                      values="124;136;124"
+                      dur="6s"
+                      repeatCount="indefinite"
+                    />
+                  </circle>
+                </g>
+                <g
+                  fill="rgba(255,255,255,0.85)"
+                  font-family="-apple-system, sans-serif"
+                  font-size="11"
+                  text-anchor="middle"
+                >
+                  <text x="200" y="134">P(disease | +)</text>
+                </g>
+              </svg>
+            </div>
+            <div class="demo-player-play"></div>
+            <div class="demo-player-time">0:42</div>
+            <div class="demo-player-time right">1:08</div>
+            <div class="demo-player-bar"><span></span></div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 5 -->
+    <article class="ob-slide" data-slide="4">
+      <div class="ob-copy">
+        <span class="ob-eyebrow">Step four — Review</span>
+        <h1>See how much you moved.</h1>
+        <p class="ob-sub">
+          The same five questions, after. The number that matters is how much
+          your answer changed — that's the lesson, made visible.
+        </p>
         <form
           action="{{ url_for('main.onboarding_done') }}"
           method="post"
-          class="mt-6"
+          class="mt-7 hidden md:block"
         >
-          <button class="btn-primary">Get started</button>
+          <button class="ob-btn primary" type="submit">
+            Get started
+            <svg class="ob-arrow" viewBox="0 0 24 24">
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </button>
         </form>
       </div>
-      <div class="walkthrough-video results-demo">
-        <div><small>Pre</small><strong>2/5</strong></div>
-        <div><small>Post</small><strong>4/5</strong></div>
-        <div><small>Gain</small><strong>+2</strong></div>
+      <div class="ob-demo">
+        <div class="ob-demo-bar"><i></i><i></i><i></i></div>
+        <div class="ob-demo-body">
+          <div class="demo-results">
+            <div class="demo-result-card">
+              <span class="lbl">Pre</span>
+              <span class="val" data-count-to="2">0</span>
+              <span class="delta">out of 5</span>
+            </div>
+            <div class="demo-result-card">
+              <span class="lbl">Post</span>
+              <span class="val" data-count-to="4">0</span>
+              <span class="delta">out of 5</span>
+            </div>
+            <div class="demo-result-card gain">
+              <span class="lbl">Gain</span>
+              <span class="val" data-count-to="2" data-prefix="+">0</span>
+              <span class="delta">+40 percentage pts</span>
+              <svg class="spark" viewBox="0 0 200 60" preserveAspectRatio="none">
+                <path
+                  d="M0,52 L20,48 L40,46 L60,42 L80,30 L100,28 L120,18 L140,16 L160,10 L180,8 L200,4"
+                  stroke="rgba(255,255,255,0.6)"
+                  stroke-width="1.5"
+                  fill="none"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
       </div>
     </article>
   </div>
 
-  <div class="onboarding-controls">
-    <button type="button" id="prevSlide" class="btn-secondary">Back</button>
-    <div id="onboardingDots" class="flex gap-2"></div>
-    <button type="button" id="nextSlide" class="btn-primary">Next</button>
+  <div class="ob-bottom">
+    <div class="ob-dots" id="obDots"></div>
+    <div class="ob-nav">
+      <button type="button" class="ob-btn ghost" id="prevSlide" hidden>
+        <svg class="ob-arrow" viewBox="0 0 24 24" style="transform: rotate(180deg)">
+          <path d="M5 12h14M13 6l6 6-6 6" />
+        </svg>
+        Back
+      </button>
+      <button type="button" class="ob-btn primary" id="nextSlide">
+        Continue
+        <svg class="ob-arrow" viewBox="0 0 24 24">
+          <path d="M5 12h14M13 6l6 6-6 6" />
+        </svg>
+      </button>
+    </div>
   </div>
 </section>
 
 <script>
-  const slides = Array.from(document.querySelectorAll(".onboarding-slide"));
-  const dots = document.getElementById("onboardingDots");
-  let activeSlide = 0;
+  (function () {
+    const slides = Array.from(document.querySelectorAll(".ob-slide"));
+    const dotsRoot = document.getElementById("obDots");
+    const prevBtn = document.getElementById("prevSlide");
+    const nextBtn = document.getElementById("nextSlide");
+    const progress = document.getElementById("obProgress");
+    const indexEl = document.getElementById("obIndex");
+    let active = 0;
+    let typingTimers = [];
 
-  slides.forEach((_, index) => {
-    const dot = document.createElement("button");
-    dot.type = "button";
-    dot.className = "onboarding-dot";
-    dot.addEventListener("click", () => showSlide(index));
-    dots.appendChild(dot);
-  });
+    slides.forEach((_, i) => {
+      const dot = document.createElement("button");
+      dot.className = "ob-dot";
+      dot.type = "button";
+      dot.addEventListener("click", () => go(i));
+      dotsRoot.appendChild(dot);
+    });
+    const dots = Array.from(dotsRoot.children);
 
-  function showSlide(index) {
-    activeSlide = Math.max(0, Math.min(slides.length - 1, index));
-    slides.forEach((slide, slideIndex) =>
-      slide.classList.toggle("active", slideIndex === activeSlide),
-    );
-    Array.from(dots.children).forEach((dot, dotIndex) =>
-      dot.classList.toggle("active", dotIndex === activeSlide),
-    );
-    document.getElementById("prevSlide").style.visibility =
-      activeSlide === 0 ? "hidden" : "visible";
-    document.getElementById("nextSlide").textContent =
-      activeSlide === slides.length - 1 ? "Start" : "Next";
-  }
-
-  document
-    .getElementById("prevSlide")
-    .addEventListener("click", () => showSlide(activeSlide - 1));
-  document.getElementById("nextSlide").addEventListener("click", () => {
-    if (activeSlide === slides.length - 1) {
-      document.querySelector("form[action$='/onboarding/done']").submit();
-    } else {
-      showSlide(activeSlide + 1);
+    function go(i) {
+      i = Math.max(0, Math.min(slides.length - 1, i));
+      slides.forEach((s, si) => {
+        s.classList.toggle("active", si === i);
+        s.classList.toggle("exit-up", si < i);
+      });
+      dots.forEach((d, di) => d.classList.toggle("active", di === i));
+      active = i;
+      progress.style.width = ((i + 1) / slides.length) * 100 + "%";
+      indexEl.textContent = String(i + 1).padStart(2, "0");
+      prevBtn.hidden = i === 0;
+      nextBtn.innerHTML =
+        i === slides.length - 1
+          ? 'Get started <svg class="ob-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>'
+          : 'Continue <svg class="ob-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+      runDemo(i);
     }
-  });
-  showSlide(0);
+
+    prevBtn.addEventListener("click", () => go(active - 1));
+    nextBtn.addEventListener("click", () => {
+      if (active === slides.length - 1) {
+        const f = document.createElement("form");
+        f.method = "post";
+        f.action = "{{ url_for('main.onboarding_done') }}";
+        document.body.appendChild(f);
+        f.submit();
+      } else {
+        go(active + 1);
+      }
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowRight" || e.key === "Enter") {
+        e.preventDefault();
+        nextBtn.click();
+      }
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        if (!prevBtn.hidden) prevBtn.click();
+      }
+      if (e.key === "Escape") {
+        document.querySelector(".ob-skip")?.click();
+      }
+    });
+
+    // wheel / swipe
+    let wheelLock = false;
+    document.getElementById("obRoot").addEventListener(
+      "wheel",
+      (e) => {
+        if (Math.abs(e.deltaY) < 24 || wheelLock) return;
+        wheelLock = true;
+        if (e.deltaY > 0) go(active + 1);
+        else go(active - 1);
+        setTimeout(() => (wheelLock = false), 750);
+      },
+      { passive: true },
+    );
+
+    let touchY = null;
+    document.getElementById("obRoot").addEventListener("touchstart", (e) => {
+      touchY = e.touches[0].clientY;
+    });
+    document.getElementById("obRoot").addEventListener("touchend", (e) => {
+      if (touchY == null) return;
+      const dy = touchY - e.changedTouches[0].clientY;
+      if (Math.abs(dy) > 40) {
+        if (dy > 0) go(active + 1);
+        else go(active - 1);
+      }
+      touchY = null;
+    });
+
+    // ----- per-slide demos -----
+    function clearTimers() {
+      typingTimers.forEach((t) => clearTimeout(t));
+      typingTimers = [];
+    }
+
+    function typeInto(el, text, speed = 45, done) {
+      el.textContent = "";
+      let i = 0;
+      const tick = () => {
+        if (i <= text.length) {
+          el.textContent = text.slice(0, i++);
+          typingTimers.push(setTimeout(tick, speed + Math.random() * 30));
+        } else if (done) done();
+      };
+      tick();
+    }
+
+    function countTo(el) {
+      const target = parseInt(el.dataset.countTo, 10);
+      const prefix = el.dataset.prefix || "";
+      const start = performance.now();
+      const dur = 900;
+      function frame(now) {
+        const t = Math.min(1, (now - start) / dur);
+        const eased = 1 - Math.pow(1 - t, 3);
+        el.textContent = prefix + Math.round(target * eased);
+        if (t < 1) requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    }
+
+    function runDemo(i) {
+      clearTimers();
+      const slide = slides[i];
+      if (i === 1) {
+        const t = slide.querySelector("#typedTopic");
+        const m = slide.querySelector("#typedMisc");
+        if (t && m) {
+          t.classList.add("typed");
+          m.classList.remove("typed");
+          typeInto(t, "Bayes' theorem for genetics data", 40, () => {
+            t.classList.remove("typed");
+            m.classList.add("typed");
+            typingTimers.push(
+              setTimeout(
+                () =>
+                  typeInto(m, "Ignoring base rates", 50, () =>
+                    m.classList.remove("typed"),
+                  ),
+                380,
+              ),
+            );
+          });
+        }
+      }
+      if (i === 2) {
+        const opts = slide.querySelectorAll(".opt");
+        opts.forEach((o) => o.classList.remove("selected"));
+        const seq = [0, 2, 1];
+        seq.forEach((idx, k) => {
+          typingTimers.push(
+            setTimeout(() => {
+              opts.forEach((o) => o.classList.remove("selected"));
+              opts[idx].classList.add("selected");
+            }, 700 + k * 900),
+          );
+        });
+      }
+      if (i === 4) {
+        slide
+          .querySelectorAll("[data-count-to]")
+          .forEach((el, idx) =>
+            typingTimers.push(setTimeout(() => countTo(el), 200 + idx * 220)),
+          );
+      }
+    }
+
+    go(0);
+  })();
 </script>
 {% endblock %}
