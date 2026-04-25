@@ -42,7 +42,7 @@ def _storyboard_scene_limits() -> tuple[int, int]:
 def _target_scene_count(job: dict, *, min_scene_count: int, max_scene_count: int) -> int:
     duration_seconds = int(job["duration_seconds"])
     concept = f"{job.get('concept', '')} {job.get('research', '')}".lower()
-    base = 2 if duration_seconds <= 75 else 4 if duration_seconds <= 210 else 5
+    base = 3 if duration_seconds <= 75 else 4 if duration_seconds <= 150 else 5 if duration_seconds <= 240 else 6
     complexity_terms = (
         "proof",
         "derive",
@@ -67,8 +67,22 @@ def _default_visual_theme(text: str) -> str:
     return themes[sum(ord(ch) for ch in text) % len(themes)]
 
 
-def _default_scene_variant(_: int, __: str) -> str:
-    return "basic"
+VALID_LAYOUTS = {
+    "title_card",
+    "concept_map",
+    "equation_walkthrough",
+    "proof_steps",
+    "comparison",
+    "axes_plot",
+    "bar_chart",
+    "timeline",
+    "flow",
+    "orbit",
+    "stack_build",
+    "wave",
+    "network",
+    "closing_card",
+}
 
 
 def _normalize_short_list(values: list[str] | None, fallback: list[str], *, limit: int) -> list[str]:
@@ -84,32 +98,56 @@ def _build_storyboard_prompt(job: dict) -> str:
     total_words = int(job["duration_seconds"] * 2.0)
     research = (job.get("research") or "").strip()
     return f"""
-Create a concise explainer-video storyboard for a developer audience.
+You are designing a short, animated explainer video for a high school student doing research.
+The student is trying to understand a complex math or science concept in the context of their own research area.
+Tie examples and intuition to that research context whenever possible.
 
 Topic: {job["concept"]}
 Research context: {research or "None provided. Use only broad, stable background knowledge."}
 Audience: {job["audience"]}
 Target runtime: about {job["duration_seconds"]} seconds
 Scene count: choose between {min_scene_count} and {max_scene_count}, with a target of {target_scene_count}
-Style notes: {job["style_notes"] or "Use a crisp, technical tone with strong visual intuition."}
+Style notes: {job["style_notes"] or "Crisp, technical, but intuitive. Lead with mental models, then formalism."}
+
+The renderer animates each scene using one of these layout templates. Pick the one that best matches
+what the viewer should *see move* during that scene. Each layout has specific visual fields it uses well:
+
+- `title_card`: opening hero. Big headline + decorative orbiting rings. Use only for scene 1 if at all.
+- `concept_map`: central idea with 3-5 connected branches. Fill `visual_items` with the branch labels.
+- `equation_walkthrough`: a single equation centered, then 2-3 parts annotated with arrows. Put the
+  equation in `equations[0]` and the annotation labels in `highlight_terms`.
+- `proof_steps`: a sequence of 2-4 equations that morph into each other. Put each step in `equations`
+  in order. Use this for derivations.
+- `comparison`: side-by-side panels (A vs B). Fill `comparison_pairs` with {{left, right}} attribute
+  pairs, and put the two panel titles in `highlight_terms` (first = left, last = right).
+- `axes_plot`: animated function graph. Provide a python-style `function_expr` of x, e.g.
+  "0.8*sin(x)+0.3*x", and 2-3 `visual_items` for labeled points on the curve.
+- `bar_chart`: animated growing bars. Fill `data_points` as [{{label, value}}] (2-5 entries).
+- `timeline`: horizontal timeline with a sweeping playhead. Put 3-5 ordered events in `visual_items`.
+- `flow`: process pipeline. Put 2-5 sequential steps in `visual_items`.
+- `orbit`: rotating satellites around a core idea. Put the core in `highlight_terms[0]` and the
+  satellites in `visual_items`.
+- `stack_build`: layered stack (e.g. abstraction layers, hierarchy). Put 2-5 layers in `visual_items`,
+  ordered bottom to top.
+- `wave`: animated sine wave whose amplitude/frequency morph. Use for periodic, oscillation, signal,
+  or wave-mechanics ideas. `highlight_terms` may name the wave parameters.
+- `network`: graph of nodes with traveling pulses along edges. Put nodes in `visual_items`. Use for
+  systems with interactions, dependencies, or relationships.
+- `closing_card`: final big takeaway. Use for the last scene.
 
 Requirements:
-- Explain the idea accurately with technical clarity and strong intuition.
-- Choose the number of scenes based on runtime, topic difficulty, and how much structure is needed.
-- Keep total narration near {total_words} words.
-- Each scene narration should be natural for voiceover and 2 to 4 sentences long.
-- Headlines and any on-screen items must be short enough to fit cleanly on screen.
-- Visual goals must describe what the viewer should see move, transform, compare, or build over time.
-- The renderer is intentionally basic Manim. Favor simple geometric ideas, equations, arrows, labels, axes, timelines, and comparisons that fit that constraint.
-- Pick one overall `visual_theme` from: blueprint, chalk, lab, signal, midnight, sunset.
-- `layout` is optional guidance only. Use `auto` unless one of these clearly helps: concept_map, equation, comparison, axes, timeline, flow, orbit.
-- `scene_variant` should always be `basic`.
-- Prefer intuition first, then formalism, then a compact takeaway.
-- Include at most 2 equations per scene and keep them short.
-- `visual_items`, `highlight_terms`, and `key_points` are optional and should stay compact phrases, not long sentences.
-- Only include `hook`, `takeaway`, `key_points`, `highlight_terms`, or `visual_items` when they materially improve the animation.
-- On-screen text should be sparse. Avoid repeating the narration sentence-for-sentence.
-- Keep the output compact and do not add extra prose outside the schema.
+- Pick a varied mix of layouts across scenes. Do NOT use `concept_map` for every scene.
+- Match the layout to the idea: if a scene shows a derivation, use `proof_steps`; if it shows
+  oscillation, use `wave`; if it shows tradeoffs, use `comparison`; if it plots a relationship,
+  use `axes_plot`; if it shows growth/distribution, use `bar_chart`; if it shows a process,
+  use `flow` or `timeline`.
+- Each scene must populate the fields that its layout uses (see above). Fields not used by the
+  layout can be empty arrays.
+- Total narration near {total_words} words. Each scene narration is 2-4 sentences, natural for voiceover.
+- Headlines under 60 chars; on-screen labels short. Don't repeat the narration on screen.
+- Pick one `visual_theme` from: blueprint, chalk, lab, signal, midnight, sunset.
+- For `function_expr`, only use: x, sin, cos, tan, exp, log, sqrt, abs, pi, e, +, -, *, /, **.
+- Equations use plain LaTeX, kept short (under ~60 chars each).
 
 Return only JSON matching the provided schema.
 """.strip()
@@ -237,12 +275,18 @@ class VideoWorkflow:
                 scene.get("visual_goal")
                 or f"Show {scene['headline']} with simple labels, arrows, and a compact comparison."
             ).strip()
-            scene["layout"] = (scene.get("layout") or "auto").strip() or "auto"
-            if scene["layout"] not in {"auto", "concept_map", "equation", "comparison", "axes", "timeline", "flow", "orbit"}:
-                scene["layout"] = "auto"
-            scene["scene_variant"] = scene.get("scene_variant") or _default_scene_variant(index, scene["layout"])
-            if scene["scene_variant"] != "basic":
-                scene["scene_variant"] = "basic"
+            layout = (scene.get("layout") or "").strip()
+            if layout not in VALID_LAYOUTS:
+                if index == 1:
+                    layout = "title_card"
+                elif index == len(scenes):
+                    layout = "closing_card"
+                else:
+                    fallback_cycle = ["concept_map", "equation_walkthrough", "comparison",
+                                      "flow", "axes_plot", "timeline", "orbit"]
+                    layout = fallback_cycle[(index - 1) % len(fallback_cycle)]
+            scene["layout"] = layout
+            scene.pop("scene_variant", None)
             scene["highlight_terms"] = _normalize_short_list(
                 scene.get("highlight_terms"),
                 [scene["headline"]],
@@ -251,14 +295,48 @@ class VideoWorkflow:
             scene["visual_items"] = _normalize_short_list(
                 scene.get("visual_items"),
                 [],
-                limit=4,
+                limit=5,
             )
             scene["key_points"] = _normalize_short_list(
                 scene.get("key_points"),
                 [],
                 limit=3,
             )
-            scene["equations"] = _normalize_short_list(scene.get("equations"), [], limit=2)
+            scene["equations"] = _normalize_short_list(scene.get("equations"), [], limit=4)
+
+            func_expr = (scene.get("function_expr") or "").strip()
+            if func_expr:
+                scene["function_expr"] = func_expr[:60]
+            else:
+                scene.pop("function_expr", None)
+
+            cleaned_pairs = []
+            for pair in scene.get("comparison_pairs") or []:
+                if not isinstance(pair, dict):
+                    continue
+                left = str(pair.get("left") or "").strip()[:32]
+                right = str(pair.get("right") or "").strip()[:32]
+                if left or right:
+                    cleaned_pairs.append({"left": left, "right": right})
+            if cleaned_pairs:
+                scene["comparison_pairs"] = cleaned_pairs[:4]
+            else:
+                scene.pop("comparison_pairs", None)
+
+            cleaned_points = []
+            for dp in scene.get("data_points") or []:
+                if not isinstance(dp, dict):
+                    continue
+                label = str(dp.get("label") or "").strip()[:24]
+                try:
+                    value = float(dp.get("value"))
+                except (TypeError, ValueError):
+                    continue
+                cleaned_points.append({"label": label, "value": value})
+            if cleaned_points:
+                scene["data_points"] = cleaned_points[:6]
+            else:
+                scene.pop("data_points", None)
 
         if len(scenes) != max_scene_count:
             add_log(

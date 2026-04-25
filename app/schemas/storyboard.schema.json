@@ -41,7 +41,7 @@
     "scenes": {
       "type": "array",
       "minItems": 2,
-      "maxItems": 5,
+      "maxItems": 6,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -51,7 +51,6 @@
           "hook",
           "narration",
           "layout",
-          "scene_variant",
           "visual_goal",
           "key_points",
           "visual_items",
@@ -82,29 +81,20 @@
           "layout": {
             "type": "string",
             "enum": [
-              "auto",
+              "title_card",
               "concept_map",
-              "equation",
+              "equation_walkthrough",
+              "proof_steps",
               "comparison",
-              "axes",
+              "axes_plot",
+              "bar_chart",
               "timeline",
               "flow",
-              "orbit"
-            ]
-          },
-          "scene_variant": {
-            "type": "string",
-            "enum": [
-              "auto",
-              "basic",
-              "hero",
-              "split",
-              "spotlight",
-              "compare",
-              "grid",
-              "stage",
               "orbit",
-              "magazine"
+              "stack_build",
+              "wave",
+              "network",
+              "closing_card"
             ]
           },
           "visual_goal": {
@@ -124,7 +114,7 @@
           "visual_items": {
             "type": "array",
             "minItems": 0,
-            "maxItems": 4,
+            "maxItems": 5,
             "items": {
               "type": "string",
               "minLength": 2,
@@ -143,16 +133,46 @@
           },
           "equations": {
             "type": "array",
-            "maxItems": 2,
+            "maxItems": 4,
             "items": {
               "type": "string",
-              "maxLength": 60
+              "maxLength": 80
             }
           },
           "takeaway": {
             "type": "string",
             "minLength": 0,
             "maxLength": 90
+          },
+          "function_expr": {
+            "type": "string",
+            "maxLength": 60
+          },
+          "data_points": {
+            "type": "array",
+            "maxItems": 6,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["label", "value"],
+              "properties": {
+                "label": {"type": "string", "maxLength": 24},
+                "value": {"type": "number"}
+              }
+            }
+          },
+          "comparison_pairs": {
+            "type": "array",
+            "maxItems": 4,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["left", "right"],
+              "properties": {
+                "left": {"type": "string", "maxLength": 32},
+                "right": {"type": "string", "maxLength": 32}
+              }
+            }
           }
         }
       }
