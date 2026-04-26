@@ -62,13 +62,29 @@ def _target_scene_count(job: dict, *, min_scene_count: int, max_scene_count: int
     return max(min_scene_count, min(max_scene_count, base))
 
 
+_VALID_THEMES = {"light", "dark", "paper"}
+_VALID_LAYOUTS = {
+    "auto",
+    "title_card",
+    "bullets",
+    "equation",
+    "distribution",
+    "axes",
+    "comparison",
+    "flow",
+    "concept_map",
+    "timeline",
+    "bar_chart",
+    "wave",
+    "tree",
+    "scatter",
+    "process",
+    "summary",
+}
+
+
 def _default_visual_theme(text: str) -> str:
-    themes = ["blueprint", "chalk", "lab", "signal", "midnight", "sunset"]
-    return themes[sum(ord(ch) for ch in text) % len(themes)]
-
-
-def _default_scene_variant(_: int, __: str) -> str:
-    return "basic"
+    return "light"
 
 
 def _normalize_short_list(values: list[str] | None, fallback: list[str], *, limit: int) -> list[str]:
@@ -81,37 +97,82 @@ def _normalize_short_list(values: list[str] | None, fallback: list[str], *, limi
 def _build_storyboard_prompt(job: dict) -> str:
     min_scene_count, max_scene_count = _storyboard_scene_limits()
     target_scene_count = _target_scene_count(job, min_scene_count=min_scene_count, max_scene_count=max_scene_count)
-    total_words = int(job["duration_seconds"] * 2.0)
+    total_words = int(job["duration_seconds"] * 2.2)
     research = (job.get("research") or "").strip()
     return f"""
-Create a concise explainer-video storyboard for a developer audience.
+You are designing a short explainer video for a high-school student doing research.
+The video must build genuine intuition for a complex math or science concept by tying every visual to a vivid, topic-specific picture from the student's research field.
 
 Topic: {job["concept"]}
-Research context: {research or "None provided. Use only broad, stable background knowledge."}
+Research context: {research or "Not provided. Use stable, broadly known background knowledge for this audience."}
 Audience: {job["audience"]}
-Target runtime: about {job["duration_seconds"]} seconds
-Scene count: choose between {min_scene_count} and {max_scene_count}, with a target of {target_scene_count}
-Style notes: {job["style_notes"] or "Use a crisp, technical tone with strong visual intuition."}
+Target runtime: about {job["duration_seconds"]} seconds total
+Scene count: between {min_scene_count} and {max_scene_count} (target {target_scene_count})
+Style notes: {job["style_notes"] or "Crisp, technical, friendly. Speak to a curious 16-year-old researcher."}
 
-Requirements:
-- Explain the idea accurately with technical clarity and strong intuition.
-- Choose the number of scenes based on runtime, topic difficulty, and how much structure is needed.
-- Keep total narration near {total_words} words.
-- Each scene narration should be natural for voiceover and 2 to 4 sentences long.
-- Headlines and any on-screen items must be short enough to fit cleanly on screen.
-- Visual goals must describe what the viewer should see move, transform, compare, or build over time.
-- The renderer is intentionally basic Manim. Favor simple geometric ideas, equations, arrows, labels, axes, timelines, and comparisons that fit that constraint.
-- Pick one overall `visual_theme` from: blueprint, chalk, lab, signal, midnight, sunset.
-- `layout` is optional guidance only. Use `auto` unless one of these clearly helps: concept_map, equation, comparison, axes, timeline, flow, orbit.
-- `scene_variant` should always be `basic`.
-- Prefer intuition first, then formalism, then a compact takeaway.
-- Include at most 2 equations per scene and keep them short.
-- `visual_items`, `highlight_terms`, and `key_points` are optional and should stay compact phrases, not long sentences.
-- Only include `hook`, `takeaway`, `key_points`, `highlight_terms`, or `visual_items` when they materially improve the animation.
-- On-screen text should be sparse. Avoid repeating the narration sentence-for-sentence.
-- Keep the output compact and do not add extra prose outside the schema.
+== Renderer ==
+Each scene is rendered by an animated Manim template chosen from this fixed library.
+Pick the template per scene with the `layout` field. Each template uses the listed fields.
 
-Return only JSON matching the provided schema.
+  - title_card        Opening hero. Big animated title, accent underline, subtitle from `hook`.
+                      Use ONLY for scene 1.
+  - bullets           Numbered, animated 2-3 bullets from `key_points`.
+  - equation          Centered LaTeX from `equations[0]`, optional `equations[1]` below,
+                      annotation chips from `highlight_terms`. Best for one core formula.
+  - distribution      Bell curve with shaded tail. For p-values, sigma, normal/Gaussian.
+                      `highlight_terms[0]` = x-axis label, `highlight_terms[1]` = tail label.
+  - axes              Plotted curve on Cartesian axes with up to 3 labeled points from
+                      `visual_items`. Good for functions, growth, dose-response.
+  - comparison        Two side-by-side cards from `visual_items[0..1]` with subtitles
+                      from `highlight_terms[0..1]`. Use for contrasts.
+  - flow              3-4 step pipeline from `visual_items` connected by arrows.
+                      Use for procedures, algorithms, transformations.
+  - concept_map       Central node from `highlight_terms[0]` with 3-4 satellites from
+                      `visual_items`. Use to relate parts to a whole.
+  - timeline          Horizontal milestones from `visual_items`. Use for chronology.
+  - bar_chart         Comparative bars from `visual_items` (categorical labels). Heights
+                      are auto-generated; only use when relative magnitudes are the point.
+  - wave              Two sine waves with labels from `highlight_terms[0..1]`. Use for
+                      physics waves, signals, harmonics, interference.
+  - tree              Branching tree (root + 2-3 branches) from `highlight_terms[0]`
+                      and `visual_items`. Use for Bayes/decision/probability trees.
+  - scatter           Scatter plot with linear fit, axes labelled by `highlight_terms`.
+                      Use for regression, correlation, lab data.
+  - process           Numbered vertical steps from `key_points`. Each item may use
+                      "Title: detail" syntax to split a bold title from a body.
+  - summary           Closing key takeaway: big `takeaway` text + check-marked bullets
+                      from `key_points`. Use ONLY for the final scene.
+
+== Hard rules ==
+- Pick the template that best matches the actual content of each scene. Do NOT default everything to `bullets`.
+- Use distinct templates across scenes; avoid using the same template twice in a row.
+- Scene 1 should be `title_card`. The final scene should be `summary`.
+- `highlight_terms` values must literally be the labels you want printed on screen
+  (axis labels, chip labels, tail label, root label, etc.). Keep them under 4 words.
+- `visual_items` are the specific labels the chosen template draws (bullet labels,
+  flow nodes, comparison cards, scatter axes points, etc.). Use the exact labels you
+  want shown — short noun phrases, not sentences. Capitalize like normal English (Sentence case, not Title Case).
+- `key_points` are full short phrases (5-90 chars) used for `bullets`, `process`, `summary`.
+- For `equation`, write the formula as valid LaTeX (no dollar-sign wrappers). Example: `P(A\\mid B)=\\frac{{P(B\\mid A)P(A)}}{{P(B)}}`.
+- For `process`, format each `key_points` entry as `Step name: short detail.` so the
+  template can split title and body.
+- The narration MUST explicitly reference the items shown on screen (using their
+  `visual_items` / `highlight_terms` words), so audio and visuals reinforce each other.
+- Narration: 2 to 4 natural spoken sentences per scene; total around {total_words} words.
+- Do not repeat the headline verbatim in `hook` or `takeaway`. Each adds new information.
+- Headlines: max 60 chars, written in Sentence case, no trailing punctuation.
+- Hooks: max 90 chars, a one-line subtitle that adds context.
+- Takeaways: max 110 chars, a one-line caption shown under the visual.
+- No emojis. No markdown. No quotes around plain text.
+
+== Visual theme ==
+Pick ONE `visual_theme` from: light, dark, paper.
+- `light`  : white background, dark text, blue accent (default).
+- `dark`   : near-black background, off-white text, blue accent. For physics, astronomy, signals.
+- `paper`  : warm off-white, sepia tone. For history-of-science, biology, classical topics.
+
+== Schema ==
+Return only JSON matching the provided schema. No prose, no code fences.
 """.strip()
 
 
@@ -214,7 +275,8 @@ class VideoWorkflow:
             scenes = scenes[:max_scene_count]
             storyboard["scenes"] = scenes
 
-        storyboard["visual_theme"] = storyboard.get("visual_theme") or _default_visual_theme(
+        proposed_theme = (storyboard.get("visual_theme") or "").strip()
+        storyboard["visual_theme"] = proposed_theme if proposed_theme in _VALID_THEMES else _default_visual_theme(
             storyboard.get("title") or job["concept"]
         )
         storyboard["title"] = storyboard.get("title") or job["concept"]
@@ -238,11 +300,9 @@ class VideoWorkflow:
                 or f"Show {scene['headline']} with simple labels, arrows, and a compact comparison."
             ).strip()
             scene["layout"] = (scene.get("layout") or "auto").strip() or "auto"
-            if scene["layout"] not in {"auto", "concept_map", "equation", "comparison", "axes", "timeline", "flow", "orbit"}:
+            if scene["layout"] not in _VALID_LAYOUTS:
                 scene["layout"] = "auto"
-            scene["scene_variant"] = scene.get("scene_variant") or _default_scene_variant(index, scene["layout"])
-            if scene["scene_variant"] != "basic":
-                scene["scene_variant"] = "basic"
+            scene["scene_number"] = index
             scene["highlight_terms"] = _normalize_short_list(
                 scene.get("highlight_terms"),
                 [scene["headline"]],

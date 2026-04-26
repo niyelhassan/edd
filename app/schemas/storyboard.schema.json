@@ -30,18 +30,15 @@
     "visual_theme": {
       "type": "string",
       "enum": [
-        "blueprint",
-        "chalk",
-        "lab",
-        "signal",
-        "midnight",
-        "sunset"
+        "light",
+        "dark",
+        "paper"
       ]
     },
     "scenes": {
       "type": "array",
       "minItems": 2,
-      "maxItems": 5,
+      "maxItems": 6,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -51,7 +48,6 @@
           "hook",
           "narration",
           "layout",
-          "scene_variant",
           "visual_goal",
           "key_points",
           "visual_items",
@@ -72,39 +68,32 @@
           "hook": {
             "type": "string",
             "minLength": 0,
-            "maxLength": 70
+            "maxLength": 90
           },
           "narration": {
             "type": "string",
             "minLength": 45,
-            "maxLength": 320
+            "maxLength": 360
           },
           "layout": {
             "type": "string",
             "enum": [
               "auto",
-              "concept_map",
+              "title_card",
+              "bullets",
               "equation",
-              "comparison",
+              "distribution",
               "axes",
-              "timeline",
+              "comparison",
               "flow",
-              "orbit"
-            ]
-          },
-          "scene_variant": {
-            "type": "string",
-            "enum": [
-              "auto",
-              "basic",
-              "hero",
-              "split",
-              "spotlight",
-              "compare",
-              "grid",
-              "stage",
-              "orbit",
-              "magazine"
+              "concept_map",
+              "timeline",
+              "bar_chart",
+              "wave",
+              "tree",
+              "scatter",
+              "process",
+              "summary"
             ]
           },
           "visual_goal": {
@@ -117,17 +106,17 @@
             "maxItems": 3,
             "items": {
               "type": "string",
-              "minLength": 5,
+              "minLength": 3,
               "maxLength": 90
             }
           },
           "visual_items": {
             "type": "array",
             "minItems": 0,
-            "maxItems": 4,
+            "maxItems": 5,
             "items": {
               "type": "string",
-              "minLength": 2,
+              "minLength": 1,
               "maxLength": 40
             }
           },
@@ -137,8 +126,8 @@
             "maxItems": 4,
             "items": {
               "type": "string",
-              "minLength": 2,
-              "maxLength": 24
+              "minLength": 1,
+              "maxLength": 28
             }
           },
           "equations": {
@@ -146,13 +135,13 @@
             "maxItems": 2,
             "items": {
               "type": "string",
-              "maxLength": 60
+              "maxLength": 80
             }
           },
           "takeaway": {
             "type": "string",
             "minLength": 0,
-            "maxLength": 90
+            "maxLength": 110
           }
         }
       }

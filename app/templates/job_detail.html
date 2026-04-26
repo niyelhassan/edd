@@ -65,7 +65,7 @@
                 {% for scene in job.storyboard.scenes %}
                     <article class="border-t border-neutral-200 pt-4">
                         <h3 class="font-medium">{{ loop.index }}. {{ scene.headline }}</h3>
-                        <p class="mt-1 text-xs uppercase tracking-wide text-neutral-500">{{ scene.layout }} · {{ scene.scene_variant }}</p>
+                        <p class="mt-1 text-xs uppercase tracking-wide text-neutral-500">{{ scene.layout }}</p>
                         <p class="mt-2 text-neutral-700">{{ scene.visual_goal }}</p>
                     </article>
                 {% endfor %}
