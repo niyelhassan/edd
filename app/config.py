@@ -25,5 +25,6 @@ class Config:
     CLAUDE_CODE_MAX_TURNS = None
     DEEPGRAM_API_KEY = ""
     DEEPGRAM_VOICE_MODEL = "aura-2-thalia-en"
+    DEFAULT_RENDER_QUALITY = "1080p"
     MAX_WORKERS = 2
     POLL_INTERVAL_MS = 1500

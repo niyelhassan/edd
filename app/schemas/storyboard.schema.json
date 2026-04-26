@@ -40,8 +40,8 @@
     },
     "scenes": {
       "type": "array",
-      "minItems": 2,
-      "maxItems": 5,
+      "minItems": 3,
+      "maxItems": 8,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -77,7 +77,7 @@
           "narration": {
             "type": "string",
             "minLength": 45,
-            "maxLength": 320
+            "maxLength": 420
           },
           "layout": {
             "type": "string",
@@ -89,22 +89,35 @@
               "axes",
               "timeline",
               "flow",
-              "orbit"
+              "orbit",
+              "matrix",
+              "distribution",
+              "geometry",
+              "vector",
+              "bridge",
+              "feedback",
+              "lab"
             ]
           },
           "scene_variant": {
             "type": "string",
             "enum": [
               "auto",
-              "basic",
-              "hero",
-              "split",
-              "spotlight",
-              "compare",
-              "grid",
-              "stage",
-              "orbit",
-              "magazine"
+              "hero_reveal",
+              "concept_network",
+              "equation_build",
+              "graph_discovery",
+              "before_after",
+              "process_flow",
+              "timeline_story",
+              "orbit_system",
+              "lab_experiment",
+              "probability_grid",
+              "distribution_curve",
+              "geometry_proof",
+              "vector_field",
+              "feedback_loop",
+              "research_bridge"
             ]
           },
           "visual_goal": {
@@ -124,21 +137,21 @@
           "visual_items": {
             "type": "array",
             "minItems": 0,
-            "maxItems": 4,
+            "maxItems": 5,
             "items": {
               "type": "string",
               "minLength": 2,
-              "maxLength": 40
+              "maxLength": 48
             }
           },
           "highlight_terms": {
             "type": "array",
             "minItems": 0,
-            "maxItems": 4,
+            "maxItems": 5,
             "items": {
               "type": "string",
               "minLength": 2,
-              "maxLength": 24
+              "maxLength": 28
             }
           },
           "equations": {

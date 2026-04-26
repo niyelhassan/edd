@@ -23,6 +23,7 @@ def create_app() -> Flask:
         CLAUDE_CODE_MAX_TURNS=int(claude_max_turns_raw) if claude_max_turns_raw.strip() else None,
         DEEPGRAM_API_KEY=os.getenv("DEEPGRAM_API_KEY", app.config["DEEPGRAM_API_KEY"]),
         DEEPGRAM_VOICE_MODEL=os.getenv("DEEPGRAM_VOICE_MODEL", app.config["DEEPGRAM_VOICE_MODEL"]),
+        DEFAULT_RENDER_QUALITY=os.getenv("DEFAULT_RENDER_QUALITY", app.config["DEFAULT_RENDER_QUALITY"]),
         MAX_WORKERS=int(os.getenv("MAX_WORKERS", str(app.config["MAX_WORKERS"]))),
         POLL_INTERVAL_MS=int(os.getenv("POLL_INTERVAL_MS", str(app.config["POLL_INTERVAL_MS"]))),
     )

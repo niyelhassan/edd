@@ -16,7 +16,18 @@ class DeepgramTTSClient:
             raise DeepgramError("DEEPGRAM_API_KEY is not configured.")
         self.api_key = api_key
 
+    def _prepare_text(self, text: str) -> str:
+        cleaned = " ".join((text or "").replace("\n", " ").split())
+        cleaned = cleaned.replace("•", " ").replace("- ", "")
+        if cleaned and cleaned[-1] not in ".!?":
+            cleaned += "."
+        return cleaned
+
     def synthesize(self, *, text: str, output_path: Path, model: str) -> float:
+        prepared_text = self._prepare_text(text)
+        if not prepared_text:
+            raise DeepgramError("No narration text provided for synthesis.")
+
         output_path.parent.mkdir(parents=True, exist_ok=True)
         url = f"https://api.deepgram.com/v1/speak?model={model}&encoding=mp3&bit_rate=32000"
         response = requests.post(
@@ -25,7 +36,7 @@ class DeepgramTTSClient:
                 "Authorization": f"Token {self.api_key}",
                 "Content-Type": "application/json",
             },
-            json={"text": text},
+            json={"text": prepared_text},
             stream=True,
             timeout=(10, 180),
         )

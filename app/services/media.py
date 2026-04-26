@@ -11,7 +11,18 @@ class MediaError(RuntimeError):
     pass
 
 
-MANIM_720P_FLAG = "-qm"
+MANIM_QUALITY_FLAGS = {
+    "480p": "-ql",
+    "720p": "-qm",
+    "1080p": "-qh",
+    "1440p": "-qp",
+    "4k": "-qk",
+}
+
+
+def _manim_quality_flag(render_quality: str | None) -> str:
+    key = str(render_quality or "").strip().lower()
+    return MANIM_QUALITY_FLAGS.get(key, MANIM_QUALITY_FLAGS["1080p"])
 
 
 def extract_scene_class_names(module_path: Path) -> list[str]:
@@ -34,13 +45,13 @@ def extract_scene_class_names(module_path: Path) -> list[str]:
     return names
 
 
-def render_scene(*, module_path: Path, class_name: str, media_dir: Path) -> Path:
+def render_scene(*, module_path: Path, class_name: str, media_dir: Path, render_quality: str | None = None) -> Path:
     media_dir.mkdir(parents=True, exist_ok=True)
     command = [
         sys.executable,
         "-m",
         "manim",
-        MANIM_720P_FLAG,
+        _manim_quality_flag(render_quality),
         str(module_path),
         class_name,
         "--media_dir",
@@ -79,6 +90,10 @@ def mux_video_with_audio(*, video_path: Path, audio_path: Path, output_path: Pat
     video_duration = probe_duration(video_path)
     audio_duration = probe_duration(audio_path)
     pad_duration = max(audio_duration - video_duration + 0.25, 0)
+    filter_graph = (
+        f"[0:v]tpad=stop_mode=clone:stop_duration={pad_duration:.2f}[v];"
+        "[1:a]loudnorm=I=-16:LRA=11:TP=-1.5[a]"
+    )
     command = [
         "ffmpeg",
         "-y",
@@ -87,15 +102,27 @@ def mux_video_with_audio(*, video_path: Path, audio_path: Path, output_path: Pat
         "-i",
         str(audio_path),
         "-filter_complex",
-        f"[0:v]tpad=stop_mode=clone:stop_duration={pad_duration:.2f}[v]",
+        filter_graph,
         "-map",
         "[v]",
         "-map",
-        "1:a:0",
+        "[a]",
         "-c:v",
         "libx264",
+        "-preset",
+        "slow",
+        "-crf",
+        "18",
+        "-pix_fmt",
+        "yuv420p",
         "-c:a",
         "aac",
+        "-b:a",
+        "192k",
+        "-ar",
+        "48000",
+        "-movflags",
+        "+faststart",
         "-shortest",
         str(output_path),
     ]
@@ -125,8 +152,18 @@ def concat_clips(*, clip_paths: list[Path], output_path: Path, workdir: Path) ->
         str(concat_file),
         "-c:v",
         "libx264",
+        "-preset",
+        "slow",
+        "-crf",
+        "18",
         "-c:a",
         "aac",
+        "-b:a",
+        "192k",
+        "-ar",
+        "48000",
+        "-movflags",
+        "+faststart",
         "-pix_fmt",
         "yuv420p",
         str(output_path),

@@ -5,10 +5,10 @@ A Flask application that generates explainer videos for advanced math and scienc
 Workflow:
 
 1. Collect a topic in the web UI.
-2. Use Claude Code headless mode once to create a structured 3-scene lesson plan and narration.
+2. Use Claude Code headless mode once to create a structured 3 to 8 scene lesson plan and narration.
 3. Use Deepgram TTS to generate narration audio scene by scene.
-4. Build a deterministic basic Manim module from the storyboard so layout and timing stay stable.
-5. Render scenes with Manim and stitch them into a final MP4 with `ffmpeg`.
+4. Build a deterministic Manim module from the storyboard using a library of animated scene templates and topic-aware visual choices.
+5. Render scenes with Manim at higher quality and stitch them into a final MP4 with `ffmpeg`.
 
 ## Run
 
@@ -23,9 +23,10 @@ Open `http://127.0.0.1:5000`.
 
 Default behavior:
 
-- High-school audience
-- About 72 seconds
-- 3 scenes
+- High-school student research audience
+- About 3 minutes for the medium preset
+- Usually 3 to 8 storyboard scenes based on complexity and runtime
+- 1080p render quality by default
 - `claude-sonnet-4-6`
 - Max 2 Claude turns for planning
 - Simplified Tailwind UI with live progress states

@@ -1,2 +1,5 @@
 timestamp,job_id,name,grade,enrollment,difficulty_frequency,first_resource,resource_satisfaction,first_video_time,understanding_change,video_quality,appropriate_length,easy_without_guidance,use_again,improvement,pre_score,pre_percentage,post_score,post_percentage
-2026-04-22T18:15:51.996781,54fc93f32e31,ddd,10th,ITR,Rarely,Wikipedia,Neutral,"3-5 min","Much worse",Neutral,Disagree,Neutral,Neutral,ddd,1,20.0,0,0.0
+2026-04-22T18:15:51.996781,54fc93f32e31,ddd,10th,ITR,Rarely,Wikipedia,Neutral,3-5 min,Much worse,Neutral,Disagree,Neutral,Neutral,ddd,1,20.0,0,0.0
+2026-04-26T00:41:02.448497,52c96dfd136f,,,,,,,,,,,,,,1,20.0,,
+2026-04-26T00:44:40.400255,0d543c72fd56,,,,,,,,,,,,,,1,20.0,,
+2026-04-26T00:48:49.002387,fbac77ea5529,,,,,,,,,,,,,,2,40.0,,

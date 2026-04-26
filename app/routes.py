@@ -394,21 +394,22 @@ def create_job_view():
     duration_label = request.form.get("duration_label", "medium").strip().lower()
     style_notes = " ".join(
         [
-            "Keep the plan compact but technically useful for developers.",
-            "Use simple diagrams, equations, arrows, and transformations that basic Manim can render well.",
-            "Prefer precise explanations, clean structure, and high-signal visuals over marketing language.",
+            "Teach high-school students doing research, using precise but approachable language.",
+            "Prioritize visual explanation with motion, transformation, and comparison in every scene.",
+            "Keep on-screen text short, cleanly spaced, and easy to read with no clipping.",
+            "Ensure narration directly matches what appears on screen, including equations and labels.",
         ]
     )
 
     job_id = create_job(
         concept=concept,
         research=research,
-        audience="Developer",
+        audience="High-school student researchers",
         provider="claude-agent-sdk",
         model=current_app.config["CLAUDE_CODE_MODEL"],
         duration_label=duration_label,
         voice_model=current_app.config["DEEPGRAM_VOICE_MODEL"],
-        render_quality="720p",
+        render_quality=current_app.config["DEFAULT_RENDER_QUALITY"],
         style_notes=style_notes,
     )
     current_app.extensions["job_manager"].enqueue(job_id)
