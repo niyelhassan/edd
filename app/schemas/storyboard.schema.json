@@ -30,12 +30,8 @@
     "visual_theme": {
       "type": "string",
       "enum": [
-        "blueprint",
-        "chalk",
-        "lab",
-        "signal",
-        "midnight",
-        "sunset"
+        "brand_light",
+        "brand_dark"
       ]
     },
     "scenes": {
@@ -83,13 +79,22 @@
             "type": "string",
             "enum": [
               "auto",
+              "title_card",
+              "summary",
+              "bullets",
               "concept_map",
               "equation",
+              "distribution",
+              "axes_plot",
               "comparison",
-              "axes",
               "timeline",
               "flow",
-              "orbit"
+              "orbit",
+              "bar_chart",
+              "process",
+              "network",
+              "wave",
+              "vector_field"
             ]
           },
           "scene_variant": {

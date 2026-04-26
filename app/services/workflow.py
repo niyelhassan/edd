@@ -63,8 +63,42 @@ def _target_scene_count(job: dict, *, min_scene_count: int, max_scene_count: int
 
 
 def _default_visual_theme(text: str) -> str:
-    themes = ["blueprint", "chalk", "lab", "signal", "midnight", "sunset"]
-    return themes[sum(ord(ch) for ch in text) % len(themes)]
+    return "brand_light"
+
+
+_VALID_LAYOUTS = {
+    "auto",
+    "title_card",
+    "summary",
+    "bullets",
+    "concept_map",
+    "equation",
+    "distribution",
+    "axes_plot",
+    "comparison",
+    "timeline",
+    "flow",
+    "orbit",
+    "bar_chart",
+    "process",
+    "network",
+    "wave",
+    "vector_field",
+}
+
+_VALID_THEMES = {"brand_light", "brand_dark"}
+
+
+def _normalize_theme(theme: str | None) -> str:
+    if not theme:
+        return "brand_light"
+    theme = theme.strip().lower()
+    if theme in _VALID_THEMES:
+        return theme
+    legacy_dark = {"midnight", "dark"}
+    if theme in legacy_dark:
+        return "brand_dark"
+    return "brand_light"
 
 
 def _default_scene_variant(_: int, __: str) -> str:
@@ -78,40 +112,64 @@ def _normalize_short_list(values: list[str] | None, fallback: list[str], *, limi
     return cleaned[:limit]
 
 
+def _truncate_clean(value: str, limit: int) -> str:
+    value = (value or "").strip()
+    if len(value) <= limit:
+        return value
+    cut = value[:limit].rstrip()
+    if " " in cut:
+        cut = cut.rsplit(" ", 1)[0].rstrip()
+    return cut.rstrip(",;:.-")
+
+
 def _build_storyboard_prompt(job: dict) -> str:
     min_scene_count, max_scene_count = _storyboard_scene_limits()
     target_scene_count = _target_scene_count(job, min_scene_count=min_scene_count, max_scene_count=max_scene_count)
     total_words = int(job["duration_seconds"] * 2.0)
     research = (job.get("research") or "").strip()
     return f"""
-Create a concise explainer-video storyboard for a developer audience.
+You are storyboarding a short, visual-first explainer video for high school students doing research who need to understand a complex math or science concept in the context of their field.
 
 Topic: {job["concept"]}
-Research context: {research or "None provided. Use only broad, stable background knowledge."}
+Research context: {research or "None provided. Use broad, stable background knowledge appropriate for an advanced high school student."}
 Audience: {job["audience"]}
 Target runtime: about {job["duration_seconds"]} seconds
-Scene count: choose between {min_scene_count} and {max_scene_count}, with a target of {target_scene_count}
-Style notes: {job["style_notes"] or "Use a crisp, technical tone with strong visual intuition."}
+Scene count: choose between {min_scene_count} and {max_scene_count}, with a target of {target_scene_count}.
+Style notes: {job["style_notes"] or "Calm, confident, technically accurate. Visual focus, sparse text, no jargon without grounding."}
 
-Requirements:
-- Explain the idea accurately with technical clarity and strong intuition.
-- Choose the number of scenes based on runtime, topic difficulty, and how much structure is needed.
-- Keep total narration near {total_words} words.
-- Each scene narration should be natural for voiceover and 2 to 4 sentences long.
-- Headlines and any on-screen items must be short enough to fit cleanly on screen.
-- Visual goals must describe what the viewer should see move, transform, compare, or build over time.
-- The renderer is intentionally basic Manim. Favor simple geometric ideas, equations, arrows, labels, axes, timelines, and comparisons that fit that constraint.
-- Pick one overall `visual_theme` from: blueprint, chalk, lab, signal, midnight, sunset.
-- `layout` is optional guidance only. Use `auto` unless one of these clearly helps: concept_map, equation, comparison, axes, timeline, flow, orbit.
+The video is rendered with Manim against a curated set of animated scene templates. Pick the layout that best fits each scene. The visual carries the idea — text on screen is supportive, never a transcript of the narration.
+
+Available `layout` values and when to use each:
+- `title_card`: opening scene only. Sets the topic with a kinetic title.
+- `equation`: the scene is centered on a single short equation that the viewer should see and understand. Provide 1 (or at most 2) compact equations in `equations` and 1 to 3 short labels for the symbols in `highlight_terms`.
+- `distribution`: any scene about probability, p-values, statistical significance, normal/Gaussian distributions, sampling. Use `highlight_terms` for axis labels and the tail label.
+- `axes_plot`: a scene that needs an x-y plot of a function (growth, decay, sine wave, log, parabola). Put axis labels in `highlight_terms` and 1 to 3 named points in `visual_items`.
+- `comparison`: side-by-side contrast. Put the two thing-names in `visual_items` (left, right) and traits in `key_points`.
+- `timeline`: history, evolution, ordered milestones. Use `visual_items` for 3 to 4 short milestone labels.
+- `flow`: pipelines, processes, transformations from input -> ... -> output. Use `visual_items` for 3 to 4 short stage names.
+- `process`: numbered procedural steps (derivation, method, recipe). Use `key_points` for 2 to 4 step descriptions, each one short clause.
+- `network`: graphs, neural networks, social networks, relationships. Use `visual_items` for 3 to 5 short node names.
+- `wave`: waves, signals, oscillation, frequency, Fourier. Use `highlight_terms` for amplitude/frequency style annotations.
+- `vector_field`: gradient, flow field, force field, velocity field.
+- `concept_map`: a central idea with 3 supporting concepts (hub-and-spoke). Put the central concept first in `highlight_terms`, then 3 supporting concepts in `visual_items`.
+- `orbit`: a central object with rotating satellites (planets/electrons/dependencies).
+- `bar_chart`: ranking, percentages, magnitude comparison. Use `visual_items` for 2 to 4 category labels.
+- `bullets`: fallback when nothing more visual fits. Use sparingly.
+- `summary`: closing scene only. Crystallizes the takeaway. Put a strong one-line `takeaway` and 2 to 3 short `key_points`.
+
+Requirements for the storyboard:
+- Open with a `title_card` scene and close with a `summary` scene whenever the runtime allows.
+- Each middle scene must pick a layout whose visual genuinely matches what the narration is teaching. Do not default to `bullets` or `concept_map` when a more topic-specific layout exists.
+- The narration of each scene must describe what is on screen for that scene (and only that scene). If the visual is a distribution, the narration talks about that distribution. If the visual is an equation, the narration walks through that equation. The viewer should never hear about something the visual is not showing.
+- Narration is 2 to 4 sentences, conversational, suitable for voiceover. Total narration near {total_words} words across the full video.
+- On-screen text is sparse. Headlines must read like clean titles (Title Case is fine, but never SHOUTY ALL CAPS). Bullets, labels, and visual items are short phrases, not full sentences.
+- All on-screen text must fit cleanly: headlines max 60 chars, bullets max 90 chars, visual items max 40 chars, highlight terms max 24 chars. Keep them well under those caps so wrapping looks natural.
+- Use clean spacing and proper capitalization. No trailing colons, no truncated phrases, no abbreviations the viewer would not understand.
+- Equations are compact LaTeX, 60 chars max. Prefer named symbols the narration also says aloud.
 - `scene_variant` should always be `basic`.
-- Prefer intuition first, then formalism, then a compact takeaway.
-- Include at most 2 equations per scene and keep them short.
-- `visual_items`, `highlight_terms`, and `key_points` are optional and should stay compact phrases, not long sentences.
-- Only include `hook`, `takeaway`, `key_points`, `highlight_terms`, or `visual_items` when they materially improve the animation.
-- On-screen text should be sparse. Avoid repeating the narration sentence-for-sentence.
-- Keep the output compact and do not add extra prose outside the schema.
-
-Return only JSON matching the provided schema.
+- Pick `visual_theme`: `brand_light` (default, off-white background) or `brand_dark` (use sparingly, when the topic is explicitly about something nighttime or visually striking on dark, e.g. astronomy, deep space).
+- Tie the example or framing to the research context whenever it is provided.
+- Return only JSON matching the provided schema. No prose outside the schema.
 """.strip()
 
 
@@ -214,9 +272,7 @@ class VideoWorkflow:
             scenes = scenes[:max_scene_count]
             storyboard["scenes"] = scenes
 
-        storyboard["visual_theme"] = storyboard.get("visual_theme") or _default_visual_theme(
-            storyboard.get("title") or job["concept"]
-        )
+        storyboard["visual_theme"] = _normalize_theme(storyboard.get("visual_theme"))
         storyboard["title"] = storyboard.get("title") or job["concept"]
         storyboard["summary"] = storyboard.get("summary") or f"A concise explainer about {job['concept']}."
         storyboard["learning_objective"] = storyboard.get("learning_objective") or f"Understand the core idea behind {job['concept']}."
@@ -224,11 +280,11 @@ class VideoWorkflow:
 
         for index, scene in enumerate(scenes, start=1):
             headline = (scene.get("headline") or scene.get("title") or f"{job['concept']} part {index}").strip()
-            scene["headline"] = headline[:60]
+            scene["headline"] = _truncate_clean(headline, 60)
             scene["slug"] = _slugify(scene.get("slug") or scene["headline"] or f"scene-{index}")
             scene["class_name"] = _class_name(index, scene["slug"])
-            scene["hook"] = (scene.get("hook") or scene.get("takeaway") or scene["headline"]).strip()[:70]
-            scene["takeaway"] = (scene.get("takeaway") or scene["hook"]).strip()[:90]
+            scene["hook"] = _truncate_clean(scene.get("hook") or scene.get("takeaway") or scene["headline"], 70)
+            scene["takeaway"] = _truncate_clean(scene.get("takeaway") or scene["hook"], 90)
             scene["narration"] = (
                 scene.get("narration")
                 or f"This scene introduces {scene['headline']} as part of {job['concept']}. It focuses on the main relationship, a simple example, and why the idea matters for the full explanation."
@@ -237,8 +293,10 @@ class VideoWorkflow:
                 scene.get("visual_goal")
                 or f"Show {scene['headline']} with simple labels, arrows, and a compact comparison."
             ).strip()
-            scene["layout"] = (scene.get("layout") or "auto").strip() or "auto"
-            if scene["layout"] not in {"auto", "concept_map", "equation", "comparison", "axes", "timeline", "flow", "orbit"}:
+            scene["layout"] = (scene.get("layout") or "auto").strip().lower() or "auto"
+            if scene["layout"] == "axes":
+                scene["layout"] = "axes_plot"
+            if scene["layout"] not in _VALID_LAYOUTS:
                 scene["layout"] = "auto"
             scene["scene_variant"] = scene.get("scene_variant") or _default_scene_variant(index, scene["layout"])
             if scene["scene_variant"] != "basic":
