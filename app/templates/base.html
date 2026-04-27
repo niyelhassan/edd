@@ -15,60 +15,22 @@
       href="{{ url_for('static', filename='styles.css') }}"
     />
     {% block head_extra %}{% endblock %}
-    <style>
-      @keyframes candy-cane {
-        from {
-          background-position: 0 0;
-        }
-        to {
-          background-position: 40px 0;
-        }
-      }
-      @keyframes soft-blink {
-        0%,
-        100% {
-          opacity: 0.45;
-          transform: scale(1);
-        }
-        50% {
-          opacity: 1;
-          transform: scale(1.18);
-        }
-      }
-      .lern-loading-bar {
-        background-image: linear-gradient(
-          135deg,
-          rgba(255, 255, 255, 0.16) 25%,
-          transparent 25%,
-          transparent 50%,
-          rgba(255, 255, 255, 0.16) 50%,
-          rgba(255, 255, 255, 0.16) 75%,
-          transparent 75%,
-          transparent
-        );
-        background-size: 36px 36px;
-        animation: candy-cane 1s linear infinite;
-      }
-      .lern-loading-dot {
-        animation: soft-blink 1s ease-in-out infinite;
-      }
-    </style>
   </head>
-  <body class="min-h-screen bg-[#f7f8fb] text-neutral-950">
+  <body class="min-h-screen bg-[#f7f8fb] text-neutral-950 antialiased">
     <div class="mx-auto max-w-6xl px-4 py-6 sm:px-6">
       {% block site_header %}
       <header
-        class="mb-7 flex items-center justify-between border-b border-neutral-200 pb-4"
+        class="mb-8 flex items-center justify-between border-b border-neutral-200/80 pb-4"
       >
         <a
           href="{{ url_for('main.home') }}"
           class="text-xl font-semibold tracking-tight"
           >lern</a
         >
-        <nav class="flex items-center gap-4 text-sm text-neutral-500">
+        <nav class="flex items-center gap-2 text-sm">
           <a
             href="{{ url_for('main.onboarding') }}"
-            class="hover:text-neutral-950"
+            class="rounded-md px-3 py-1.5 text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-950"
             >Instructions</a
           >
         </nav>
@@ -78,7 +40,7 @@
       <section class="mb-4 space-y-2">
         {% for message in messages %}
         <div
-          class="border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+          class="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900"
         >
           {{ message }}
         </div>

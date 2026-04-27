@@ -1,90 +1,294 @@
 {% extends "base.html" %} {% block content %}
-<section class="grid gap-5">
-  <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-    <div>
-      <h1 class="max-w-3xl text-4xl font-semibold tracking-tight md:text-6xl">
-        Make a video!
-      </h1>
-    </div>
+<section class="space-y-10">
+  <div class="space-y-3">
+    <p class="eyebrow">Make a video lesson</p>
+    <h1
+      class="max-w-3xl text-4xl font-semibold tracking-tight md:text-5xl lg:text-6xl"
+    >
+      Type a topic.<br /><span class="text-neutral-400"
+        >Get a custom lesson.</span
+      >
+    </h1>
+    <p class="max-w-2xl text-base leading-7 text-neutral-600">
+      lern generates a short, narrated video about whatever you're trying to
+      learn — plus a quick quiz before and after to measure how much actually
+      stuck.
+    </p>
   </div>
 
   <form
+    id="generate-form"
     action="{{ url_for('main.create_job_view') }}"
     method="post"
-    class="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm"
+    class="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm transition hover:shadow-md"
   >
-    <div class="grid gap-4 lg:grid-cols-[1fr_1fr_180px]">
+    <div class="grid gap-4 lg:grid-cols-[1fr_1fr_200px]">
       <label class="block">
-        <span class="mb-2 block text-sm font-medium">Topic</span>
+        <span class="mb-2 block text-sm font-semibold">Topic</span>
         <textarea
           name="concept"
           rows="4"
-          class="field"
+          class="field resize-none"
           placeholder="Bayes theorem for interpreting genetics data"
           required
         ></textarea>
       </label>
       <label class="block">
-        <span class="mb-2 block text-sm font-medium">Context</span>
+        <span class="mb-2 block text-sm font-semibold"
+          >Context
+          <span class="ml-1 font-normal text-neutral-400">(optional)</span></span
+        >
         <textarea
           name="research"
           rows="4"
-          class="field"
-          placeholder="Optional: class level, field, data, misconception, or example"
+          class="field resize-none"
+          placeholder="Class level, field, dataset, misconception, or example"
         ></textarea>
       </label>
       <label class="block">
-        <span class="mb-2 block text-sm font-medium">Length</span>
+        <span class="mb-2 block text-sm font-semibold">Length</span>
         <select name="duration_label" class="field">
-          <option value="short">Short (~1 min)</option>
-          <option value="medium" selected>Medium (~3 min)</option>
-          <option value="long">Long (~5 min)</option>
+          <option value="short">Short — about 1 min</option>
+          <option value="medium" selected>Medium — about 3 min</option>
+          <option value="long">Long — about 5 min</option>
         </select>
       </label>
     </div>
-    <div class="mt-4 flex justify-end border-t border-neutral-200 pt-4">
-      <button class="btn-primary">Generate video</button>
+    <div
+      class="mt-5 flex items-center justify-between border-t border-neutral-200 pt-4"
+    >
+      <p class="text-xs text-neutral-500">
+        Generation usually takes 2–4 minutes. You'll start with a pre-quiz while
+        it renders.
+      </p>
+      <button id="generate-submit" class="btn-primary">Generate video →</button>
     </div>
   </form>
 </section>
 
-<section class="space-y-3">
-  <div
-    class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between"
-  >
-    <h2 class="text-xl font-semibold tracking-tight">Recent videos</h2>
+{% if jobs %}
+<section class="space-y-4">
+  <div class="flex flex-wrap items-end justify-between gap-3">
+    <div>
+      <h2 class="text-xl font-semibold tracking-tight">Recent videos</h2>
+      <p class="mt-1 text-sm text-neutral-500">
+        <span id="video-count">{{ jobs | length }}</span> total
+        <span id="video-filter-info" class="hidden text-neutral-400"></span>
+      </p>
+    </div>
+    <div class="flex flex-1 items-center gap-2 md:max-w-md">
+      <label class="relative flex-1">
+        <span class="sr-only">Search videos</span>
+        <svg
+          class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M21 21l-4.35-4.35M11 19a8 8 0 110-16 8 8 0 010 16z"
+          />
+        </svg>
+        <input
+          id="video-search"
+          type="search"
+          placeholder="Search by topic, status, or context"
+          class="field pl-9"
+          autocomplete="off"
+        />
+      </label>
+      <div class="hidden items-center gap-1 sm:flex" role="tablist">
+        <button
+          type="button"
+          data-filter="all"
+          class="filter-chip filter-chip-active"
+        >
+          All
+        </button>
+        <button type="button" data-filter="completed" class="filter-chip">
+          Done
+        </button>
+        <button type="button" data-filter="running" class="filter-chip">
+          Running
+        </button>
+      </div>
+    </div>
   </div>
 
-  <div class="grid gap-3">
-    {% for job in jobs %}
+  <div id="video-grid" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {% for job in jobs %} {% set hue = (loop.index0 * 47) % 360 %}
     <a
       href="{{ url_for('main.video_page', job_id=job.id) }}"
-      class="library-row"
+      class="video-card group flex flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-neutral-400 hover:shadow-lg"
+      data-status="{{ job.status }}"
+      data-search="{{ ((job.title or '') ~ ' ' ~ (job.concept or '') ~ ' ' ~ (job.research or '') ~ ' ' ~ (job.status or '')) | lower }}"
     >
-      <div class="min-w-0">
-        <h3 class="truncate font-medium">{{ job.title or job.concept }}</h3>
-        <p class="mt-1 truncate text-sm text-neutral-500">
+      <div
+        class="relative aspect-video overflow-hidden"
+        {% if not job.thumbnail_url %}style="background: linear-gradient(135deg, hsl({{ hue }}, 70%, 92%), hsl({{ (hue + 50) % 360 }}, 75%, 86%));"{% endif %}
+      >
+        {% if job.thumbnail_url %}
+        <img
+          src="{{ job.thumbnail_url }}"
+          alt=""
+          loading="lazy"
+          class="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+        />
+        <div
+          class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10 opacity-0 transition group-hover:opacity-100"
+        ></div>
+        {% endif %}
+        <div class="absolute left-3 top-3">
+          <span class="status-badge status-{{ job.status }}">{{ job.status }}</span>
+        </div>
+        {% if job.video_url %}
+        <div
+          class="pointer-events-none absolute inset-0 grid place-items-center text-white/90 opacity-0 transition group-hover:opacity-100"
+        >
+          <span class="grid h-14 w-14 place-items-center rounded-full bg-black/55 backdrop-blur-sm">
+            <svg
+              class="h-6 w-6"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </span>
+        </div>
+        {% else %}
+        <div
+          class="absolute inset-0 grid place-items-center text-neutral-900/40"
+        >
+          <span class="lern-loading-dot h-3 w-3 rounded-full bg-current"></span>
+        </div>
+        {% endif %}
+      </div>
+      <div class="flex flex-1 flex-col gap-3 p-4">
+        <h3 class="line-clamp-2 font-semibold leading-snug">
+          {{ job.title or job.concept }}
+        </h3>
+        <p class="line-clamp-1 text-xs text-neutral-500">
           {{ job.progress_detail }}
         </p>
-      </div>
-      <span class="status-badge status-{{ job.status }}">{{ job.status }}</span>
-      <div>
-        <div class="h-1.5 overflow-hidden rounded-full bg-neutral-200">
-          <div
-            class="h-full rounded-full bg-neutral-950 {% if job.is_active %}lern-loading-bar{% endif %}"
-            style="width: {{ job.progress_percent }}%"
-          ></div>
+        <div class="mt-auto flex items-center justify-between gap-3">
+          <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-neutral-100">
+            <div
+              class="h-full rounded-full bg-neutral-950 transition-all {% if job.is_active %}lern-loading-bar{% endif %}"
+              style="width: {{ job.progress_percent }}%"
+            ></div>
+          </div>
+          <span class="shrink-0 text-xs font-medium tabular-nums text-neutral-500"
+            >{{ job.progress_percent }}%</span
+          >
         </div>
-        <p class="mt-1 text-xs text-neutral-500">{{ job.progress_percent }}%</p>
+        <p class="text-xs text-neutral-400">
+          {{ job.timing.input_relative }} ·
+          {% if job.status == "completed" %}{{ job.timing.total_label }}{% else %}{{ job.timing.status_label }}{% endif %}
+        </p>
       </div>
     </a>
-    {% else %}
-    <div
-      class="rounded-lg border border-dashed border-neutral-300 bg-white p-8 text-sm text-neutral-500"
-    >
-      No videos generated yet.
-    </div>
     {% endfor %}
   </div>
+
+  <div
+    id="video-empty"
+    class="hidden grid place-items-center rounded-2xl border border-dashed border-neutral-300 bg-white px-6 py-10 text-center text-sm text-neutral-500"
+  >
+    No videos match that search.
+  </div>
 </section>
+{% else %}
+<section
+  class="grid place-items-center rounded-2xl border border-dashed border-neutral-300 bg-white px-6 py-14 text-center"
+>
+  <div class="max-w-sm">
+    <div
+      class="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-full bg-neutral-100 text-neutral-500"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="h-6 w-6"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+        />
+      </svg>
+    </div>
+    <p class="font-medium text-neutral-950">No videos yet</p>
+    <p class="mt-1 text-sm text-neutral-500">
+      Type a topic above to generate your first lesson.
+    </p>
+  </div>
+</section>
+{% endif %}
+
+<script>
+  (function () {
+    const search = document.getElementById("video-search");
+    const grid = document.getElementById("video-grid");
+    const empty = document.getElementById("video-empty");
+    const countEl = document.getElementById("video-count");
+    const filterInfo = document.getElementById("video-filter-info");
+    const filterButtons = Array.from(document.querySelectorAll(".filter-chip"));
+    if (!search || !grid) return;
+
+    let activeFilter = "all";
+    const totalCount = grid.querySelectorAll(".video-card").length;
+
+    function applyFilters() {
+      const query = search.value.trim().toLowerCase();
+      const cards = Array.from(grid.querySelectorAll(".video-card"));
+      let visibleCount = 0;
+      cards.forEach((card) => {
+        const matchesSearch =
+          !query || card.dataset.search.includes(query);
+        const matchesFilter =
+          activeFilter === "all" || card.dataset.status === activeFilter;
+        const visible = matchesSearch && matchesFilter;
+        card.style.display = visible ? "" : "none";
+        if (visible) visibleCount += 1;
+      });
+      empty.classList.toggle("hidden", visibleCount > 0);
+      countEl.textContent = String(visibleCount);
+      if (query || activeFilter !== "all") {
+        filterInfo.classList.remove("hidden");
+        filterInfo.textContent = `· of ${totalCount}`;
+      } else {
+        filterInfo.classList.add("hidden");
+      }
+    }
+
+    search.addEventListener("input", applyFilters);
+    filterButtons.forEach((btn) =>
+      btn.addEventListener("click", () => {
+        activeFilter = btn.dataset.filter;
+        filterButtons.forEach((b) =>
+          b.classList.toggle("filter-chip-active", b === btn),
+        );
+        applyFilters();
+      }),
+    );
+  })();
+
+  (function () {
+    const form = document.getElementById("generate-form");
+    const button = document.getElementById("generate-submit");
+    if (!form || !button) return;
+    form.addEventListener("submit", () => {
+      button.disabled = true;
+      button.innerHTML =
+        '<span class="lern-loading-dot h-2 w-2 rounded-full bg-white"></span> Generating…';
+    });
+  })();
+</script>
 {% endblock %}

@@ -105,6 +105,29 @@ def mux_video_with_audio(*, video_path: Path, audio_path: Path, output_path: Pat
     return output_path
 
 
+def extract_thumbnail(*, video_path: Path, output_path: Path, timestamp: float = 1.2, width: int = 720) -> Path:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    command = [
+        "ffmpeg",
+        "-y",
+        "-ss",
+        f"{timestamp:.2f}",
+        "-i",
+        str(video_path),
+        "-frames:v",
+        "1",
+        "-vf",
+        f"scale={width}:-2",
+        "-q:v",
+        "3",
+        str(output_path),
+    ]
+    completed = subprocess.run(command, capture_output=True, text=True)
+    if completed.returncode != 0:
+        raise MediaError(completed.stderr.strip() or completed.stdout.strip() or "ffmpeg thumbnail failed.")
+    return output_path
+
+
 def concat_clips(*, clip_paths: list[Path], output_path: Path, workdir: Path) -> Path:
     if not clip_paths:
         raise MediaError("No clips provided for concatenation.")

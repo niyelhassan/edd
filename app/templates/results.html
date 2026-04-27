@@ -1,34 +1,71 @@
-{% extends "base.html" %}
-
-{% block content %}
-{% set pre = job.pre_score or 0 %}
-{% set post = job.post_score or 0 %}
+{% extends "base.html" %} {% block content %} {% set total = job.question_count
+or 5 %} {% set pre = job.pre_score or 0 %} {% set post = job.post_score or 0 %}
 {% set gain = post - pre %}
-<section class="mx-auto max-w-4xl space-y-6">
-    <div class="border-b border-neutral-200 pb-4">
-        <p class="eyebrow">Results</p>
-        <h1 class="mt-2 text-4xl font-semibold tracking-tight">{{ job.title or job.concept }}</h1>
-    </div>
+<section class="mx-auto max-w-3xl space-y-6">
+  {% set current = "results" %} {% include "_flow.html" %}
+  <div class="border-b border-neutral-200 pb-5">
+    <p class="eyebrow">Results</p>
+    <h1 class="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">
+      {{ job.title or job.concept }}
+    </h1>
+    <p class="mt-2 text-sm text-neutral-500">
+      Your scores before and after the lesson.
+    </p>
+  </div>
 
-    <div class="grid gap-3 sm:grid-cols-3">
-        <div class="metric-card"><p>Pre</p><strong>{{ pre }}/5</strong></div>
-        <div class="metric-card"><p>Post</p><strong>{{ post }}/5</strong></div>
-        <div class="metric-card"><p>Change</p><strong>{{ "+" if gain >= 0 else "" }}{{ gain }}</strong></div>
+  <div class="grid gap-3 sm:grid-cols-3">
+    <div
+      class="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm"
+    >
+      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
+        Pre
+      </p>
+      <p class="mt-2 text-4xl font-semibold tracking-tight tabular-nums">
+        {{ pre }}<span class="text-neutral-400">/{{ total }}</span>
+      </p>
     </div>
+    <div
+      class="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm"
+    >
+      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
+        Post
+      </p>
+      <p class="mt-2 text-4xl font-semibold tracking-tight tabular-nums">
+        {{ post }}<span class="text-neutral-400">/{{ total }}</span>
+      </p>
+    </div>
+    <div
+      class="rounded-2xl border p-5 shadow-sm
+      {% if gain > 0 %}border-emerald-200 bg-emerald-50{% elif gain < 0 %}border-red-200 bg-red-50{% else %}border-neutral-200 bg-white{% endif %}"
+    >
+      <p class="text-xs font-semibold uppercase tracking-[0.18em]
+        {% if gain > 0 %}text-emerald-700{% elif gain < 0 %}text-red-700{% else %}text-neutral-500{% endif %}">
+        Change
+      </p>
+      <p class="mt-2 text-4xl font-semibold tracking-tight tabular-nums
+        {% if gain > 0 %}text-emerald-700{% elif gain < 0 %}text-red-700{% else %}text-neutral-950{% endif %}">
+        {{ "+" if gain >= 0 else "" }}{{ gain }}
+      </p>
+    </div>
+  </div>
 
-    <div class="rounded-lg border border-neutral-200 bg-white p-4 text-sm leading-6 text-neutral-600 shadow-sm">
-        {% if gain > 0 %}
-            Your score increased by {{ gain }} point{{ "" if gain == 1 else "s" }} after watching the generated lesson.
-        {% elif gain == 0 %}
-            Your score stayed the same.
-        {% else %}
-            Your post-quiz score was lower this time.
-        {% endif %}
-    </div>
+  <div
+    class="rounded-2xl border border-neutral-200 bg-white p-5 text-sm leading-7 text-neutral-700 shadow-sm"
+  >
+    {% if gain > 0 %} Your score increased by <strong>{{ gain }} point{{ "" if
+    gain == 1 else "s" }}</strong> after watching the lesson. {% elif gain == 0
+    %} Your score stayed the same. The video covered material you already had
+    down. {% else %} Your post-quiz score was lower this time. The questions may
+    have surfaced something the lesson didn't fully address. {% endif %}
+  </div>
 
-    <div class="flex flex-wrap gap-3">
-        <a href="{{ url_for('main.survey', job_id=job.id) }}" class="btn-primary">Continue</a>
-        <a href="{{ url_for('main.home') }}" class="btn-secondary">Home</a>
-    </div>
+  <div class="flex flex-wrap gap-3">
+    <a href="{{ url_for('main.survey', job_id=job.id) }}" class="btn-primary"
+      >Continue to feedback →</a
+    >
+    <a href="{{ url_for('main.video_page', job_id=job.id) }}" class="btn-secondary"
+      >Rewatch video</a
+    >
+  </div>
 </section>
 {% endblock %}

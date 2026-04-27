@@ -7,10 +7,11 @@ from pathlib import Path
 
 from flask import current_app
 
+from .captions import write_captions
 from .claude_code import ClaudeCodeError, run_claude_json
 from .deepgram_tts import DeepgramError, DeepgramTTSClient
 from .manim_builder import build_manim_module
-from .media import MediaError, concat_clips, mux_video_with_audio, render_scene
+from .media import MediaError, concat_clips, extract_thumbnail, mux_video_with_audio, probe_duration, render_scene
 from .repository import add_log, get_job, update_job
 
 
@@ -40,9 +41,19 @@ def _storyboard_scene_limits() -> tuple[int, int]:
 
 
 def _target_scene_count(job: dict, *, min_scene_count: int, max_scene_count: int) -> int:
+    """Pick a scene count that lets each scene breathe at the requested runtime.
+
+    Targets: short ~60s -> 3 scenes, medium ~180s -> 5 scenes, long ~300s -> 7 scenes.
+    Each scene needs roughly 18-25 seconds of narration and animation to feel paced.
+    """
     duration_seconds = int(job["duration_seconds"])
     concept = f"{job.get('concept', '')} {job.get('research', '')}".lower()
-    base = 2 if duration_seconds <= 75 else 4 if duration_seconds <= 210 else 5
+    if duration_seconds <= 75:
+        base = 3
+    elif duration_seconds <= 210:
+        base = 5
+    else:
+        base = 7
     complexity_terms = (
         "proof",
         "derive",
@@ -60,10 +71,6 @@ def _target_scene_count(job: dict, *, min_scene_count: int, max_scene_count: int
     if any(term in concept for term in complexity_terms):
         base += 1
     return max(min_scene_count, min(max_scene_count, base))
-
-
-def _default_visual_theme(text: str) -> str:
-    return "brand_light"
 
 
 _VALID_LAYOUTS = {
@@ -86,23 +93,10 @@ _VALID_LAYOUTS = {
     "vector_field",
 }
 
-_VALID_THEMES = {"brand_light", "brand_dark"}
-
 
 def _normalize_theme(theme: str | None) -> str:
-    if not theme:
-        return "brand_light"
-    theme = theme.strip().lower()
-    if theme in _VALID_THEMES:
-        return theme
-    legacy_dark = {"midnight", "dark"}
-    if theme in legacy_dark:
-        return "brand_dark"
+    """Always return brand_light. Dark theme is intentionally disabled product-wide."""
     return "brand_light"
-
-
-def _default_scene_variant(_: int, __: str) -> str:
-    return "basic"
 
 
 def _normalize_short_list(values: list[str] | None, fallback: list[str], *, limit: int) -> list[str]:
@@ -122,10 +116,68 @@ def _truncate_clean(value: str, limit: int) -> str:
     return cut.rstrip(",;:.-")
 
 
+def _norm_for_compare(value: str) -> str:
+    return re.sub(r"\s+", " ", (value or "").strip().lower())
+
+
+def _is_distinct_text(candidate: str, *others: str) -> bool:
+    """True if candidate is non-empty and not a near-duplicate of any other.
+
+    Catches both exact matches and substring overlaps so we don't show the
+    same phrase twice on a slide.
+    """
+    cand = _norm_for_compare(candidate)
+    if not cand:
+        return False
+    for other in others:
+        oth = _norm_for_compare(other)
+        if not oth:
+            continue
+        if cand == oth or cand in oth or oth in cand:
+            return False
+    return True
+
+
+def _looks_like_narration_fragment(item: str, narration: str) -> bool:
+    """Heuristic: filter visual_items / key_points that are pieces of the narration."""
+    if not item:
+        return True
+    text = item.strip()
+    if len(text) >= 6 and text.rstrip().endswith((",", ";", "-", "—", "–")):
+        return True
+    n_item = _norm_for_compare(text)
+    n_narration = _norm_for_compare(narration)
+    if n_item and n_narration and len(n_item) >= 12 and n_item in n_narration:
+        return True
+    return False
+
+
+def _filter_visual_strings(values, narration: str, *, exclude=()):
+    """Drop empty, narration-fragment, or already-shown items."""
+    seen = {_norm_for_compare(v) for v in exclude if v}
+    cleaned = []
+    for v in (values or []):
+        text = (str(v) or "").strip()
+        if not text:
+            continue
+        norm = _norm_for_compare(text)
+        if norm in seen:
+            continue
+        if _looks_like_narration_fragment(text, narration):
+            continue
+        seen.add(norm)
+        cleaned.append(text)
+    return cleaned
+
+
 def _build_storyboard_prompt(job: dict) -> str:
     min_scene_count, max_scene_count = _storyboard_scene_limits()
     target_scene_count = _target_scene_count(job, min_scene_count=min_scene_count, max_scene_count=max_scene_count)
-    total_words = int(job["duration_seconds"] * 2.0)
+    # Deepgram TTS reads at roughly 150 words per minute (2.5 wps). Targeting
+    # 2.5 wps keeps the synthesized audio near the requested runtime instead
+    # of finishing a third early.
+    total_words = int(round(job["duration_seconds"] * 2.5))
+    per_scene_words = max(35, int(round(total_words / max(target_scene_count, 1))))
     research = (job.get("research") or "").strip()
     return f"""
 You are storyboarding a short, visual-first explainer video for high school students doing research who need to understand a complex math or science concept in the context of their field.
@@ -133,7 +185,7 @@ You are storyboarding a short, visual-first explainer video for high school stud
 Topic: {job["concept"]}
 Research context: {research or "None provided. Use broad, stable background knowledge appropriate for an advanced high school student."}
 Audience: {job["audience"]}
-Target runtime: about {job["duration_seconds"]} seconds
+Target runtime: about {job["duration_seconds"]} seconds (this is firm — fill the runtime with substantive narration).
 Scene count: choose between {min_scene_count} and {max_scene_count}, with a target of {target_scene_count}.
 Style notes: {job["style_notes"] or "Calm, confident, technically accurate. Visual focus, sparse text, no jargon without grounding."}
 
@@ -160,15 +212,27 @@ Available `layout` values and when to use each:
 Requirements for the storyboard:
 - Open with a `title_card` scene and close with a `summary` scene whenever the runtime allows.
 - Each middle scene must pick a layout whose visual genuinely matches what the narration is teaching. Do not default to `bullets` or `concept_map` when a more topic-specific layout exists.
+- Each middle scene must teach exactly one visual idea. Do not combine multiple unrelated ideas into one scene.
 - The narration of each scene must describe what is on screen for that scene (and only that scene). If the visual is a distribution, the narration talks about that distribution. If the visual is an equation, the narration walks through that equation. The viewer should never hear about something the visual is not showing.
-- Narration is 2 to 4 sentences, conversational, suitable for voiceover. Total narration near {total_words} words across the full video.
+- Narration must progress in visual order. First sentence introduces the frame, middle sentence(s) explain the key movement or relationship, final sentence lands the point shown on screen.
+- ZERO REPETITION RULE: `headline`, `hook`, `takeaway`, every entry of `key_points`, `visual_items`, `highlight_terms` must be mutually distinct phrases. Do not let any field be a substring or near-paraphrase of another. If you cannot find a genuinely different phrase, leave the optional field empty rather than restating.
+- TITLE CARD RULE: for the opening `title_card` scene, set `headline` to the lesson title and leave `hook` empty (or set it to one short sentence that previews the angle the video takes — never a paraphrase of the title). Do NOT put the title in `takeaway`. Do NOT put the lesson title or a paraphrase of it in `key_points`, `visual_items`, or `highlight_terms`.
+- `headline` is a short title, not a sentence. `hook` is a short framing line, not a restatement of the headline. `takeaway` is the scene conclusion in one sentence, not a copy of the hook or headline.
+- `visual_items` must be short noun-phrase labels that belong on a diagram. They must never be narration fragments, full sentences, or substrings of `narration`. They must never end in a comma, semicolon, or dash. Each must be self-contained and read cleanly on its own.
+- `key_points` are short supporting clauses, written as standalone phrases (not narration excerpts). They must never duplicate `headline`, `hook`, `takeaway`, or each other, and they must never be substrings of `narration`.
+- `highlight_terms` are 1-3 word concept names suitable for chips and axis labels. No filler words, no shared boilerplate across scenes.
+- Use concrete examples, contrasts, named quantities, or specific misconceptions whenever the topic allows. Avoid generic phrases like "this helps explain the idea" or "this is important in many fields."
+- Avoid filler and repetition. If a scene can be understood from one equation, one comparison, one flow, or one chart, keep the text minimal and let the visual do the work.
+- Narration is 3 to 5 sentences, conversational, suitable for voiceover. Aim for {per_scene_words} words per scene so the audio actually fills the requested runtime; total near {total_words} words across the full video. Do NOT come in short.
 - On-screen text is sparse. Headlines must read like clean titles (Title Case is fine, but never SHOUTY ALL CAPS). Bullets, labels, and visual items are short phrases, not full sentences.
 - All on-screen text must fit cleanly: headlines max 60 chars, bullets max 90 chars, visual items max 40 chars, highlight terms max 24 chars. Keep them well under those caps so wrapping looks natural.
 - Use clean spacing and proper capitalization. No trailing colons, no truncated phrases, no abbreviations the viewer would not understand.
 - Equations are compact LaTeX, 60 chars max. Prefer named symbols the narration also says aloud.
 - `scene_variant` should always be `basic`.
-- Pick `visual_theme`: `brand_light` (default, off-white background) or `brand_dark` (use sparingly, when the topic is explicitly about something nighttime or visually striking on dark, e.g. astronomy, deep space).
+- `visual_theme` must always be `brand_light`. Dark theme is disabled.
 - Tie the example or framing to the research context whenever it is provided.
+- For `title_card`, keep the hook brief and avoid extra labels. Do not put bullets in `key_points`.
+- For `summary`, use 2 to 3 short key points that summarize earlier scenes instead of introducing new material. The `takeaway` must be a complete sentence, not a paraphrase of the lesson title.
 - Return only JSON matching the provided schema. No prose outside the schema.
 """.strip()
 
@@ -283,12 +347,28 @@ class VideoWorkflow:
             scene["headline"] = _truncate_clean(headline, 60)
             scene["slug"] = _slugify(scene.get("slug") or scene["headline"] or f"scene-{index}")
             scene["class_name"] = _class_name(index, scene["slug"])
-            scene["hook"] = _truncate_clean(scene.get("hook") or scene.get("takeaway") or scene["headline"], 70)
-            scene["takeaway"] = _truncate_clean(scene.get("takeaway") or scene["hook"], 90)
+
             scene["narration"] = (
                 scene.get("narration")
                 or f"This scene introduces {scene['headline']} as part of {job['concept']}. It focuses on the main relationship, a simple example, and why the idea matters for the full explanation."
             ).strip()
+
+            # Clean hook: only keep it if it's distinct from headline.
+            hook_raw = (scene.get("hook") or "").strip()
+            scene["hook"] = (
+                _truncate_clean(hook_raw, 70)
+                if _is_distinct_text(hook_raw, scene["headline"])
+                else ""
+            )
+
+            # Clean takeaway: only keep it if distinct from headline AND hook.
+            takeaway_raw = (scene.get("takeaway") or "").strip()
+            scene["takeaway"] = (
+                _truncate_clean(takeaway_raw, 90)
+                if _is_distinct_text(takeaway_raw, scene["headline"], scene["hook"])
+                else ""
+            )
+
             scene["visual_goal"] = (
                 scene.get("visual_goal")
                 or f"Show {scene['headline']} with simple labels, arrows, and a compact comparison."
@@ -298,24 +378,27 @@ class VideoWorkflow:
                 scene["layout"] = "axes_plot"
             if scene["layout"] not in _VALID_LAYOUTS:
                 scene["layout"] = "auto"
-            scene["scene_variant"] = scene.get("scene_variant") or _default_scene_variant(index, scene["layout"])
-            if scene["scene_variant"] != "basic":
-                scene["scene_variant"] = "basic"
-            scene["highlight_terms"] = _normalize_short_list(
-                scene.get("highlight_terms"),
-                [scene["headline"]],
-                limit=4,
-            )
-            scene["visual_items"] = _normalize_short_list(
-                scene.get("visual_items"),
-                [],
-                limit=4,
-            )
-            scene["key_points"] = _normalize_short_list(
-                scene.get("key_points"),
-                [],
-                limit=3,
-            )
+            scene["scene_variant"] = "basic"
+
+            narration = scene["narration"]
+            already_shown = (scene["headline"], scene["hook"], scene["takeaway"])
+
+            # Filter narration fragments and dupes from each on-screen list.
+            highlight = _filter_visual_strings(
+                scene.get("highlight_terms"), narration, exclude=already_shown,
+            )[:4]
+            scene["highlight_terms"] = highlight or [scene["headline"]]
+
+            scene["visual_items"] = _filter_visual_strings(
+                scene.get("visual_items"), narration,
+                exclude=already_shown + tuple(scene["highlight_terms"]),
+            )[:4]
+
+            scene["key_points"] = _filter_visual_strings(
+                scene.get("key_points"), narration,
+                exclude=already_shown,
+            )[:3]
+
             scene["equations"] = _normalize_short_list(scene.get("equations"), [], limit=2)
 
         if len(scenes) != max_scene_count:
@@ -384,6 +467,7 @@ class VideoWorkflow:
         final_dir: Path,
     ) -> Path:
         clip_paths = []
+        clip_durations: list[float] = []
         for index, scene in enumerate(storyboard["scenes"], start=1):
             self._set_state(job["id"], current_step=f"Rendering scene {index} of {len(storyboard['scenes'])}")
             add_log(job["id"], f"Rendering scene {index}: {scene['headline']}")
@@ -399,12 +483,35 @@ class VideoWorkflow:
                 audio_path=Path(scene["audio_path"]),
                 output_path=clip_path,
             )
+            try:
+                clip_durations.append(probe_duration(clip_path))
+            except MediaError:
+                clip_durations.append(float(scene.get("target_duration_seconds") or 0) or 6.0)
             clip_paths.append(clip_path)
             add_log(job["id"], f"Scene {index} clip assembled.")
 
         self._set_state(job["id"], current_step="Finalizing video")
         final_video = final_dir / f"{_slugify(job['concept'])}.mp4"
         concat_clips(clip_paths=clip_paths, output_path=final_video, workdir=final_dir)
+
+        try:
+            captions_path = final_dir / "captions.vtt"
+            write_captions(
+                scenes=storyboard["scenes"],
+                output_path=captions_path,
+                scene_durations=clip_durations,
+            )
+            add_log(job["id"], "Captions generated.")
+        except Exception as exc:
+            add_log(job["id"], f"Caption generation skipped: {exc}", level="warning")
+
+        try:
+            thumbnail_path = final_dir / "thumbnail.jpg"
+            extract_thumbnail(video_path=final_video, output_path=thumbnail_path)
+            add_log(job["id"], "Thumbnail extracted.")
+        except Exception as exc:
+            add_log(job["id"], f"Thumbnail extraction skipped: {exc}", level="warning")
+
         return final_video
 
     def _now(self) -> str:

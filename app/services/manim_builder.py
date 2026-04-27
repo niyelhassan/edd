@@ -13,8 +13,8 @@ STORY = __STORY_JSON__
 SCENES = STORY["scenes"]
 TITLE = STORY.get("title", "")
 
-# Brand palette inspired by the lern app: monochrome + a single confident blue.
-BRAND_LIGHT = {
+# Brand palette: monochrome + a single confident blue. Light theme only.
+PALETTE = {
     "background": "#FAFAFB",
     "ink": "#0A0A0A",
     "ink_soft": "#171717",
@@ -24,37 +24,24 @@ BRAND_LIGHT = {
     "panel_2": "#FFFFFF",
     "accent": "#1D4ED8",
     "accent_2": "#0EA5E9",
+    "accent_soft": "#DBEAFE",
     "good": "#059669",
     "warn": "#DC2626",
     "highlight": "#FACC15",
-    "is_dark": False,
-}
-
-BRAND_DARK = {
-    "background": "#0A0A0B",
-    "ink": "#FAFAFA",
-    "ink_soft": "#E5E5E5",
-    "muted": "#A1A1AA",
-    "soft": "#27272A",
-    "panel": "#18181B",
-    "panel_2": "#1F1F23",
-    "accent": "#60A5FA",
-    "accent_2": "#22D3EE",
-    "good": "#34D399",
-    "warn": "#F87171",
-    "highlight": "#FDE047",
-    "is_dark": True,
 }
 
 
 def palette():
-    theme = (STORY.get("visual_theme") or "brand_light").lower()
-    dark_keys = {"brand_dark", "midnight", "dark"}
-    return BRAND_DARK if theme in dark_keys else BRAND_LIGHT
+    return PALETTE
 
 
 # ---- typography helpers ----
-SANS = "Helvetica"  # macOS default sans; Pango falls back to system sans elsewhere
+SANS = "sans-serif"
+
+# Render text at this base size and scale to the requested visual size.
+# Pango produces noticeably better kerning at large rasterizations; scaling
+# down preserves that quality while letting layouts request small visual sizes.
+TEXT_BASE_FONT_SIZE = 96
 
 
 def _wrap(text, width):
@@ -65,12 +52,24 @@ def _wrap(text, width):
 
 
 def safe_text(text, *, font_size=24, color=None, weight=NORMAL, width=None, height=None, wrap=None, font=SANS):
+    """Render text crisply: build at TEXT_BASE_FONT_SIZE, then scale to visual size.
+
+    width / height clamp the result so it can never overflow its slot.
+    """
     palette_ = palette()
     color = color or palette_["ink"]
     raw = str(text or "").strip()
     if wrap and raw:
         raw = _wrap(raw, wrap)
-    obj = Text(raw or " ", font=font, font_size=font_size, color=color, weight=weight, line_spacing=0.85)
+    obj = Text(
+        raw or " ",
+        font=font,
+        font_size=TEXT_BASE_FONT_SIZE,
+        color=color,
+        weight=weight,
+        line_spacing=0.95,
+    )
+    obj.scale(font_size / TEXT_BASE_FONT_SIZE)
     if width and obj.width > width:
         obj.scale_to_fit_width(width)
     if height and obj.height > height:
@@ -78,7 +77,7 @@ def safe_text(text, *, font_size=24, color=None, weight=NORMAL, width=None, heig
     return obj
 
 
-def safe_math(expr, *, color=None, font_size=48, max_width=10.0):
+def safe_math(expr, *, color=None, font_size=48, max_width=10.5, max_height=2.6):
     palette_ = palette()
     color = color or palette_["ink"]
     if not expr:
@@ -89,37 +88,53 @@ def safe_math(expr, *, color=None, font_size=48, max_width=10.0):
         obj = safe_text(expr, font_size=int(font_size * 0.7), color=color, weight=SEMIBOLD)
     if obj.width > max_width:
         obj.scale_to_fit_width(max_width)
-    if obj.height > 2.6:
-        obj.scale_to_fit_height(2.6)
+    if obj.height > max_height:
+        obj.scale_to_fit_height(max_height)
     return obj
 
 
-# ---- chrome helpers (headline, footer, brand) ----
+def _norm(s):
+    return (s or "").strip().lower()
+
+
+def _is_distinct(candidate, *others):
+    cand = _norm(candidate)
+    if not cand:
+        return False
+    for other in others:
+        oth = _norm(other)
+        if not oth:
+            continue
+        if cand == oth or cand in oth or oth in cand:
+            return False
+    return True
+
+
+# ---- chrome helpers (eyebrow, footer, brand mark) ----
 def make_eyebrow(text, palette_):
-    obj = Text(
+    obj = safe_text(
         (text or "").upper(),
-        font=SANS,
         font_size=18,
         color=palette_["muted"],
         weight=BOLD,
+        width=10.0,
+        wrap=64,
     )
-    if obj.width > 6.4:
-        obj.scale_to_fit_width(6.4)
     return obj
 
 
-def make_headline(text, palette_, *, max_width=11.0, wrap=42):
-    return safe_text(text, font_size=46, weight=BOLD, color=palette_["ink"], width=max_width, wrap=wrap)
+def make_headline(text, palette_, *, max_width=11.0, wrap=42, font_size=46):
+    return safe_text(text, font_size=font_size, weight=BOLD, color=palette_["ink"], width=max_width, wrap=wrap)
 
 
-def make_subheadline(text, palette_, *, max_width=10.5, wrap=66):
+def make_subheadline(text, palette_, *, max_width=10.5, wrap=66, font_size=24):
     if not text:
         return None
-    return safe_text(text, font_size=24, color=palette_["muted"], weight=NORMAL, width=max_width, wrap=wrap)
+    return safe_text(text, font_size=font_size, color=palette_["muted"], weight=NORMAL, width=max_width, wrap=wrap)
 
 
 def make_brand_mark(palette_):
-    mark = Text("lern", font=SANS, font_size=20, color=palette_["muted"], weight=SEMIBOLD)
+    mark = safe_text("lern", font_size=20, color=palette_["muted"], weight=SEMIBOLD)
     mark.set_opacity(0.55)
     return mark
 
@@ -132,19 +147,25 @@ def make_progress_dots(index, total, palette_):
         dot = Dot(radius=0.07, color=palette_["accent"] if i == index else palette_["soft"])
         dots.add(dot)
     dots.arrange(RIGHT, buff=0.16)
-    return dots
+    counter = safe_text(
+        f"{index + 1}/{total}",
+        font_size=16, weight=SEMIBOLD, color=palette_["muted"],
+    )
+    counter.set_opacity(0.7)
+    return VGroup(counter, dots).arrange(RIGHT, buff=0.28)
 
 
-def setup_frame(scene_obj, scene_data, palette_):
+def setup_frame(scene_obj, scene_data, palette_, *, draw_accent_bar=True):
     scene_obj.camera.background_color = palette_["background"]
 
-    accent_bar = Rectangle(
-        height=8.0, width=0.16,
-        stroke_width=0,
-        fill_color=palette_["accent"],
-        fill_opacity=1,
-    ).to_edge(LEFT, buff=0)
-    scene_obj.add(accent_bar)
+    if draw_accent_bar:
+        accent_bar = Rectangle(
+            height=8.0, width=0.16,
+            stroke_width=0,
+            fill_color=palette_["accent"],
+            fill_opacity=1,
+        ).to_edge(LEFT, buff=0)
+        scene_obj.add(accent_bar)
 
     brand = make_brand_mark(palette_).to_corner(DR, buff=0.45)
     scene_obj.add(brand)
@@ -161,30 +182,38 @@ CHROME_BOTTOM_Y = 1.95  # body content should anchor below this y value
 
 
 def add_top_bar(scene_obj, scene_data, palette_):
-    """Set up brand chrome + top bar with eyebrow (lesson title) and headline. Returns the layout group."""
+    """Set up brand chrome + top bar with eyebrow (lesson title) and headline."""
     setup_frame(scene_obj, scene_data, palette_)
-    eyebrow_text = (TITLE or scene_data.get("eyebrow") or "Lesson").strip()
+    eyebrow_text = (TITLE or "Lesson").strip()
     headline_text = scene_data.get("headline", "").strip()
 
-    eyebrow = make_eyebrow(eyebrow_text, palette_)
+    # Avoid eyebrow that simply repeats the headline.
+    show_eyebrow = _is_distinct(eyebrow_text, headline_text)
+
+    eyebrow = make_eyebrow(eyebrow_text, palette_) if show_eyebrow else None
     headline = make_headline(headline_text, palette_, max_width=11.0, wrap=46)
 
-    eyebrow.to_edge(UP, buff=0.55).to_edge(LEFT, buff=0.85)
-    headline.next_to(eyebrow, DOWN, buff=0.22, aligned_edge=LEFT)
+    if eyebrow is not None:
+        eyebrow.to_edge(UP, buff=0.55).to_edge(LEFT, buff=0.85)
+        headline.next_to(eyebrow, DOWN, buff=0.22, aligned_edge=LEFT)
+    else:
+        headline.to_edge(UP, buff=0.65).to_edge(LEFT, buff=0.85)
 
     underline = Line(
         headline.get_corner(DL) + DOWN * 0.18,
-        headline.get_corner(DL) + DOWN * 0.18 + RIGHT * min(1.4, headline.width * 0.25),
+        headline.get_corner(DL) + DOWN * 0.18 + RIGHT * min(1.6, headline.width * 0.28),
         color=palette_["accent"],
         stroke_width=4,
     )
 
-    scene_obj.play(FadeIn(eyebrow, shift=DOWN * 0.1), run_time=0.35)
+    if eyebrow is not None:
+        scene_obj.play(FadeIn(eyebrow, shift=DOWN * 0.1), run_time=0.35)
     scene_obj.play(
         Write(headline, run_time=0.6),
         Create(underline, run_time=0.5),
     )
-    return VGroup(eyebrow, headline, underline)
+    parts = [eyebrow, headline, underline] if eyebrow is not None else [headline, underline]
+    return VGroup(*parts)
 
 
 def place_body(group, *, top=None, center_x=0.0, max_height=None, max_width=None):
@@ -207,14 +236,13 @@ def place_body(group, *, top=None, center_x=0.0, max_height=None, max_width=None
 
 # ---- per-template builders ----
 def _node_label(text, palette_, *, fill, font_color=None, width=2.0, height=0.9, font_size=22, corner=0.18):
-    panel_ = palette_
     box = RoundedRectangle(
         corner_radius=corner, width=width, height=height,
         stroke_width=0, fill_color=fill, fill_opacity=1.0,
     )
     label = safe_text(
         text, font_size=font_size,
-        color=font_color or (palette_["panel_2"] if palette_["is_dark"] else "#FFFFFF"),
+        color=font_color or "#FFFFFF",
         weight=SEMIBOLD,
         width=width - 0.4,
         height=height - 0.3,
@@ -224,53 +252,95 @@ def _node_label(text, palette_, *, fill, font_color=None, width=2.0, height=0.9,
 
 
 def render_title_card(scene_obj, scene_data, palette_):
-    """Cinematic title card: kinetic title with accent line and supporting hook."""
-    setup_frame(scene_obj, scene_data, palette_)
+    """Cinematic title card: lesson title big, supporting subtitle, no repeats.
 
-    eyebrow_text = (TITLE or "Lesson").strip()
-    headline_text = scene_data.get("headline", "").strip()
-    hook_text = (scene_data.get("hook") or scene_data.get("takeaway") or "").strip()
+    The viewer should see exactly two distinct pieces of text:
+      - the lesson title (big), and
+      - one supporting line (the scene's hook OR the lesson's learning objective).
+    Anything that duplicates the title is suppressed.
+    """
+    setup_frame(scene_obj, scene_data, palette_, draw_accent_bar=False)
 
-    eyebrow = make_eyebrow(eyebrow_text, palette_)
-    headline = safe_text(
-        headline_text,
-        font_size=64, weight=BOLD, color=palette_["ink"],
-        width=11.0, wrap=26,
-    )
+    lesson_title = (TITLE or scene_data.get("headline") or "Lesson").strip()
+    eyebrow_text = "TODAY'S LESSON"
+
+    # Pick a non-duplicating subtitle: prefer scene hook, fall back to learning objective / summary.
+    candidates = [
+        scene_data.get("hook"),
+        scene_data.get("takeaway"),
+        STORY.get("learning_objective"),
+        STORY.get("summary"),
+    ]
+    subtitle_text = ""
+    for c in candidates:
+        if _is_distinct(c, lesson_title, eyebrow_text):
+            subtitle_text = (c or "").strip()
+            break
+
+    eyebrow = safe_text(eyebrow_text, font_size=18, weight=BOLD, color=palette_["muted"], width=10.0)
     accent_line = Rectangle(
-        height=0.10, width=1.4,
+        height=0.10, width=1.6,
         stroke_width=0,
         fill_color=palette_["accent"], fill_opacity=1,
     )
-    hook = safe_text(hook_text, font_size=26, weight=NORMAL, color=palette_["muted"], width=10.0, wrap=58) if hook_text else None
+    headline = safe_text(
+        lesson_title,
+        font_size=70, weight=BOLD, color=palette_["ink"],
+        width=11.5, wrap=24,
+    )
+    subtitle = (
+        safe_text(subtitle_text, font_size=26, weight=NORMAL, color=palette_["muted"], width=10.5, wrap=58)
+        if subtitle_text else None
+    )
 
-    group = VGroup(*[m for m in (eyebrow, accent_line, headline, hook) if m is not None])
-    group.arrange(DOWN, buff=0.42, aligned_edge=LEFT)
-    group.move_to(ORIGIN).shift(LEFT * 0.4)
+    parts = [eyebrow, accent_line, headline]
+    if subtitle is not None:
+        parts.append(subtitle)
+    group = VGroup(*parts).arrange(DOWN, buff=0.42, aligned_edge=LEFT)
 
+    # Soft accent shape, top right, for visual interest.
+    halo = Circle(
+        radius=1.6, color=palette_["accent_soft"], stroke_width=0,
+        fill_color=palette_["accent_soft"], fill_opacity=1,
+    ).to_corner(UR, buff=0).shift(RIGHT * 0.6 + UP * 0.5)
+    halo.set_z_index(-1)
+
+    accent_dot = Dot(radius=0.18, color=palette_["accent"]).move_to(halo.get_center())
+    accent_dot.set_z_index(-1)
+
+    group.move_to(ORIGIN).shift(LEFT * 0.4 + DOWN * 0.1)
+
+    scene_obj.add(halo, accent_dot)
     scene_obj.play(FadeIn(eyebrow, shift=DOWN * 0.15), run_time=0.4)
     scene_obj.play(GrowFromCenter(accent_line), run_time=0.35)
-    scene_obj.play(Write(headline), run_time=0.9)
-    if hook:
-        scene_obj.play(FadeIn(hook, shift=UP * 0.1), run_time=0.5)
+    scene_obj.play(Write(headline), run_time=1.0)
+    if subtitle is not None:
+        scene_obj.play(FadeIn(subtitle, shift=UP * 0.1), run_time=0.5)
 
-    decor = VGroup()
-    for i in range(3):
-        d = Dot(radius=0.08 + 0.04 * i, color=palette_["accent_2"]).set_opacity(0.35 - 0.08 * i)
-        d.move_to(group.get_corner(UR) + RIGHT * (0.6 + i * 0.45) + UP * (0.4 - i * 0.2))
-        decor.add(d)
-    scene_obj.play(FadeIn(decor, lag_ratio=0.2), run_time=0.6)
-
-    total = max(6.0, float(scene_data.get("target_duration_seconds", 10.0)))
-    scene_obj.wait(max(0.5, total - 2.5))
+    total = max(6.0, float(scene_data.get("target_duration_seconds", 8.0)))
+    scene_obj.wait(max(0.5, total - 2.6))
 
 
 def render_summary(scene_obj, scene_data, palette_):
-    """Closing takeaways: large takeaway phrase + checkmark bullets."""
+    """Closing takeaways: large takeaway phrase + checkmark bullets, all distinct."""
     chrome = add_top_bar(scene_obj, scene_data, palette_)
 
-    takeaway = (scene_data.get("takeaway") or scene_data.get("hook") or "").strip()
-    bullets = [b for b in (scene_data.get("key_points") or []) if b][:3]
+    headline = scene_data.get("headline", "")
+    takeaway = (scene_data.get("takeaway") or "").strip()
+    fallback_takeaway = (STORY.get("closing_takeaway") or "").strip()
+    if not _is_distinct(takeaway, headline):
+        takeaway = fallback_takeaway if _is_distinct(fallback_takeaway, headline) else takeaway
+
+    bullets = []
+    seen = {_norm(headline), _norm(takeaway)}
+    for b in (scene_data.get("key_points") or []):
+        n = _norm(b)
+        if not n or n in seen:
+            continue
+        seen.add(n)
+        bullets.append(b)
+        if len(bullets) >= 3:
+            break
 
     big = safe_text(
         takeaway or "Key takeaway",
@@ -305,8 +375,25 @@ def render_bullets(scene_obj, scene_data, palette_):
     """Centered hook + clean bullet list. Used when no more visual layout fits."""
     chrome = add_top_bar(scene_obj, scene_data, palette_)
 
-    hook = (scene_data.get("hook") or scene_data.get("takeaway") or "").strip()
-    bullets = [b for b in (scene_data.get("key_points") or scene_data.get("visual_items") or []) if b][:3]
+    headline = scene_data.get("headline", "")
+    hook = (scene_data.get("hook") or "").strip()
+    if not _is_distinct(hook, headline):
+        hook = ""
+    takeaway = (scene_data.get("takeaway") or "").strip()
+    if not hook and _is_distinct(takeaway, headline):
+        hook = takeaway
+
+    raw_bullets = scene_data.get("key_points") or scene_data.get("visual_items") or []
+    bullets = []
+    seen = {_norm(headline), _norm(hook)}
+    for b in raw_bullets:
+        n = _norm(b)
+        if not n or n in seen:
+            continue
+        seen.add(n)
+        bullets.append(b)
+        if len(bullets) >= 3:
+            break
 
     hook_text = safe_text(hook, font_size=30, weight=SEMIBOLD, color=palette_["accent"], width=10.5, wrap=58) if hook else None
 
@@ -350,7 +437,7 @@ def build_concept_visual(scene_data, palette_, compact=False):
     for i, item in enumerate(items[:3]):
         pos = np.array([math.cos(angles[i]) * radius, math.sin(angles[i]) * radius, 0])
         accent = palette_["accent"] if i % 2 == 0 else palette_["accent_2"]
-        node = _node_label(item, palette_, fill=accent, width=2.4, height=0.9, font_size=20)
+        node = _node_label(item, palette_, fill=accent, width=2.5, height=0.95, font_size=20)
         node.move_to(pos)
         line = Line(hub.get_center(), node.get_center(), color=palette_["soft"], stroke_width=3)
         nodes.add(line, node)
@@ -405,10 +492,10 @@ def render_equation(scene_obj, scene_data, palette_):
     terms = [t for t in (scene_data.get("highlight_terms") or []) if t][:3]
     if terms:
         for i, t in enumerate(terms):
-            chip_bg = RoundedRectangle(corner_radius=0.18, width=2.6, height=0.6, stroke_width=0,
+            chip_bg = RoundedRectangle(corner_radius=0.18, width=2.8, height=0.6, stroke_width=0,
                                        fill_color=palette_["panel"], fill_opacity=1)
             chip_text = safe_text(t, font_size=18, weight=SEMIBOLD, color=palette_["ink_soft"],
-                                  width=2.2, height=0.35, wrap=22)
+                                  width=2.4, height=0.4, wrap=22)
             chip = VGroup(chip_bg, chip_text.move_to(chip_bg))
             annotations.add(chip)
         annotations.arrange(RIGHT, buff=0.3)
@@ -556,13 +643,13 @@ def render_comparison(scene_obj, scene_data, palette_):
     right_title = items[1] if len(items) > 1 else "Approach B"
 
     def panel(label, sub_lines, fill, accent):
-        bg = RoundedRectangle(corner_radius=0.28, width=4.8, height=4.6, stroke_width=0,
+        bg = RoundedRectangle(corner_radius=0.28, width=4.9, height=4.6, stroke_width=0,
                               fill_color=fill, fill_opacity=1.0)
-        title = safe_text(label, font_size=28, weight=BOLD, color=accent, width=4.2, wrap=22)
+        title = safe_text(label, font_size=28, weight=BOLD, color=accent, width=4.4, wrap=22)
         title.move_to(bg.get_top() + DOWN * 0.55)
         rows = VGroup()
         for line in sub_lines[:3]:
-            r = safe_text(line, font_size=20, color=palette_["ink"], width=4.2, wrap=30)
+            r = safe_text(line, font_size=20, color=palette_["ink"], width=4.4, wrap=30)
             rows.add(r)
         if len(rows):
             rows.arrange(DOWN, buff=0.28, aligned_edge=LEFT)
@@ -575,9 +662,8 @@ def render_comparison(scene_obj, scene_data, palette_):
     right_lines = points[3:6] if len(points) > 3 else (points[:3] if not items else [])
 
     left = panel(left_title, left_lines, palette_["panel"], palette_["accent"])
-    right = panel(right_title, right_lines, palette_["panel_2"] if not palette_["is_dark"] else palette_["panel_2"], palette_["accent_2"])
-    if not palette_["is_dark"]:
-        right[0].set_stroke(palette_["soft"], width=2)
+    right = panel(right_title, right_lines, palette_["panel_2"], palette_["accent_2"])
+    right[0].set_stroke(palette_["soft"], width=2)
 
     pair = VGroup(left, right).arrange(RIGHT, buff=0.6)
     place_body(pair, top=CHROME_BOTTOM_Y - 0.3, max_height=5.2, max_width=11.5)
@@ -839,10 +925,10 @@ def render_network(scene_obj, scene_data, palette_):
     nodes = VGroup()
     for i, (item, pos) in enumerate(zip(items, positions)):
         accent = palette_["accent"] if i == 0 else palette_["accent_2"]
-        outer = Circle(radius=0.50, color=accent, stroke_width=3,
-                       fill_color=palette_["panel_2"] if not palette_["is_dark"] else palette_["panel"],
+        outer = Circle(radius=0.55, color=accent, stroke_width=3,
+                       fill_color=palette_["panel_2"],
                        fill_opacity=1.0)
-        label = safe_text(item, font_size=18, color=palette_["ink"], width=0.95, height=0.7, wrap=10).move_to(outer)
+        label = safe_text(item, font_size=18, color=palette_["ink"], width=1.0, height=0.7, wrap=10).move_to(outer)
         node = VGroup(outer, label).move_to(pos)
         nodes.add(node)
 

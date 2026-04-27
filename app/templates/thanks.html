@@ -1,12 +1,35 @@
-{% extends "base.html" %}
-
-{% block content %}
-<section class="flex min-h-[60vh] items-center justify-center">
-    <div class="max-w-xl text-center">
-        <p class="eyebrow justify-center">Complete</p>
-        <h1 class="mt-3 text-5xl font-semibold tracking-tight">Thanks for testing lern.</h1>
-        <p class="mt-4 text-neutral-600">Your quiz results and product feedback were recorded.</p>
-        <a href="{{ url_for('main.home') }}" class="btn-primary mt-6">Back home</a>
+{% extends "base.html" %} {% block content %}
+<section class="grid min-h-[60vh] place-items-center">
+  <div class="max-w-xl text-center">
+    <div
+      class="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-full bg-emerald-100 text-emerald-700"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="h-7 w-7"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        stroke-width="2.5"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M5 13l4 4L19 7"
+        />
+      </svg>
     </div>
+    <p class="eyebrow justify-center">Complete</p>
+    <h1 class="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">
+      Thanks for testing lern.
+    </h1>
+    <p class="mt-3 text-base leading-7 text-neutral-600">
+      Your quiz results and product feedback were saved. You can generate
+      another lesson whenever you'd like.
+    </p>
+    <div class="mt-7 flex flex-wrap justify-center gap-3">
+      <a href="{{ url_for('main.home') }}" class="btn-primary">Make another →</a>
+    </div>
+  </div>
 </section>
 {% endblock %}

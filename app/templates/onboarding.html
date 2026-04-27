@@ -1,88 +1,128 @@
 {% extends "base.html" %} {% block site_header %}{% endblock %} {% block content
 %}
 <section class="fixed inset-0 z-50 overflow-hidden bg-white">
+  <div class="onboarding-stage-bg"></div>
+
   <a
     href="{{ url_for('main.home') }}"
-    class="absolute left-5 top-5 z-20 text-xl font-semibold tracking-tight"
+    class="absolute left-6 top-6 z-20 text-lg font-semibold tracking-tight"
     >lern</a
   >
   <form
     action="{{ url_for('main.onboarding_done') }}"
     method="post"
-    class="absolute right-4 top-4 z-20"
+    class="absolute right-5 top-5 z-20"
   >
     <button
-      class="rounded-md px-3 py-2 text-sm text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950"
+      class="rounded-md px-3 py-2 text-sm text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-950"
     >
-      Skip
+      Skip intro
     </button>
   </form>
 
   <div class="onboarding-stage">
     <article class="onboarding-slide active">
       <div>
-        <p class="eyebrow">Instructions</p>
-        <h1>Generate. Watch. Compare.</h1>
+        <p class="eyebrow">A quick tour</p>
+        <h1>Generate. Learn.<br />Measure the lift.</h1>
+        <p class="lead">
+          lern turns a topic into a custom-made video lesson, with a
+          short quiz before and after. We measure how much you actually
+          learned.
+        </p>
       </div>
-      <div class="walkthrough-video">
+      <div class="walkthrough-stage">
         <div class="walkthrough-toolbar">
           <span></span><span></span><span></span>
         </div>
-        <div class="walkthrough-lines"><i></i><i></i><i></i></div>
+        <div class="walkthrough-content">
+          <div class="walkthrough-skeleton" style="width: 70%"></div>
+          <div class="walkthrough-skeleton" style="width: 48%"></div>
+          <div class="walkthrough-skeleton" style="width: 86%"></div>
+        </div>
         <div class="walkthrough-play"></div>
       </div>
     </article>
 
     <article class="onboarding-slide">
       <div>
-        <p class="eyebrow">Generate</p>
-        <h1>Describe the concept.</h1>
+        <p class="eyebrow">Step 01 · Generate</p>
+        <h1>Tell it what to teach.</h1>
+        <p class="lead">
+          Type the topic. Optionally add context — your level, the
+          dataset you're working with, or a misconception you want
+          cleared up. Pick a length and hit generate.
+        </p>
       </div>
-      <div class="walkthrough-video form-demo">
-        <b>Bayes theorem for genetics data</b>
-        <span>Common misconception: base rates</span>
-        <button>Generate video</button>
+      <div class="walkthrough-stage">
+        <div class="walkthrough-toolbar">
+          <span></span><span></span><span></span>
+        </div>
+        <div class="walkthrough-form">
+          <b>Bayes theorem for genetics data</b>
+          <span>Common misconception: base rates</span>
+          <button>Generate video</button>
+        </div>
       </div>
     </article>
 
     <article class="onboarding-slide">
       <div>
-        <p class="eyebrow">Assess</p>
-        <h1>Answer the pre-quiz.</h1>
+        <p class="eyebrow">Step 02 · Pre-quiz</p>
+        <h1>Answer five quick questions.</h1>
+        <p class="lead">
+          Before the video, lern asks five tailored questions about the
+          exact topic. This becomes your baseline.
+        </p>
       </div>
-      <div class="walkthrough-video quiz-demo">
-        <strong>Question 1 of 5</strong>
-        <span></span><span></span><span></span>
+      <div class="walkthrough-stage">
+        <div class="walkthrough-toolbar">
+          <span></span><span></span><span></span>
+        </div>
+        <div class="walkthrough-quiz">
+          <strong>Question 1 of 5</strong>
+          <span></span><span></span><span></span><span></span>
+        </div>
       </div>
     </article>
 
     <article class="onboarding-slide">
       <div>
-        <p class="eyebrow">Watch</p>
-        <h1>Watch the video.</h1>
+        <p class="eyebrow">Step 03 · Watch</p>
+        <h1>Watch the lesson.</h1>
+        <p class="lead">
+          Your video opens automatically once it's ready. It's a custom
+          lesson with narration, diagrams, and a clear takeaway.
+        </p>
       </div>
-      <div class="walkthrough-video player-demo">
+      <div class="walkthrough-stage">
         <div class="walkthrough-play"></div>
-        <div class="player-demo-bar"><span></span></div>
+        <div class="walkthrough-progress"><span></span></div>
       </div>
     </article>
 
     <article class="onboarding-slide">
       <div>
-        <p class="eyebrow">Results</p>
+        <p class="eyebrow">Step 04 · Compare</p>
         <h1>See the change.</h1>
+        <p class="lead">
+          A short post-quiz (the same questions) measures the lift. You
+          finish with a quick survey so we can keep improving.
+        </p>
         <form
           action="{{ url_for('main.onboarding_done') }}"
           method="post"
-          class="mt-6"
+          class="mt-7"
         >
-          <button class="btn-primary">Get started</button>
+          <button class="btn-primary text-base">Get started →</button>
         </form>
       </div>
-      <div class="walkthrough-video results-demo">
-        <div><small>Pre</small><strong>2/5</strong></div>
-        <div><small>Post</small><strong>4/5</strong></div>
-        <div><small>Gain</small><strong>+2</strong></div>
+      <div class="walkthrough-stage">
+        <div class="walkthrough-results">
+          <div><small>Pre</small><strong>2/5</strong></div>
+          <div><small>Post</small><strong>4/5</strong></div>
+          <div><small>Gain</small><strong>+2</strong></div>
+        </div>
       </div>
     </article>
   </div>
@@ -131,6 +171,15 @@
       showSlide(activeSlide + 1);
     }
   });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowRight") {
+      if (activeSlide < slides.length - 1) showSlide(activeSlide + 1);
+    } else if (event.key === "ArrowLeft") {
+      if (activeSlide > 0) showSlide(activeSlide - 1);
+    }
+  });
+
   showSlide(0);
 </script>
 {% endblock %}

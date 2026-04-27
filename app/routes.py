@@ -4,7 +4,7 @@ import csv
 import json
 import re
 import shutil
-from datetime import datetime
+from datetime import datetime, timezone
 from threading import Thread
 from pathlib import Path
 
@@ -22,7 +22,9 @@ from flask import (
     url_for,
 )
 
+from .services.captions import write_captions
 from .services.claude_code import extract_json_text
+from .services.media import MediaError, extract_thumbnail
 from .services.question_generation import fallback_quiz, generate_quiz
 from .services.repository import add_log, clone_job, create_job, get_job, get_job_logs, list_jobs, update_job
 
@@ -301,9 +303,112 @@ def _progress_from_job(job: dict, logs: list[dict], scene_count: int) -> tuple[i
     return progress, pipeline, detail
 
 
+def _parse_iso(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value)
+    except (TypeError, ValueError):
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed
+
+
+def _format_duration(seconds: float | None) -> str:
+    if seconds is None or seconds < 0:
+        return "—"
+    seconds = int(round(seconds))
+    if seconds < 60:
+        return f"{seconds}s"
+    minutes, secs = divmod(seconds, 60)
+    if minutes < 60:
+        return f"{minutes}m {secs:02d}s"
+    hours, mins = divmod(minutes, 60)
+    return f"{hours}h {mins:02d}m"
+
+
+def _format_relative(target: datetime | None, now: datetime | None = None) -> str:
+    if target is None:
+        return "—"
+    now = now or datetime.now(timezone.utc)
+    delta = (now - target).total_seconds()
+    if delta < 60:
+        return "just now"
+    if delta < 3600:
+        return f"{int(delta // 60)} min ago"
+    if delta < 86400:
+        return f"{int(delta // 3600)} hr ago"
+    return f"{int(delta // 86400)} d ago"
+
+
+def _compute_timing(job: dict, logs: list[dict]) -> dict:
+    now = datetime.now(timezone.utc)
+    created = _parse_iso(job.get("created_at"))
+    completed = _parse_iso(job.get("completed_at"))
+    updated = _parse_iso(job.get("updated_at"))
+
+    end_time = completed or (updated if job.get("status") in {"completed", "failed"} else now)
+    total_seconds = (end_time - created).total_seconds() if created else None
+
+    worker_started_ts = None
+    worker_finished_ts = None
+    for entry in logs:
+        message = entry.get("message", "")
+        if worker_started_ts is None and ("Worker started." in message or "Worker accepted job." in message):
+            worker_started_ts = _parse_iso(entry.get("timestamp"))
+        if message.startswith("Final video ready:"):
+            worker_finished_ts = _parse_iso(entry.get("timestamp"))
+
+    if worker_started_ts is not None:
+        agent_end = worker_finished_ts or completed or now
+        agent_seconds = (agent_end - worker_started_ts).total_seconds()
+    else:
+        agent_seconds = None
+
+    status_anchor = updated or created
+    status_seconds = (now - status_anchor).total_seconds() if status_anchor and job.get("status") in {"queued", "running"} else None
+
+    return {
+        "total_seconds": total_seconds,
+        "total_label": _format_duration(total_seconds),
+        "agent_seconds": agent_seconds,
+        "agent_label": _format_duration(agent_seconds),
+        "status_seconds": status_seconds,
+        "status_label": _format_duration(status_seconds) if status_seconds is not None else _format_duration(total_seconds),
+        "input_relative": _format_relative(created, now),
+        "input_absolute": created.astimezone().strftime("%b %d, %I:%M %p") if created else "—",
+        "completed_relative": _format_relative(completed, now) if completed else None,
+    }
+
+
+def _ensure_artifact(job_id: str, video_path: Path, name: str, builder) -> Path | None:
+    """Return path to the named artifact next to the video, building it on demand."""
+    artifact_path = video_path.parent / name
+    if artifact_path.exists():
+        return artifact_path
+    if not video_path.exists():
+        return None
+    try:
+        builder(artifact_path)
+    except Exception:
+        return None
+    return artifact_path if artifact_path.exists() else None
+
+
+def _artifact_url(job_id: str, file_path: Path) -> str | None:
+    try:
+        relative = file_path.relative_to(Path(current_app.config["JOBS_DIR"]) / job_id)
+    except ValueError:
+        return None
+    return url_for("main.job_artifact", job_id=job_id, subpath=str(relative))
+
+
 def _build_job_payload(job: dict, include_logs: bool = False) -> dict:
     payload = dict(job)
     payload["video_url"] = None
+    payload["thumbnail_url"] = None
+    payload["captions_url"] = None
     payload["storyboard"] = None
     payload["raw_storyboard"] = None
     payload["claude_available"] = True
@@ -319,6 +424,15 @@ def _build_job_payload(job: dict, include_logs: bool = False) -> dict:
         except ValueError:
             payload["video_url"] = None
 
+        thumbnail_path = _ensure_artifact(
+            payload["id"],
+            video_path,
+            "thumbnail.jpg",
+            lambda dest: extract_thumbnail(video_path=video_path, output_path=dest),
+        )
+        if thumbnail_path:
+            payload["thumbnail_url"] = _artifact_url(payload["id"], thumbnail_path)
+
     storyboard_path = payload.get("storyboard_path")
     if storyboard_path:
         story_file = Path(storyboard_path)
@@ -330,7 +444,29 @@ def _build_job_payload(job: dict, include_logs: bool = False) -> dict:
         elif not payload["token_usage"] and payload.get("status") == "completed":
             payload["token_usage_message"] = "This job completed without saved SDK usage data."
 
+    if payload.get("video_path") and payload.get("storyboard"):
+        video_path = Path(payload["video_path"])
+
+        def _build_captions(dest: Path) -> None:
+            scenes = payload["storyboard"].get("scenes") or []
+            scene_durations = [
+                float(scene.get("target_duration_seconds") or 0) or None
+                for scene in scenes
+            ]
+            write_captions(
+                scenes=scenes,
+                output_path=dest,
+                scene_durations=[d if d is not None else 6.0 for d in scene_durations],
+            )
+
+        captions_path = _ensure_artifact(
+            payload["id"], video_path, "captions.vtt", _build_captions,
+        )
+        if captions_path:
+            payload["captions_url"] = _artifact_url(payload["id"], captions_path)
+
     payload["scene_count"] = len(payload["storyboard"]["scenes"]) if payload["storyboard"] else 0
+    payload["question_count"] = _quiz_question_count(payload)
     logs = get_job_logs(payload["id"])
     payload["progress_percent"], payload["pipeline"], payload["progress_detail"] = _progress_from_job(
         payload,
@@ -338,6 +474,7 @@ def _build_job_payload(job: dict, include_logs: bool = False) -> dict:
         payload["scene_count"],
     )
     payload["is_active"] = payload["status"] in {"queued", "running"}
+    payload["timing"] = _compute_timing(payload, logs)
 
     if include_logs:
         payload["logs"] = logs

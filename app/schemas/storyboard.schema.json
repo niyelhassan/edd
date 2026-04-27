@@ -30,14 +30,13 @@
     "visual_theme": {
       "type": "string",
       "enum": [
-        "brand_light",
-        "brand_dark"
+        "brand_light"
       ]
     },
     "scenes": {
       "type": "array",
       "minItems": 2,
-      "maxItems": 5,
+      "maxItems": 8,
       "items": {
         "type": "object",
         "additionalProperties": false,
