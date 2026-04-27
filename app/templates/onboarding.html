@@ -1,7 +1,9 @@
 {% extends "base.html" %} {% block site_header %}{% endblock %} {% block content
 %}
-<section class="fixed inset-0 z-50 overflow-hidden bg-white">
+<section class="fixed inset-0 z-50 overflow-hidden bg-white" id="obRoot">
   <div class="onboarding-stage-bg"></div>
+
+  <div class="ob-progress" aria-hidden="true"><span id="obProgress"></span></div>
 
   <a
     href="{{ url_for('main.home') }}"
@@ -14,100 +16,179 @@
     class="absolute right-5 top-5 z-20"
   >
     <button
-      class="rounded-md px-3 py-2 text-sm text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-950"
+      class="rounded-full border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-500 transition hover:border-neutral-400 hover:text-neutral-950"
     >
       Skip intro
     </button>
   </form>
 
-  <div class="onboarding-stage">
-    <article class="onboarding-slide active">
+  <div class="ob-counter">
+    <span id="obIndex">01</span>
+    <span class="text-neutral-300"> / </span>
+    <span id="obTotal">05</span>
+  </div>
+
+  <div class="onboarding-stage" id="obStage">
+    <article class="onboarding-slide active" data-slide="0">
       <div>
-        <p class="eyebrow">A quick tour</p>
-        <h1>Generate. Learn.<br />Measure the lift.</h1>
+        <span class="eyebrow-pill">Welcome</span>
+        <h1>Learn anything,<br />in motion.</h1>
         <p class="lead">
-          lern turns a topic into a custom-made video lesson, with a
-          short quiz before and after. We measure how much you actually
-          learned.
+          A quiet, focused way to turn questions into short, illustrated
+          videos — measured by how much more you understand afterwards.
         </p>
       </div>
       <div class="walkthrough-stage">
         <div class="walkthrough-toolbar">
           <span></span><span></span><span></span>
         </div>
-        <div class="walkthrough-content">
-          <div class="walkthrough-skeleton" style="width: 70%"></div>
-          <div class="walkthrough-skeleton" style="width: 48%"></div>
-          <div class="walkthrough-skeleton" style="width: 86%"></div>
+        <div class="walkthrough-body">
+          <div class="demo-hero">
+            <span class="pill">Press play</span>
+            <div class="glyph">
+              <span class="ring"></span>
+              <span class="ring"></span>
+            </div>
+            <span class="pill">A 90-second tour</span>
+          </div>
         </div>
-        <div class="walkthrough-play"></div>
       </div>
     </article>
 
-    <article class="onboarding-slide">
+    <article class="onboarding-slide" data-slide="1">
       <div>
-        <p class="eyebrow">Step 01 · Generate</p>
-        <h1>Tell it what to teach.</h1>
+        <span class="eyebrow-pill">Step 01 · Generate</span>
+        <h1>Describe<br />the concept.</h1>
         <p class="lead">
-          Type the topic. Optionally add context — your level, the
-          dataset you're working with, or a misconception you want
-          cleared up. Pick a length and hit generate.
+          Type the topic. Optionally add the misconception you keep falling
+          into. We turn it into a short animated lesson.
         </p>
       </div>
       <div class="walkthrough-stage">
         <div class="walkthrough-toolbar">
           <span></span><span></span><span></span>
         </div>
-        <div class="walkthrough-form">
-          <b>Bayes theorem for genetics data</b>
-          <span>Common misconception: base rates</span>
-          <button>Generate video</button>
+        <div class="walkthrough-body">
+          <div class="demo-gen">
+            <label>Topic</label>
+            <div class="input"><span id="typedTopic"></span></div>
+            <label>Common misconception (optional)</label>
+            <div class="input misc"><span id="typedMisc"></span></div>
+            <button class="gen-btn" type="button">Generate video →</button>
+          </div>
         </div>
       </div>
     </article>
 
-    <article class="onboarding-slide">
+    <article class="onboarding-slide" data-slide="2">
       <div>
-        <p class="eyebrow">Step 02 · Pre-quiz</p>
-        <h1>Answer five quick questions.</h1>
+        <span class="eyebrow-pill">Step 02 · Pre-quiz</span>
+        <h1>A quick<br />pre-quiz.</h1>
         <p class="lead">
-          Before the video, lern asks five tailored questions about the
-          exact topic. This becomes your baseline.
+          Five short questions to anchor what you already think — so the gain
+          afterwards is real, not imagined.
         </p>
       </div>
       <div class="walkthrough-stage">
         <div class="walkthrough-toolbar">
           <span></span><span></span><span></span>
         </div>
-        <div class="walkthrough-quiz">
-          <strong>Question 1 of 5</strong>
-          <span></span><span></span><span></span><span></span>
+        <div class="walkthrough-body">
+          <div class="demo-quiz">
+            <div class="q">Question 2 of 5</div>
+            <div class="qtitle">
+              If a test is 99% accurate, a positive means…
+            </div>
+            <div class="opt">
+              <span class="dot"></span>You almost certainly have it
+            </div>
+            <div class="opt">
+              <span class="dot"></span>It depends on the base rate
+            </div>
+            <div class="opt">
+              <span class="dot"></span>The test is wrong 1% of the time
+            </div>
+          </div>
         </div>
       </div>
     </article>
 
-    <article class="onboarding-slide">
+    <article class="onboarding-slide" data-slide="3">
       <div>
-        <p class="eyebrow">Step 03 · Watch</p>
-        <h1>Watch the lesson.</h1>
+        <span class="eyebrow-pill">Step 03 · Watch</span>
+        <h1>A short,<br />animated explainer.</h1>
         <p class="lead">
-          Your video opens automatically once it's ready. It's a custom
-          lesson with narration, diagrams, and a clear takeaway.
+          Hand-crafted visuals, narrated. Roughly a minute. No filler, no
+          tangents — just the idea, shown clearly.
         </p>
       </div>
       <div class="walkthrough-stage">
-        <div class="walkthrough-play"></div>
-        <div class="walkthrough-progress"><span></span></div>
+        <div class="walkthrough-toolbar">
+          <span></span><span></span><span></span>
+        </div>
+        <div class="walkthrough-body" style="padding: 0">
+          <div class="demo-player">
+            <div class="demo-player-canvas">
+              <svg viewBox="0 0 400 260" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                  <linearGradient id="ob-gline" x1="0" x2="1">
+                    <stop offset="0" stop-color="rgba(255,255,255,0.05)" />
+                    <stop offset=".5" stop-color="rgba(255,255,255,0.4)" />
+                    <stop offset="1" stop-color="rgba(255,255,255,0.05)" />
+                  </linearGradient>
+                </defs>
+                <g stroke="url(#ob-gline)" stroke-width="1" fill="none">
+                  <circle cx="200" cy="130" r="60">
+                    <animate
+                      attributeName="r"
+                      values="60;72;60"
+                      dur="6s"
+                      repeatCount="indefinite"
+                    />
+                  </circle>
+                  <circle cx="200" cy="130" r="92">
+                    <animate
+                      attributeName="r"
+                      values="92;104;92"
+                      dur="6s"
+                      repeatCount="indefinite"
+                    />
+                  </circle>
+                  <circle cx="200" cy="130" r="124" opacity=".6">
+                    <animate
+                      attributeName="r"
+                      values="124;136;124"
+                      dur="6s"
+                      repeatCount="indefinite"
+                    />
+                  </circle>
+                </g>
+                <g
+                  fill="rgba(255,255,255,0.85)"
+                  font-family="-apple-system, sans-serif"
+                  font-size="11"
+                  text-anchor="middle"
+                >
+                  <text x="200" y="134">P(disease | +)</text>
+                </g>
+              </svg>
+            </div>
+            <div class="demo-player-play"></div>
+            <div class="demo-player-time">0:42</div>
+            <div class="demo-player-time right">1:08</div>
+            <div class="demo-player-bar"><span></span></div>
+          </div>
+        </div>
       </div>
     </article>
 
-    <article class="onboarding-slide">
+    <article class="onboarding-slide" data-slide="4">
       <div>
-        <p class="eyebrow">Step 04 · Compare</p>
-        <h1>See the change.</h1>
+        <span class="eyebrow-pill">Step 04 · Compare</span>
+        <h1>See how<br />much you moved.</h1>
         <p class="lead">
-          A short post-quiz (the same questions) measures the lift. You
-          finish with a quick survey so we can keep improving.
+          The same five questions, after. The number that matters is how much
+          your answer changed — that's the lesson, made visible.
         </p>
         <form
           action="{{ url_for('main.onboarding_done') }}"
@@ -118,10 +199,39 @@
         </form>
       </div>
       <div class="walkthrough-stage">
-        <div class="walkthrough-results">
-          <div><small>Pre</small><strong>2/5</strong></div>
-          <div><small>Post</small><strong>4/5</strong></div>
-          <div><small>Gain</small><strong>+2</strong></div>
+        <div class="walkthrough-toolbar">
+          <span></span><span></span><span></span>
+        </div>
+        <div class="walkthrough-body">
+          <div class="demo-results">
+            <div class="demo-result-card">
+              <span class="lbl">Pre</span>
+              <span class="val" data-count-to="2">0</span>
+              <span class="delta">out of 5</span>
+            </div>
+            <div class="demo-result-card">
+              <span class="lbl">Post</span>
+              <span class="val" data-count-to="4">0</span>
+              <span class="delta">out of 5</span>
+            </div>
+            <div class="demo-result-card gain">
+              <span class="lbl">Gain</span>
+              <span class="val" data-count-to="2" data-prefix="+">0</span>
+              <span class="delta">+40 percentage pts</span>
+              <svg
+                class="spark"
+                viewBox="0 0 200 60"
+                preserveAspectRatio="none"
+              >
+                <path
+                  d="M0,52 L20,48 L40,46 L60,42 L80,30 L100,28 L120,18 L140,16 L160,10 L180,8 L200,4"
+                  stroke="rgba(255,255,255,0.7)"
+                  stroke-width="1.5"
+                  fill="none"
+                />
+              </svg>
+            </div>
+          </div>
         </div>
       </div>
     </article>
@@ -129,57 +239,175 @@
 
   <div class="onboarding-controls">
     <button type="button" id="prevSlide" class="btn-secondary">Back</button>
-    <div id="onboardingDots" class="flex gap-2"></div>
-    <button type="button" id="nextSlide" class="btn-primary">Next</button>
+    <div id="onboardingDots" class="onboarding-dots"></div>
+    <button type="button" id="nextSlide" class="btn-primary">Next →</button>
   </div>
 </section>
 
 <script>
-  const slides = Array.from(document.querySelectorAll(".onboarding-slide"));
-  const dots = document.getElementById("onboardingDots");
-  let activeSlide = 0;
+  (function () {
+    const slides = Array.from(document.querySelectorAll(".onboarding-slide"));
+    const dotsRoot = document.getElementById("onboardingDots");
+    const prevBtn = document.getElementById("prevSlide");
+    const nextBtn = document.getElementById("nextSlide");
+    const progress = document.getElementById("obProgress");
+    const indexEl = document.getElementById("obIndex");
+    const totalEl = document.getElementById("obTotal");
+    const root = document.getElementById("obRoot");
+    let active = 0;
+    let demoTimers = [];
 
-  slides.forEach((_, index) => {
-    const dot = document.createElement("button");
-    dot.type = "button";
-    dot.className = "onboarding-dot";
-    dot.addEventListener("click", () => showSlide(index));
-    dots.appendChild(dot);
-  });
+    totalEl.textContent = String(slides.length).padStart(2, "0");
 
-  function showSlide(index) {
-    activeSlide = Math.max(0, Math.min(slides.length - 1, index));
-    slides.forEach((slide, slideIndex) =>
-      slide.classList.toggle("active", slideIndex === activeSlide),
-    );
-    Array.from(dots.children).forEach((dot, dotIndex) =>
-      dot.classList.toggle("active", dotIndex === activeSlide),
-    );
-    document.getElementById("prevSlide").style.visibility =
-      activeSlide === 0 ? "hidden" : "visible";
-    document.getElementById("nextSlide").textContent =
-      activeSlide === slides.length - 1 ? "Start" : "Next";
-  }
+    slides.forEach((_, i) => {
+      const dot = document.createElement("button");
+      dot.type = "button";
+      dot.className = "onboarding-dot";
+      dot.addEventListener("click", () => go(i));
+      dotsRoot.appendChild(dot);
+    });
+    const dots = Array.from(dotsRoot.children);
 
-  document
-    .getElementById("prevSlide")
-    .addEventListener("click", () => showSlide(activeSlide - 1));
-  document.getElementById("nextSlide").addEventListener("click", () => {
-    if (activeSlide === slides.length - 1) {
-      document.querySelector("form[action$='/onboarding/done']").submit();
-    } else {
-      showSlide(activeSlide + 1);
+    function go(i) {
+      i = Math.max(0, Math.min(slides.length - 1, i));
+      slides.forEach((slide, si) => {
+        slide.classList.toggle("active", si === i);
+        slide.classList.toggle("exit-up", si < i);
+      });
+      dots.forEach((dot, di) => dot.classList.toggle("active", di === i));
+      active = i;
+      progress.style.width = ((i + 1) / slides.length) * 100 + "%";
+      indexEl.textContent = String(i + 1).padStart(2, "0");
+      prevBtn.style.visibility = i === 0 ? "hidden" : "visible";
+      nextBtn.textContent = i === slides.length - 1 ? "Start" : "Next →";
+      runDemo(i);
     }
-  });
 
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "ArrowRight") {
-      if (activeSlide < slides.length - 1) showSlide(activeSlide + 1);
-    } else if (event.key === "ArrowLeft") {
-      if (activeSlide > 0) showSlide(activeSlide - 1);
+    prevBtn.addEventListener("click", () => go(active - 1));
+    nextBtn.addEventListener("click", () => {
+      if (active === slides.length - 1) {
+        document.querySelector("form[action$='/onboarding/done']").submit();
+      } else {
+        go(active + 1);
+      }
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowRight" || event.key === "Enter") {
+        event.preventDefault();
+        nextBtn.click();
+      } else if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        if (prevBtn.style.visibility !== "hidden") prevBtn.click();
+      } else if (event.key === "Escape") {
+        document.querySelector(".onboarding-controls + form, form[action$='/onboarding/done']")?.submit();
+      }
+    });
+
+    let wheelLock = false;
+    root.addEventListener(
+      "wheel",
+      (event) => {
+        if (Math.abs(event.deltaY) < 24 || wheelLock) return;
+        wheelLock = true;
+        if (event.deltaY > 0) go(active + 1);
+        else go(active - 1);
+        setTimeout(() => (wheelLock = false), 720);
+      },
+      { passive: true },
+    );
+
+    let touchY = null;
+    root.addEventListener("touchstart", (event) => {
+      touchY = event.touches[0].clientY;
+    });
+    root.addEventListener("touchend", (event) => {
+      if (touchY == null) return;
+      const dy = touchY - event.changedTouches[0].clientY;
+      if (Math.abs(dy) > 40) {
+        if (dy > 0) go(active + 1);
+        else go(active - 1);
+      }
+      touchY = null;
+    });
+
+    function clearDemoTimers() {
+      demoTimers.forEach((t) => clearTimeout(t));
+      demoTimers = [];
     }
-  });
 
-  showSlide(0);
+    function typeInto(el, text, speed, done) {
+      el.textContent = "";
+      el.classList.add("typed");
+      let i = 0;
+      const tick = () => {
+        if (i <= text.length) {
+          el.textContent = text.slice(0, i++);
+          demoTimers.push(setTimeout(tick, speed + Math.random() * 30));
+        } else {
+          el.classList.remove("typed");
+          if (done) done();
+        }
+      };
+      tick();
+    }
+
+    function countTo(el) {
+      const target = parseInt(el.dataset.countTo, 10);
+      const prefix = el.dataset.prefix || "";
+      const start = performance.now();
+      const dur = 900;
+      function frame(now) {
+        const t = Math.min(1, (now - start) / dur);
+        const eased = 1 - Math.pow(1 - t, 3);
+        el.textContent = prefix + Math.round(target * eased);
+        if (t < 1) requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    }
+
+    function runDemo(i) {
+      clearDemoTimers();
+      const slide = slides[i];
+      if (i === 1) {
+        const topic = slide.querySelector("#typedTopic");
+        const misc = slide.querySelector("#typedMisc");
+        if (topic && misc) {
+          misc.textContent = "";
+          misc.classList.remove("typed");
+          typeInto(topic, "Bayes' theorem for genetics data", 40, () => {
+            demoTimers.push(
+              setTimeout(
+                () => typeInto(misc, "Ignoring base rates", 50),
+                380,
+              ),
+            );
+          });
+        }
+      }
+      if (i === 2) {
+        const opts = slide.querySelectorAll(".opt");
+        opts.forEach((o) => o.classList.remove("selected"));
+        const seq = [0, 2, 1];
+        seq.forEach((idx, k) => {
+          demoTimers.push(
+            setTimeout(() => {
+              opts.forEach((o) => o.classList.remove("selected"));
+              opts[idx].classList.add("selected");
+            }, 700 + k * 900),
+          );
+        });
+      }
+      if (i === 4) {
+        slide
+          .querySelectorAll("[data-count-to]")
+          .forEach((el, idx) =>
+            demoTimers.push(setTimeout(() => countTo(el), 200 + idx * 220)),
+          );
+      }
+    }
+
+    go(0);
+  })();
 </script>
 {% endblock %}
