@@ -901,6 +901,302 @@ body {
   color: white;
 }
 
+/* ---------- Color theme swatches ---------- */
+
+.theme-swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgb(229 229 229);
+  background: white;
+  border-radius: 999px;
+  padding: 6px 12px 6px 8px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: rgb(82 82 82);
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+
+.theme-swatch input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.theme-swatch .dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px white inset, 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+.theme-swatch:hover {
+  border-color: rgb(115 115 115);
+}
+
+.theme-swatch:has(input:checked) {
+  border-color: rgb(23 23 23);
+  background: rgb(245 245 245);
+  color: rgb(10 10 10);
+}
+
+/* ---------- Library groups + denser cards ---------- */
+
+.library-group {
+  margin-top: 18px;
+}
+
+.library-group-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(82 82 82);
+  margin-bottom: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.library-group-count {
+  font-size: 0.7rem;
+  color: rgb(163 163 163);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.library-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+@media (min-width: 1100px) {
+  .library-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+}
+
+/* ---------- Dev mode cards ---------- */
+
+.dev-metric {
+  border: 1px solid rgb(229 229 229);
+  border-radius: 14px;
+  background: white;
+  padding: 14px 16px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.dev-metric-label {
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgb(115 115 115);
+  font-weight: 700;
+}
+
+.dev-metric-value {
+  margin-top: 6px;
+  font-size: 1.6rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: rgb(10 10 10);
+  line-height: 1.05;
+}
+
+.dev-metric-sub {
+  margin-top: 6px;
+  font-size: 0.72rem;
+  color: rgb(115 115 115);
+}
+
+.dev-card {
+  border: 1px solid rgb(229 229 229);
+  border-radius: 14px;
+  background: white;
+  padding: 14px 16px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.dev-card-label {
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgb(115 115 115);
+  font-weight: 700;
+}
+
+/* ---------- Quiz loading state ---------- */
+
+.quiz-loading {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 18px;
+  align-items: center;
+  border: 1px solid rgb(229 229 229);
+  background: white;
+  border-radius: 14px;
+  padding: 22px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.quiz-loading-spinner {
+  position: relative;
+  width: 48px;
+  height: 48px;
+}
+
+.quiz-loading-spinner span {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  border-top-color: rgb(23 23 23);
+  animation: spin 1.1s linear infinite;
+}
+
+.quiz-loading-spinner span:nth-child(2) {
+  inset: 6px;
+  border-top-color: rgba(23, 23, 23, 0.55);
+  animation-duration: 1.4s;
+}
+
+.quiz-loading-spinner span:nth-child(3) {
+  inset: 12px;
+  border-top-color: rgba(23, 23, 23, 0.3);
+  animation-duration: 1.7s;
+}
+
+.quiz-loading-spinner span:nth-child(4) {
+  inset: 18px;
+  border-top-color: rgba(23, 23, 23, 0.15);
+  animation-duration: 2s;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- Onboarding: feedback demo card (slide 5) ---------- */
+
+.demo-survey {
+  display: grid;
+  align-content: center;
+  gap: 14px;
+  height: 100%;
+}
+
+.demo-survey .qline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgb(229 229 229);
+  border-radius: 12px;
+  background: white;
+  font-size: 0.92rem;
+  color: rgb(64 64 64);
+}
+
+.demo-survey .qline .dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 1.5px solid rgb(212 212 212);
+  flex-shrink: 0;
+  position: relative;
+}
+
+.demo-survey .qline .dot.full {
+  background: rgb(10 10 10);
+  border-color: rgb(10 10 10);
+}
+
+.demo-survey .qline .dot.full::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 999px;
+  background: white;
+}
+
+.demo-survey .qline .dot.half {
+  background: linear-gradient(180deg, rgb(10 10 10) 50%, white 50%);
+  border-color: rgb(10 10 10);
+}
+
+/* ---------- Trial checkbox ---------- */
+
+.survey-form .trial-fieldset {
+  background: rgb(248 250 252);
+  box-shadow: inset 0 0 0 1px rgb(212 212 212);
+}
+
+.trial-checkbox {
+  display: grid !important;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 14px;
+  cursor: pointer;
+}
+
+.trial-checkbox input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.trial-box {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1.5px solid rgb(163 163 163);
+  background: white;
+  margin-top: 2px;
+  transition: all 160ms ease;
+}
+
+.trial-checkbox input:checked + .trial-box {
+  background: rgb(23 23 23);
+  border-color: rgb(23 23 23);
+}
+
+.trial-box::after {
+  content: "";
+  width: 12px;
+  height: 6px;
+  border-left: 2px solid white;
+  border-bottom: 2px solid white;
+  transform: rotate(-45deg) translate(1px, -1px);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.trial-checkbox input:checked + .trial-box::after {
+  opacity: 1;
+}
+
+.trial-label {
+  display: grid;
+  gap: 2px;
+}
+
+.trial-title {
+  font-weight: 600;
+  color: rgb(10 10 10);
+  font-size: 0.94rem;
+}
+
+.trial-help {
+  color: rgb(115 115 115);
+  font-size: 0.82rem;
+}
+
 /* ---------- Video shell / Plyr ---------- */
 
 .video-shell {

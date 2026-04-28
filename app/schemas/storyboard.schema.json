@@ -7,35 +7,16 @@
     "summary",
     "learning_objective",
     "closing_takeaway",
-    "visual_theme",
     "scenes"
   ],
   "properties": {
-    "title": {
-      "type": "string",
-      "minLength": 3
-    },
-    "summary": {
-      "type": "string",
-      "minLength": 12
-    },
-    "learning_objective": {
-      "type": "string",
-      "minLength": 10
-    },
-    "closing_takeaway": {
-      "type": "string",
-      "minLength": 10
-    },
-    "visual_theme": {
-      "type": "string",
-      "enum": [
-        "brand_light"
-      ]
-    },
+    "title": { "type": "string", "minLength": 3 },
+    "summary": { "type": "string", "minLength": 12 },
+    "learning_objective": { "type": "string", "minLength": 10 },
+    "closing_takeaway": { "type": "string", "minLength": 10 },
     "scenes": {
       "type": "array",
-      "minItems": 2,
+      "minItems": 3,
       "maxItems": 8,
       "items": {
         "type": "object",
@@ -43,10 +24,8 @@
         "required": [
           "slug",
           "headline",
-          "hook",
           "narration",
           "layout",
-          "scene_variant",
           "visual_goal",
           "key_points",
           "visual_items",
@@ -55,109 +34,49 @@
           "takeaway"
         ],
         "properties": {
-          "slug": {
-            "type": "string",
-            "minLength": 2
-          },
-          "headline": {
-            "type": "string",
-            "minLength": 3,
-            "maxLength": 60
-          },
-          "hook": {
-            "type": "string",
-            "minLength": 0,
-            "maxLength": 70
-          },
-          "narration": {
-            "type": "string",
-            "minLength": 45,
-            "maxLength": 320
-          },
+          "slug": { "type": "string", "minLength": 2 },
+          "headline": { "type": "string", "minLength": 3, "maxLength": 60 },
+          "hook": { "type": "string", "minLength": 0, "maxLength": 70 },
+          "narration": { "type": "string", "minLength": 30, "maxLength": 320 },
           "layout": {
             "type": "string",
             "enum": [
               "auto",
               "title_card",
               "summary",
+              "thanks",
               "bullets",
               "concept_map",
               "equation",
               "distribution",
               "axes_plot",
               "comparison",
-              "timeline",
               "flow",
-              "orbit",
-              "bar_chart",
-              "process",
-              "network",
-              "wave",
-              "vector_field"
+              "bar_chart"
             ]
           },
-          "scene_variant": {
-            "type": "string",
-            "enum": [
-              "auto",
-              "basic",
-              "hero",
-              "split",
-              "spotlight",
-              "compare",
-              "grid",
-              "stage",
-              "orbit",
-              "magazine"
-            ]
-          },
-          "visual_goal": {
-            "type": "string",
-            "minLength": 12
-          },
+          "visual_goal": { "type": "string", "minLength": 8 },
           "key_points": {
             "type": "array",
-            "minItems": 0,
             "maxItems": 3,
-            "items": {
-              "type": "string",
-              "minLength": 5,
-              "maxLength": 90
-            }
+            "items": { "type": "string", "minLength": 4, "maxLength": 90 }
           },
           "visual_items": {
             "type": "array",
-            "minItems": 0,
             "maxItems": 4,
-            "items": {
-              "type": "string",
-              "minLength": 2,
-              "maxLength": 40
-            }
+            "items": { "type": "string", "minLength": 2, "maxLength": 40 }
           },
           "highlight_terms": {
             "type": "array",
-            "minItems": 0,
             "maxItems": 4,
-            "items": {
-              "type": "string",
-              "minLength": 2,
-              "maxLength": 24
-            }
+            "items": { "type": "string", "minLength": 2, "maxLength": 24 }
           },
           "equations": {
             "type": "array",
             "maxItems": 2,
-            "items": {
-              "type": "string",
-              "maxLength": 60
-            }
+            "items": { "type": "string", "maxLength": 60 }
           },
-          "takeaway": {
-            "type": "string",
-            "minLength": 0,
-            "maxLength": 90
-          }
+          "takeaway": { "type": "string", "minLength": 0, "maxLength": 90 }
         }
       }
     }

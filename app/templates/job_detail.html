@@ -1,155 +1,93 @@
 {% extends "base.html" %} {% block content %}
 <section class="space-y-6">
-  <div
-    class="flex flex-col gap-3 border-b border-neutral-200 pb-5 md:flex-row md:items-start md:justify-between"
-  >
+  <div class="flex flex-col gap-3 border-b border-neutral-200 pb-5 md:flex-row md:items-start md:justify-between">
     <div class="min-w-0">
-      <a
-        href="{{ url_for('main.video_page', job_id=job.id) }}"
-        class="inline-flex items-center gap-1 text-sm text-neutral-500 transition hover:text-neutral-950"
-        >← Back to video</a
-      >
-      <p class="eyebrow mt-3">Job {{ job.id }}</p>
-      <h1 class="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">
-        {{ job.title or job.concept }}
-      </h1>
+      <a href="{{ url_for('main.video_page', job_id=job.id) }}"
+        class="inline-flex items-center gap-1 text-sm text-neutral-500 transition hover:text-neutral-950">← Back to video</a>
+      <p class="eyebrow mt-3">Dev · Job {{ job.id }}</p>
+      <h1 class="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">{{ job.title or job.concept }}</h1>
       <p class="mt-2 text-sm text-neutral-600">{{ job.current_step }}</p>
     </div>
     <div class="flex items-center gap-2">
       <span class="status-badge status-{{ job.status }}">{{ job.status }}</span>
-      <form
-        method="post"
-        action="{{ url_for('main.rerun_job', job_id=job.id) }}"
-      >
+      <form method="post" action="{{ url_for('main.rerun_job', job_id=job.id) }}">
         <button type="submit" class="btn-secondary">Rerun</button>
       </form>
     </div>
   </div>
 
-  <div class="grid gap-4 md:grid-cols-3">
-    <section
-      class="rounded-2xl border border-neutral-200 bg-white shadow-sm"
-    >
-      <header class="flex items-center justify-between border-b border-neutral-200 px-4 py-3">
-        <p class="text-sm font-semibold">Status</p>
-        <span class="text-xs tabular-nums text-neutral-500">
-          {% if job.is_active %}{{ job.timing.status_label }} elapsed{% elif job.status == "completed" %}Done in {{ job.timing.total_label }}{% else %}{{ job.timing.total_label }}{% endif %}
-        </span>
-      </header>
-      <div class="space-y-3 px-4 py-4 text-sm text-neutral-700">
-        <p class="font-medium text-neutral-950">{{ job.status | capitalize }}</p>
-        <div class="h-1.5 overflow-hidden rounded-full bg-neutral-200">
-          <div
-            class="h-full rounded-full bg-neutral-950 transition-all duration-300 {% if job.is_active %}lern-loading-bar{% endif %}"
-            style="width: {{ job.progress_percent }}%"
-          ></div>
-        </div>
-        <p class="text-xs text-neutral-500">
-          {{ job.progress_percent }}% · {{ job.progress_detail }}
-        </p>
-      </div>
-    </section>
+  {# Top-level metrics row: timing, storyboard tokens, quiz tokens, render scenes/runtime #}
+  <section class="grid gap-3 md:grid-cols-4">
+    <div class="dev-metric">
+      <p class="dev-metric-label">Total time</p>
+      <p class="dev-metric-value">{{ job.timing.total_label }}</p>
+      <p class="dev-metric-sub">
+        {% if job.is_active %}{{ job.timing.status_label }} elapsed{% elif job.timing.completed_relative %}done {{ job.timing.completed_relative }}{% else %}—{% endif %}
+      </p>
+    </div>
+    <div class="dev-metric">
+      <p class="dev-metric-label">Agent active</p>
+      <p class="dev-metric-value">{{ job.timing.agent_label }}</p>
+      <p class="dev-metric-sub">submitted {{ job.timing.input_relative }}</p>
+    </div>
+    <div class="dev-metric">
+      <p class="dev-metric-label">Storyboard tokens</p>
+      {% if job.token_usage %}
+      <p class="dev-metric-value tabular-nums">{{ job.token_usage.total_tokens or job.token_usage.stage_totals.storyboard }}</p>
+      <p class="dev-metric-sub">
+        in {{ job.token_usage.input_tokens or 0 }} · out {{ job.token_usage.output_tokens or 0 }}
+        {% if job.token_usage.cost_usd is not none %} · ${{ "%.4f"|format(job.token_usage.cost_usd) }}{% endif %}
+      </p>
+      {% else %}
+      <p class="dev-metric-value text-neutral-400">—</p>
+      <p class="dev-metric-sub">{{ job.token_usage_message or "appears after planning" }}</p>
+      {% endif %}
+    </div>
+    <div class="dev-metric">
+      <p class="dev-metric-label">Quiz tokens</p>
+      {% if job.quiz_token_usage %}
+      <p class="dev-metric-value tabular-nums">{{ job.quiz_token_usage.total_tokens or 0 }}</p>
+      <p class="dev-metric-sub">
+        {{ job.quiz_token_usage.model or "" }} · in {{ job.quiz_token_usage.input_tokens or 0 }} · out {{ job.quiz_token_usage.output_tokens or 0 }}
+        {% if job.quiz_token_usage.cost_usd is not none %} · ${{ "%.4f"|format(job.quiz_token_usage.cost_usd) }}{% endif %}
+      </p>
+      {% else %}
+      <p class="dev-metric-value text-neutral-400">—</p>
+      <p class="dev-metric-sub">appears after question gen</p>
+      {% endif %}
+    </div>
+  </section>
 
-    <section
-      class="rounded-2xl border border-neutral-200 bg-white shadow-sm"
-    >
-      <header class="flex items-center justify-between border-b border-neutral-200 px-4 py-3">
-        <p class="text-sm font-semibold">Input</p>
-        <span class="text-xs tabular-nums text-neutral-500">
-          {{ job.timing.input_relative }}
-        </span>
-      </header>
-      <div class="space-y-2 px-4 py-4 text-sm text-neutral-700">
-        <p class="font-medium text-neutral-950">{{ job.concept }}</p>
-        <p class="text-neutral-600">
-          {{ job.research or "No research context." }}
-        </p>
-        <p class="pt-1 text-xs text-neutral-400">
-          Submitted {{ job.timing.input_absolute }}
-        </p>
+  <section class="grid gap-3 md:grid-cols-3">
+    <div class="dev-card">
+      <p class="dev-card-label">Status</p>
+      <p class="mt-2 text-sm font-medium text-neutral-950">{{ job.status | capitalize }}</p>
+      <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-neutral-200">
+        <div class="h-full rounded-full bg-neutral-950 transition-all duration-300 {% if job.is_active %}lern-loading-bar{% endif %}"
+          style="width: {{ job.progress_percent }}%"></div>
       </div>
-    </section>
-
-    <section
-      class="rounded-2xl border border-neutral-200 bg-white shadow-sm"
-    >
-      <header class="flex items-center justify-between border-b border-neutral-200 px-4 py-3">
-        <p class="text-sm font-semibold">Agent usage</p>
-        <span class="text-xs tabular-nums text-neutral-500">
-          {% if job.timing.agent_seconds %}{{ job.timing.agent_label }} active{% else %}—{% endif %}
-        </span>
-      </header>
-      <div class="space-y-2 px-4 py-4 text-sm text-neutral-700">
-        {% if job.token_usage %}
-        <p>
-          <span class="font-medium text-neutral-950"
-            >{{ job.token_usage.stage_totals.storyboard }}</span
-          >
-          planning tokens
-        </p>
-        {% if job.token_usage.cost_usd is not none %}
-        <p>
-          <span class="font-medium text-neutral-950"
-            >${{ "%.4f"|format(job.token_usage.cost_usd) }}</span
-          >
-          estimated cost
-        </p>
-        {% endif %}
-        <p class="pt-1 text-xs text-neutral-400">
-          Input {{ job.token_usage.input_tokens or 0 }} · Output {{
-          job.token_usage.output_tokens or 0 }} · Cache {{
-          (job.token_usage.cache_read_input_tokens or 0) +
-          (job.token_usage.cache_creation_input_tokens or 0) }}
-        </p>
-        {% else %}
-        <p class="text-neutral-500">
-          {{ job.token_usage_message or "Usage appears after planning." }}
-        </p>
-        {% endif %}
-      </div>
-    </section>
-  </div>
-
-  <section
-    class="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm"
-  >
-    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
-      Timing summary
-    </p>
-    <dl class="mt-3 grid gap-4 text-sm sm:grid-cols-4">
-      <div>
-        <dt class="text-neutral-500">Total time</dt>
-        <dd class="mt-1 text-lg font-semibold tabular-nums text-neutral-950">
-          {{ job.timing.total_label }}
-        </dd>
-      </div>
-      <div>
-        <dt class="text-neutral-500">Agent active</dt>
-        <dd class="mt-1 text-lg font-semibold tabular-nums text-neutral-950">
-          {{ job.timing.agent_label }}
-        </dd>
-      </div>
-      <div>
-        <dt class="text-neutral-500">Submitted</dt>
-        <dd class="mt-1 text-lg font-semibold text-neutral-950">
-          {{ job.timing.input_relative }}
-        </dd>
-      </div>
-      <div>
-        <dt class="text-neutral-500">
-          {% if job.is_active %}Status updated{% else %}Completed{% endif %}
-        </dt>
-        <dd class="mt-1 text-lg font-semibold text-neutral-950">
-          {% if job.is_active %}{{ job.timing.status_label }} ago{% elif job.timing.completed_relative %}{{ job.timing.completed_relative }}{% else %}—{% endif %}
-        </dd>
-      </div>
-    </dl>
+      <p class="mt-1 text-xs text-neutral-500">{{ job.progress_percent }}% · {{ job.progress_detail }}</p>
+    </div>
+    <div class="dev-card">
+      <p class="dev-card-label">Input</p>
+      <p class="mt-2 text-sm font-medium text-neutral-950">{{ job.concept }}</p>
+      <p class="mt-1 text-xs text-neutral-600">{{ job.research or "No context provided." }}</p>
+      <p class="mt-2 text-[0.65rem] uppercase tracking-wider text-neutral-400">
+        {{ job.duration_label }} · theme {{ job.color_theme or "blue" }} · {{ job.scene_count or 0 }} scenes
+      </p>
+    </div>
+    <div class="dev-card">
+      <p class="dev-card-label">Models</p>
+      <p class="mt-2 text-sm text-neutral-950"><span class="text-neutral-500">Video:</span> {{ job.model }}</p>
+      <p class="text-sm text-neutral-950"><span class="text-neutral-500">Voice:</span> {{ job.voice_model }}</p>
+      {% if job.quiz_token_usage and job.quiz_token_usage.model %}
+      <p class="text-sm text-neutral-950"><span class="text-neutral-500">Quiz:</span> {{ job.quiz_token_usage.model }}</p>
+      {% endif %}
+    </div>
   </section>
 
   {% if job.error_message %}
-  <section
-    class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"
-  >
+  <section class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
     {{ job.error_message }}
   </section>
   {% endif %}
@@ -160,23 +98,20 @@
     </header>
     <div class="space-y-4 px-4 py-4 text-sm">
       {% if job.storyboard %}
-      <div>
-        <p class="text-neutral-700">{{ job.storyboard.summary }}</p>
-        <p class="mt-1 text-xs text-neutral-500">
-          Scenes: {{ job.scene_count }}
-        </p>
-      </div>
+      <p class="text-neutral-700">{{ job.storyboard.summary }}</p>
       {% for scene in job.storyboard.scenes %}
       <article class="border-t border-neutral-200 pt-4">
-        <h3 class="font-medium">{{ loop.index }}. {{ scene.headline }}</h3>
-        <p
-          class="mt-1 text-xs uppercase tracking-wide text-neutral-500"
-        >
-          {{ scene.layout }} · {{ scene.scene_variant }}
-        </p>
-        <p class="mt-2 text-neutral-700">{{ scene.visual_goal }}</p>
+        <div class="flex items-baseline justify-between gap-3">
+          <h3 class="font-medium">{{ loop.index }}. {{ scene.headline }}</h3>
+          <span class="text-[0.65rem] uppercase tracking-wider text-neutral-400">{{ scene.layout }}</span>
+        </div>
+        <p class="mt-1 text-neutral-700">{{ scene.visual_goal }}</p>
+        {% if scene.narration %}
+        <p class="mt-2 text-xs leading-5 text-neutral-500">{{ scene.narration }}</p>
+        {% endif %}
       </article>
-      {% endfor %} {% else %}
+      {% endfor %}
+      {% else %}
       <p class="text-neutral-500">Storyboard pending.</p>
       {% endif %}
     </div>
@@ -188,37 +123,24 @@
     </header>
     <div class="divide-y divide-neutral-200 text-sm">
       {% for entry in job.logs %}
-      <div
-        class="grid gap-1 px-4 py-3 md:grid-cols-[180px_70px_1fr]"
-      >
-        <span class="font-mono text-xs text-neutral-500"
-          >{{ entry.timestamp }}</span
-        >
-        <strong
-          class="text-xs uppercase tracking-wide text-neutral-500"
-          >{{ entry.level }}</strong
-        >
+      <div class="grid gap-1 px-4 py-3 md:grid-cols-[180px_70px_1fr]">
+        <span class="font-mono text-xs text-neutral-500">{{ entry.timestamp }}</span>
+        <strong class="text-xs uppercase tracking-wide text-neutral-500">{{ entry.level }}</strong>
         <p class="text-neutral-700">{{ entry.message }}</p>
       </div>
       {% endfor %}
     </div>
   </section>
 
+  {% if job.raw_storyboard %}
   <section class="rounded-2xl border border-neutral-200 bg-white shadow-sm">
     <header class="border-b border-neutral-200 px-4 py-3">
-      <p class="text-sm font-semibold">Raw AI output</p>
+      <p class="text-sm font-semibold">Raw storyboard JSON</p>
     </header>
     <div class="px-4 py-4">
-      {% if job.raw_storyboard %}
-      <pre
-        class="max-h-[640px] overflow-auto whitespace-pre-wrap break-words rounded-md bg-neutral-950 px-4 py-4 text-xs leading-6 text-neutral-100"
-      >
-{{ job.raw_storyboard }}</pre
-      >
-      {% else %}
-      <p class="text-sm text-neutral-500">Raw storyboard JSON pending.</p>
-      {% endif %}
+      <pre class="max-h-[640px] overflow-auto whitespace-pre-wrap break-words rounded-md bg-neutral-950 px-4 py-4 text-xs leading-6 text-neutral-100">{{ job.raw_storyboard }}</pre>
     </div>
   </section>
+  {% endif %}
 </section>
 {% endblock %}

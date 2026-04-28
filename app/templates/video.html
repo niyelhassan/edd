@@ -1,30 +1,21 @@
 {% extends "base.html" %} {% block head_extra %}
-<link
-  rel="stylesheet"
-  href="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.css"
-/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.css" />
 <script src="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.polyfilled.js"></script>
 {% endblock %} {% block content %}
 <section class="space-y-6">
   {% set current = "watch" %} {% include "_flow.html" %}
-  <div class="flex flex-wrap items-end justify-between gap-3 border-b border-neutral-200 pb-5">
+
+  <div class="flex flex-wrap items-end justify-between gap-3 border-b border-neutral-200 pb-4">
     <div class="min-w-0">
       <p class="eyebrow">Watch</p>
-      <h1
-        id="job-title"
-        class="mt-2 text-3xl font-semibold tracking-tight md:text-4xl"
-      >
+      <h1 id="job-title" class="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">
         {{ job.title or job.concept }}
       </h1>
-      <p
-        id="progress-detail"
-        class="mt-2 line-clamp-1 text-sm text-neutral-500"
-      >
-        {{ job.progress_detail }}
-      </p>
     </div>
     <div class="flex items-center gap-2">
+      {% if job.is_active %}
       <span class="status-badge status-{{ job.status }}">{{ job.status }}</span>
+      {% endif %}
       {% if job.video_runtime.seconds %}
       <span class="rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-600">
         {{ job.video_runtime.label }}
@@ -35,24 +26,11 @@
 
   <div id="video-shell" class="video-shell aspect-video">
     {% if job.video_url %}
-    <video
-      id="video-player"
-      class="plyr-video"
-      playsinline
-      controls
-      crossorigin="anonymous"
-      preload="metadata"
-      {% if job.thumbnail_url %}poster="{{ job.thumbnail_url }}"{% endif %}
-    >
+    <video id="video-player" class="plyr-video" playsinline controls crossorigin="anonymous" preload="metadata"
+      {% if job.thumbnail_url %}poster="{{ job.thumbnail_url }}"{% endif %}>
       <source src="{{ job.video_url }}" type="video/mp4" />
       {% if job.captions_url %}
-      <track
-        kind="captions"
-        label="English"
-        srclang="en"
-        src="{{ job.captions_url }}"
-        default
-      />
+      <track kind="captions" label="English" srclang="en" src="{{ job.captions_url }}" default />
       {% endif %}
     </video>
     {% else %}
@@ -63,126 +41,38 @@
           <span id="waiting-percent" class="tabular-nums">{{ job.progress_percent }}%</span>
         </div>
         <div class="mb-5 h-1.5 overflow-hidden rounded-full bg-white/15">
-          <div
-            id="progress-bar"
-            class="h-full rounded-full bg-white lern-loading-bar"
-            style="width: {{ job.progress_percent }}%"
-          ></div>
+          <div id="progress-bar" class="h-full rounded-full bg-white lern-loading-bar" style="width: {{ job.progress_percent }}%"></div>
         </div>
-        <p id="waiting-copy" class="text-base font-medium">
-          Rendering scenes and assembling the MP4.
-        </p>
-        <p id="waiting-meta" class="mt-2 text-sm text-white/60">
-          {{ job.current_step }}
-        </p>
+        <p id="waiting-copy" class="text-base font-medium">Rendering scenes and assembling the video.</p>
+        <p id="waiting-meta" class="mt-2 text-sm text-white/60">{{ job.progress_detail }}</p>
       </div>
     </div>
     {% endif %}
   </div>
 
   <div class="flex flex-wrap items-center gap-3">
-    <a
-      id="post-link"
-      href="{{ url_for('main.post_quiz', job_id=job.id) }}"
-      class="btn-primary pointer-events-none opacity-40"
-      >Take post-quiz →</a
-    >
+    <a id="post-link" href="{{ url_for('main.post_quiz', job_id=job.id) }}"
+      class="btn-primary pointer-events-none opacity-40">Take post-quiz →</a>
     {% if job.video_url %}
-    <a id="download-link" href="{{ job.video_url }}" download class="btn-secondary"
-      >Download</a
-    >
+    <a id="download-link" href="{{ job.video_url }}" download class="btn-secondary">Download</a>
     {% else %}
-    <a id="download-link" href="#" download class="btn-secondary hidden"
-      >Download</a
-    >
+    <a id="download-link" href="#" download class="btn-secondary hidden">Download</a>
     {% endif %}
-    <a href="{{ url_for('main.debug_job', job_id=job.id) }}" class="btn-secondary"
-      >Details</a
-    >
-    <a href="{{ url_for('main.home') }}" class="ml-auto text-sm text-neutral-500 hover:text-neutral-950"
-      >← Home</a
-    >
+    <a href="{{ url_for('main.home') }}" class="ml-auto text-sm text-neutral-500 hover:text-neutral-950">← Home</a>
   </div>
 
   {% if job.error_message %}
-  <div
-    id="error-box"
-    class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
-  >
+  <div id="error-box" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
     {{ job.error_message }}
   </div>
   {% else %}
-  <div
-    id="error-box"
-    class="hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
-  ></div>
+  <div id="error-box" class="hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"></div>
   {% endif %}
 
-  <div class="grid gap-4 md:grid-cols-3">
-    <div class="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
-      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
-        Topic
-      </p>
-      <p class="mt-2 text-sm leading-6 text-neutral-700">{{ job.concept }}</p>
-    </div>
-    <div class="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
-      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
-        Context
-      </p>
-      <p class="mt-2 text-sm leading-6 text-neutral-700">
-        {{ job.research or "No additional context." }}
-      </p>
-    </div>
-    <div class="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
-      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
-        At a glance
-      </p>
-      <dl class="mt-2 grid grid-cols-2 gap-y-2 text-sm">
-        <dt class="text-neutral-500">Video length</dt>
-        <dd class="text-right font-medium text-neutral-950">{{ job.video_runtime.label }}</dd>
-        <dt class="text-neutral-500">Scenes</dt>
-        <dd class="text-right font-medium text-neutral-950">{{ job.scene_count or "—" }}</dd>
-        <dt class="text-neutral-500">Pre-quiz</dt>
-        <dd class="text-right font-medium text-neutral-950">
-          {% if job.post_score is not none and job.pre_score is not none and job.question_count %}{{ job.pre_score }}/{{ job.question_count }}{% else %}Hidden{% endif %}
-        </dd>
-        <dt class="text-neutral-500">Generated in</dt>
-        <dd class="text-right font-medium text-neutral-950">{{ job.timing.total_label }}</dd>
-      </dl>
-    </div>
+  {# Dev-only: keep details link tucked at the bottom #}
+  <div class="flex justify-end pt-2 text-xs text-neutral-400">
+    <a href="{{ url_for('main.debug_job', job_id=job.id) }}" class="hover:text-neutral-700">Dev details →</a>
   </div>
-
-  {% if job.storyboard %}
-  <section class="rounded-2xl border border-neutral-200 bg-white shadow-sm">
-    <header class="flex items-center justify-between border-b border-neutral-200 px-5 py-3">
-      <div>
-        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
-          Lesson plan
-        </p>
-        <h2 class="mt-1 text-base font-semibold">{{ job.scene_count }} scenes</h2>
-      </div>
-      <p class="hidden max-w-md truncate text-sm text-neutral-500 md:block">
-        {{ job.storyboard.summary }}
-      </p>
-    </header>
-    <ol class="divide-y divide-neutral-200">
-      {% for scene in job.storyboard.scenes %}
-      <li class="grid grid-cols-[28px_1fr] items-start gap-4 px-5 py-3 text-sm">
-        <span
-          class="mt-0.5 grid h-6 w-6 place-items-center rounded-full bg-neutral-100 text-xs font-semibold text-neutral-700"
-          >{{ loop.index }}</span
-        >
-        <div class="min-w-0">
-          <p class="truncate font-medium text-neutral-950">{{ scene.headline }}</p>
-          <p class="mt-0.5 line-clamp-1 text-xs text-neutral-500">
-            {{ scene.visual_goal }}
-          </p>
-        </div>
-      </li>
-      {% endfor %}
-    </ol>
-  </section>
-  {% endif %}
 </section>
 
 <script>
@@ -200,18 +90,7 @@ function setupPlayer() {
     player.dataset.ready = "1";
     if (window.Plyr) {
         playerInstance = new Plyr(player, {
-            controls: [
-                "play-large",
-                "play",
-                "progress",
-                "current-time",
-                "duration",
-                "mute",
-                "volume",
-                "captions",
-                "settings",
-                "fullscreen",
-            ],
+            controls: ["play-large","play","progress","current-time","duration","mute","volume","captions","settings","fullscreen"],
             settings: ["captions", "speed"],
             speed: { selected: 1, options: [0.75, 1, 1.25, 1.5, 1.75, 2] },
             captions: { active: true, language: "en", update: true },
@@ -245,13 +124,12 @@ async function pollJob() {
     if (!response.ok) return;
     const job = await response.json();
     document.getElementById("job-title").textContent = job.title || job.concept;
-    document.getElementById("progress-detail").textContent = job.progress_detail || "";
     const bar = document.getElementById("progress-bar");
     if (bar) bar.style.width = `${job.progress_percent}%`;
     const percent = document.getElementById("waiting-percent");
     if (percent) percent.textContent = `${job.progress_percent}%`;
     const meta = document.getElementById("waiting-meta");
-    if (meta) meta.textContent = job.current_step || job.progress_detail || "";
+    if (meta) meta.textContent = job.progress_detail || job.current_step || "";
     renderVideo(job);
 
     const errorBox = document.getElementById("error-box");
@@ -260,10 +138,6 @@ async function pollJob() {
         errorBox.classList.remove("hidden");
     }
     if (job.is_active) window.setTimeout(pollJob, {{ poll_interval_ms }});
-    else if (job.video_url) {
-        // Reload once to pick up storyboard scenes after completion
-        if (!document.querySelector("ol li")) window.location.reload();
-    }
 }
 
 setupPlayer();

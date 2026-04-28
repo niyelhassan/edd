@@ -5,7 +5,6 @@ import json
 import re
 import shutil
 from datetime import datetime, timezone
-from threading import Thread
 from pathlib import Path
 
 from flask import (
@@ -25,13 +24,14 @@ from flask import (
 from .services.captions import write_captions
 from .services.claude_code import extract_json_text
 from .services.media import MediaError, extract_thumbnail, probe_duration
-from .services.question_generation import generate_quiz
 from .services.repository import add_log, clone_job, create_job, get_job, get_job_logs, list_jobs, update_job
+from .services.workflow import VALID_COLOR_THEMES
 
 
 RESULTS_CSV_FIELDNAMES = [
     "timestamp",
     "job_id",
+    "is_trial",
     "name",
     "grade",
     "enrollment",
@@ -153,45 +153,11 @@ def _quiz_state(job: dict) -> dict:
 
 
 def _quiz_from_job(job: dict) -> list[dict]:
-    state = _quiz_state(job)
-    return state["questions"] or []
+    return _quiz_state(job)["questions"] or []
 
 
 def _score_quiz(form, quiz: list[dict]) -> int:
-    score = 0
-    for index, question in enumerate(quiz):
-        if form.get(f"q{index}") == str(question.get("answer")):
-            score += 1
-    return score
-
-
-def _generate_quiz_for_job(app, job_id: str, concept: str, research: str) -> None:
-    with app.app_context():
-        quiz_dir = Path(app.config["JOBS_DIR"]) / job_id / "quiz"
-        try:
-            quiz = generate_quiz(
-                concept=concept,
-                research=research,
-                workdir=quiz_dir,
-                output_path=quiz_dir / "questions.json",
-                model=app.config["CLAUDE_QUESTION_MODEL"],
-            )
-        except Exception as exc:
-            update_job(job_id, quiz_json=json.dumps({"status": "error", "error": str(exc)}))
-            add_log(job_id, f"Question generation failed: {exc}", level="error")
-            return
-
-        update_job(job_id, quiz_json=json.dumps({"status": "ready", "questions": quiz}))
-        add_log(job_id, f"Question quiz generated with {app.config['CLAUDE_QUESTION_MODEL']}.")
-
-
-def _start_quiz_generation(app, job_id: str, concept: str, research: str) -> None:
-    update_job(job_id, quiz_json=json.dumps({"status": "pending"}))
-    Thread(
-        target=_generate_quiz_for_job,
-        args=(app, job_id, concept, research),
-        daemon=True,
-    ).start()
+    return sum(1 for i, q in enumerate(quiz) if form.get(f"q{i}") == str(q.get("answer")))
 
 
 def _parse_token_usage(raw: str | None) -> dict | None:
@@ -206,60 +172,56 @@ def _parse_token_usage(raw: str | None) -> dict | None:
     if "stage_totals" not in parsed:
         input_tokens = int(parsed.get("input_tokens") or 0)
         output_tokens = int(parsed.get("output_tokens") or 0)
-        cache_read_tokens = int(parsed.get("cache_read_input_tokens") or 0)
-        cache_creation_tokens = int(parsed.get("cache_creation_input_tokens") or 0)
-        storyboard_total = input_tokens + output_tokens + cache_read_tokens + cache_creation_tokens
-        parsed["stage_totals"] = {
-            "storyboard": storyboard_total,
-            "scene_prep_and_code": 0,
-            "other": 0,
-        }
-        parsed["total_tokens"] = int(parsed.get("total_tokens") or storyboard_total)
+        cache_read = int(parsed.get("cache_read_input_tokens") or 0)
+        cache_create = int(parsed.get("cache_creation_input_tokens") or 0)
+        total = input_tokens + output_tokens + cache_read + cache_create
+        parsed["stage_totals"] = {"storyboard": total, "scene_prep_and_code": 0, "other": 0}
+        parsed["total_tokens"] = int(parsed.get("total_tokens") or total)
     return parsed
+
+
+def _parse_quiz_token_usage(raw: str | None) -> dict | None:
+    if not raw:
+        return None
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        return None
+    return parsed if isinstance(parsed, dict) else None
 
 
 def _progress_metrics(job: dict, logs: list[dict], scene_count: int) -> tuple[int, str, str]:
     messages = [entry["message"] for entry in logs]
-    worker_started = any("Worker started." in message or "Worker accepted job." in message for message in messages)
-    storyboard_done = any("Storyboard created with" in message for message in messages)
-    prepared = any("Scene module prepared." in message for message in messages)
-    finalizing = any("Finalizing video" == message for message in messages) or job.get("current_step") == "Finalizing video"
-    final_ready = any(message.startswith("Final video ready:") for message in messages) or job.get("status") == "completed"
-    render_started = any(message.startswith("Rendering scene ") for message in messages) or job.get("current_step", "").startswith("Rendering scene")
+    worker_started = any("Worker started." in m or "Worker accepted job." in m for m in messages)
+    storyboard_done = any("Storyboard ready" in m or "Storyboard created with" in m for m in messages)
+    prepared = any("Scene module prepared." in m for m in messages)
+    finalizing = any("Finalizing video" == m for m in messages) or job.get("current_step") == "Finalizing video"
+    final_ready = any(m.startswith("Final video ready:") for m in messages) or job.get("status") == "completed"
+    render_started = any(m.startswith("Rendering scene ") for m in messages) or job.get("current_step", "").startswith("Rendering scene")
 
-    audio_done = 0
-    audio_total = scene_count
-    render_done = 0
-    for message in messages:
-        audio_match = _AUDIO_DONE_RE.search(message)
-        if audio_match:
-            audio_done = max(audio_done, int(audio_match.group(1)))
-            audio_total = max(audio_total, int(audio_match.group(2)))
-        render_match = _RENDER_DONE_RE.search(message)
-        if render_match:
-            render_done = max(render_done, int(render_match.group(1)))
+    audio_done, audio_total, render_done = 0, scene_count, 0
+    for m in messages:
+        a = _AUDIO_DONE_RE.search(m)
+        if a:
+            audio_done = max(audio_done, int(a.group(1)))
+            audio_total = max(audio_total, int(a.group(2)))
+        r = _RENDER_DONE_RE.search(m)
+        if r:
+            render_done = max(render_done, int(r.group(1)))
 
     total_scenes = max(scene_count, audio_total, 1)
-    progress = 0
-    detail = "Queued"
-    active_label = "Queued"
+    progress, detail, active_label = 0, "Queued", "Queued"
 
     if worker_started or job.get("status") in {"running", "completed", "failed"}:
-        progress = max(progress, 5)
-        detail = "Worker started"
-        active_label = "Planning storyboard"
+        progress, detail, active_label = max(progress, 5), "Worker started", "Planning storyboard"
     if storyboard_done:
-        progress = max(progress, 20)
-        detail = f"Storyboard ready, {total_scenes} scenes"
-        active_label = "Synthesizing narration"
+        progress, detail, active_label = max(progress, 20), f"Storyboard ready, {total_scenes} scenes", "Synthesizing narration"
     if audio_done:
         progress = max(progress, 20 + int((audio_done / total_scenes) * 30))
         detail = f"Narration {audio_done}/{total_scenes}"
         active_label = "Synthesizing narration" if audio_done < total_scenes else "Preparing scenes"
     if prepared:
-        progress = max(progress, 55)
-        detail = "Scene module ready"
-        active_label = "Preparing scenes"
+        progress, detail, active_label = max(progress, 55), "Scene module ready", "Preparing scenes"
     if render_started:
         active_label = "Rendering scenes"
     if render_done:
@@ -267,9 +229,7 @@ def _progress_metrics(job: dict, logs: list[dict], scene_count: int) -> tuple[in
         detail = f"Rendered {render_done}/{total_scenes}"
         active_label = "Rendering scenes"
     if finalizing:
-        progress = max(progress, 97)
-        detail = "Finalizing video"
-        active_label = "Finalizing video"
+        progress, detail, active_label = max(progress, 97), "Finalizing video", "Finalizing video"
     if final_ready:
         return 100, "Completed", "Completed"
 
@@ -282,24 +242,16 @@ def _progress_metrics(job: dict, logs: list[dict], scene_count: int) -> tuple[in
 
 def _progress_from_job(job: dict, logs: list[dict], scene_count: int) -> tuple[int, list[dict], str]:
     status = job.get("status", "queued")
-    labels = PIPELINE[:]
     progress, detail, current_label = _progress_metrics(job, logs, scene_count)
-
-    current_index = labels.index(current_label) if current_label in labels else 0
+    current_index = PIPELINE.index(current_label) if current_label in PIPELINE else 0
     pipeline = []
-    for index, label in enumerate(labels):
+    for i, label in enumerate(PIPELINE):
         state = "pending"
-        if status == "completed" or index < current_index:
+        if status == "completed" or i < current_index:
             state = "done"
         elif label == current_label or (status == "queued" and label == "Queued"):
             state = "current"
         pipeline.append({"label": label, "state": state})
-
-    if status == "failed" and current_label in labels:
-        for item in pipeline:
-            if item["label"] == current_label:
-                item["state"] = "current"
-                break
     return progress, pipeline, detail
 
 
@@ -369,8 +321,7 @@ def _compute_timing(job: dict, logs: list[dict]) -> dict:
     end_time = completed or (updated if job.get("status") in {"completed", "failed"} else now)
     total_seconds = (end_time - created).total_seconds() if created else None
 
-    worker_started_ts = None
-    worker_finished_ts = None
+    worker_started_ts, worker_finished_ts = None, None
     for entry in logs:
         message = entry.get("message", "")
         if worker_started_ts is None and ("Worker started." in message or "Worker accepted job." in message):
@@ -401,7 +352,6 @@ def _compute_timing(job: dict, logs: list[dict]) -> dict:
 
 
 def _ensure_artifact(job_id: str, video_path: Path, name: str, builder) -> Path | None:
-    """Return path to the named artifact next to the video, building it on demand."""
     artifact_path = video_path.parent / name
     if artifact_path.exists():
         return artifact_path
@@ -432,6 +382,7 @@ def _build_job_payload(job: dict, include_logs: bool = False) -> dict:
     payload["claude_available"] = True
     payload["deepgram_ready"] = bool(current_app.config["DEEPGRAM_API_KEY"])
     payload["token_usage"] = _parse_token_usage(payload.get("token_usage_json"))
+    payload["quiz_token_usage"] = _parse_quiz_token_usage(payload.get("quiz_token_usage_json"))
     payload["token_usage_message"] = None
     payload["video_runtime"] = {
         "seconds": payload.get("duration_seconds"),
@@ -444,10 +395,8 @@ def _build_job_payload(job: dict, include_logs: bool = False) -> dict:
         if story_file.exists():
             payload["raw_storyboard"] = story_file.read_text(encoding="utf-8")
             payload["storyboard"] = json.loads(extract_json_text(payload["raw_storyboard"]))
-        if not payload["token_usage"] and "/codex/" in storyboard_path:
-            payload["token_usage_message"] = "This is an older job from the pre-SDK path, so no Claude usage was saved."
-        elif not payload["token_usage"] and payload.get("status") == "completed":
-            payload["token_usage_message"] = "This job completed without saved SDK usage data."
+        if not payload["token_usage"] and payload.get("status") == "completed":
+            payload["token_usage_message"] = "This job completed without saved usage data."
 
     if payload.get("video_path"):
         video_path = Path(payload["video_path"])
@@ -458,12 +407,9 @@ def _build_job_payload(job: dict, include_logs: bool = False) -> dict:
             payload["video_url"] = None
 
         thumbnail_path = _ensure_artifact(
-            payload["id"],
-            video_path,
-            "thumbnail.jpg",
+            payload["id"], video_path, "thumbnail.jpg",
             lambda dest: extract_thumbnail(
-                video_path=video_path,
-                output_path=dest,
+                video_path=video_path, output_path=dest,
                 title_duration=_title_card_duration(payload),
             ),
         )
@@ -486,9 +432,7 @@ def _build_job_payload(job: dict, include_logs: bool = False) -> dict:
                 scene_durations=[d if d is not None else 6.0 for d in scene_durations],
             )
 
-        captions_path = _ensure_artifact(
-            payload["id"], video_path, "captions.vtt", _build_captions,
-        )
+        captions_path = _ensure_artifact(payload["id"], video_path, "captions.vtt", _build_captions)
         if captions_path:
             payload["captions_url"] = _artifact_url(payload["id"], captions_path)
 
@@ -496,9 +440,7 @@ def _build_job_payload(job: dict, include_logs: bool = False) -> dict:
     payload["question_count"] = _quiz_question_count(payload)
     logs = get_job_logs(payload["id"])
     payload["progress_percent"], payload["pipeline"], payload["progress_detail"] = _progress_from_job(
-        payload,
-        logs,
-        payload["scene_count"],
+        payload, logs, payload["scene_count"],
     )
     payload["is_active"] = payload["status"] in {"queued", "running"}
     payload["timing"] = _compute_timing(payload, logs)
@@ -527,7 +469,7 @@ def home():
         "questions": current_app.config["CLAUDE_QUESTION_MODEL"],
         "video": current_app.config["CLAUDE_CODE_MODEL"],
     }
-    return render_template("index.html", jobs=jobs, environment=environment, models=models)
+    return render_template("index.html", jobs=jobs, environment=environment, models=models, color_themes=VALID_COLOR_THEMES)
 
 
 @bp.get("/onboarding")
@@ -551,32 +493,35 @@ def library():
 def create_job_view():
     concept = request.form.get("concept", "").strip()
     if not concept:
-        flash("A concept is required.")
+        flash("A topic is required.")
         return redirect(url_for("main.index"))
     research = request.form.get("research", "").strip()
-
     duration_label = request.form.get("duration_label", "medium").strip().lower()
+    color_theme = request.form.get("color_theme", "blue").strip().lower()
+    if color_theme not in VALID_COLOR_THEMES:
+        color_theme = "blue"
+
     style_notes = " ".join(
         [
-            "Keep the plan compact but technically useful for developers.",
+            "Calm, confident, technically accurate.",
             "Use simple diagrams, equations, arrows, and transformations that basic Manim can render well.",
-            "Prefer precise explanations, clean structure, and high-signal visuals over marketing language.",
+            "Prefer precise explanations and high-signal visuals over marketing language.",
         ]
     )
 
     job_id = create_job(
         concept=concept,
         research=research,
-        audience="Developer",
+        audience="Student",
         provider="claude-agent-sdk",
         model=current_app.config["CLAUDE_CODE_MODEL"],
         duration_label=duration_label,
         voice_model=current_app.config["DEEPGRAM_VOICE_MODEL"],
         render_quality="720p",
         style_notes=style_notes,
+        color_theme=color_theme,
     )
     current_app.extensions["job_manager"].enqueue(job_id)
-    _start_quiz_generation(current_app._get_current_object(), job_id, concept, research)
     return redirect(url_for("main.pre_quiz", job_id=job_id))
 
 
@@ -586,15 +531,6 @@ def rerun_job(job_id: str):
     if source is None:
         abort(404)
     new_job_id = clone_job(source)
-    if source.get("quiz_json"):
-        update_job(new_job_id, quiz_json=source.get("quiz_json"))
-    else:
-        _start_quiz_generation(
-            current_app._get_current_object(),
-            new_job_id,
-            source["concept"],
-            source.get("research", ""),
-        )
     current_app.extensions["job_manager"].enqueue(new_job_id)
     return redirect(url_for("main.pre_quiz", job_id=new_job_id))
 
@@ -617,14 +553,6 @@ def pre_quiz(job_id: str):
     job = get_job(job_id)
     if job is None:
         abort(404)
-    if not job.get("quiz_json"):
-        _start_quiz_generation(
-            current_app._get_current_object(),
-            job_id,
-            job["concept"],
-            job.get("research", ""),
-        )
-        job = get_job(job_id)
     return render_template(
         "quiz.html",
         job=_build_job_payload(job),
@@ -641,10 +569,9 @@ def submit_pre_quiz(job_id: str):
         abort(404)
     quiz = _quiz_from_job(job)
     if not quiz:
-        flash("Question generation is not ready yet.")
+        flash("Questions are not ready yet.")
         return redirect(url_for("main.pre_quiz", job_id=job_id))
-    pre_score = _score_quiz(request.form, quiz)
-    update_job(job_id, pre_score=pre_score)
+    update_job(job_id, pre_score=_score_quiz(request.form, quiz))
     return redirect(url_for("main.video_page", job_id=job_id))
 
 
@@ -684,7 +611,7 @@ def submit_post_quiz(job_id: str):
         abort(404)
     quiz = _quiz_from_job(job)
     if not quiz:
-        flash("Question generation is not ready yet.")
+        flash("Questions are not ready yet.")
         return redirect(url_for("main.post_quiz", job_id=job_id))
     post_score = _score_quiz(request.form, quiz)
     update_job(job_id, post_score=post_score)
@@ -719,6 +646,7 @@ def submit_survey(job_id: str):
     if job is None:
         abort(404)
 
+    is_trial = "yes" if request.form.get("is_trial") == "on" else "no"
     name = request.form.get("name", "").strip()
     grade = request.form.get("grade", "").strip()
     enrollment = "; ".join(request.form.getlist("enrollment"))
@@ -740,6 +668,7 @@ def submit_survey(job_id: str):
     pre_score = job.get("pre_score")
     post_score = job.get("post_score")
     survey_payload = {
+        "is_trial": is_trial,
         "name": name,
         "grade": grade,
         "enrollment": enrollment,

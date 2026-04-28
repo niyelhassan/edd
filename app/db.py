@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     voice_model TEXT NOT NULL,
     render_quality TEXT NOT NULL,
     style_notes TEXT NOT NULL,
+    color_theme TEXT NOT NULL DEFAULT 'blue',
     status TEXT NOT NULL,
     current_step TEXT NOT NULL,
     title TEXT,
@@ -25,6 +26,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     code_path TEXT,
     video_path TEXT,
     token_usage_json TEXT,
+    quiz_token_usage_json TEXT,
     pre_score INTEGER,
     post_score INTEGER,
     quiz_json TEXT,
@@ -77,6 +79,8 @@ def _migrate_schema(db: sqlite3.Connection) -> None:
         "post_score": "ALTER TABLE jobs ADD COLUMN post_score INTEGER",
         "quiz_json": "ALTER TABLE jobs ADD COLUMN quiz_json TEXT",
         "survey_json": "ALTER TABLE jobs ADD COLUMN survey_json TEXT",
+        "color_theme": "ALTER TABLE jobs ADD COLUMN color_theme TEXT NOT NULL DEFAULT 'blue'",
+        "quiz_token_usage_json": "ALTER TABLE jobs ADD COLUMN quiz_token_usage_json TEXT",
     }
     for column, statement in migrations.items():
         if column not in columns:
