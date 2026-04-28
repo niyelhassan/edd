@@ -24,8 +24,8 @@ from flask import (
 
 from .services.captions import write_captions
 from .services.claude_code import extract_json_text
-from .services.media import MediaError, extract_thumbnail
-from .services.question_generation import fallback_quiz, generate_quiz
+from .services.media import MediaError, extract_thumbnail, probe_duration
+from .services.question_generation import generate_quiz
 from .services.repository import add_log, clone_job, create_job, get_job, get_job_logs, list_jobs, update_job
 
 
@@ -328,6 +328,24 @@ def _format_duration(seconds: float | None) -> str:
     return f"{hours}h {mins:02d}m"
 
 
+def _video_runtime(video_path: Path, fallback_seconds: float | None = None) -> dict:
+    try:
+        seconds = probe_duration(video_path) if video_path.exists() else fallback_seconds
+    except (MediaError, OSError, ValueError):
+        seconds = fallback_seconds
+    return {"seconds": seconds, "label": _format_duration(seconds)}
+
+
+def _title_card_duration(payload: dict) -> float | None:
+    scenes = (payload.get("storyboard") or {}).get("scenes") or []
+    if not scenes:
+        return None
+    try:
+        return float(scenes[0].get("target_duration_seconds") or 0) or None
+    except (TypeError, ValueError):
+        return None
+
+
 def _format_relative(target: datetime | None, now: datetime | None = None) -> str:
     if target is None:
         return "—"
@@ -415,6 +433,21 @@ def _build_job_payload(job: dict, include_logs: bool = False) -> dict:
     payload["deepgram_ready"] = bool(current_app.config["DEEPGRAM_API_KEY"])
     payload["token_usage"] = _parse_token_usage(payload.get("token_usage_json"))
     payload["token_usage_message"] = None
+    payload["video_runtime"] = {
+        "seconds": payload.get("duration_seconds"),
+        "label": _format_duration(payload.get("duration_seconds")),
+    }
+
+    storyboard_path = payload.get("storyboard_path")
+    if storyboard_path:
+        story_file = Path(storyboard_path)
+        if story_file.exists():
+            payload["raw_storyboard"] = story_file.read_text(encoding="utf-8")
+            payload["storyboard"] = json.loads(extract_json_text(payload["raw_storyboard"]))
+        if not payload["token_usage"] and "/codex/" in storyboard_path:
+            payload["token_usage_message"] = "This is an older job from the pre-SDK path, so no Claude usage was saved."
+        elif not payload["token_usage"] and payload.get("status") == "completed":
+            payload["token_usage_message"] = "This job completed without saved SDK usage data."
 
     if payload.get("video_path"):
         video_path = Path(payload["video_path"])
@@ -428,21 +461,15 @@ def _build_job_payload(job: dict, include_logs: bool = False) -> dict:
             payload["id"],
             video_path,
             "thumbnail.jpg",
-            lambda dest: extract_thumbnail(video_path=video_path, output_path=dest),
+            lambda dest: extract_thumbnail(
+                video_path=video_path,
+                output_path=dest,
+                title_duration=_title_card_duration(payload),
+            ),
         )
         if thumbnail_path:
             payload["thumbnail_url"] = _artifact_url(payload["id"], thumbnail_path)
-
-    storyboard_path = payload.get("storyboard_path")
-    if storyboard_path:
-        story_file = Path(storyboard_path)
-        if story_file.exists():
-            payload["raw_storyboard"] = story_file.read_text(encoding="utf-8")
-            payload["storyboard"] = json.loads(extract_json_text(payload["raw_storyboard"]))
-        if not payload["token_usage"] and "/codex/" in storyboard_path:
-            payload["token_usage_message"] = "This is an older job from the pre-SDK path, so no Claude usage was saved."
-        elif not payload["token_usage"] and payload.get("status") == "completed":
-            payload["token_usage_message"] = "This job completed without saved SDK usage data."
+        payload["video_runtime"] = _video_runtime(video_path, payload.get("duration_seconds"))
 
     if payload.get("video_path") and payload.get("storyboard"):
         video_path = Path(payload["video_path"])
@@ -618,8 +645,6 @@ def submit_pre_quiz(job_id: str):
         return redirect(url_for("main.pre_quiz", job_id=job_id))
     pre_score = _score_quiz(request.form, quiz)
     update_job(job_id, pre_score=pre_score)
-    updated_job = get_job(job_id) or {**job, "pre_score": pre_score}
-    _save_quiz_results_to_csv(job_id, updated_job)
     return redirect(url_for("main.video_page", job_id=job_id))
 
 

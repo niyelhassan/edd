@@ -70,7 +70,7 @@
 <section class="space-y-4">
   <div class="flex flex-wrap items-end justify-between gap-3">
     <div>
-      <h2 class="text-xl font-semibold tracking-tight">Recent videos</h2>
+      <h2 class="text-xl font-semibold tracking-tight">Video library</h2>
       <p class="mt-1 text-sm text-neutral-500">
         <span id="video-count">{{ jobs | length }}</span> total
         <span id="video-filter-info" class="hidden text-neutral-400"></span>
@@ -95,7 +95,7 @@
         <input
           id="video-search"
           type="search"
-          placeholder="Search by topic, status, or context"
+          placeholder="Search topic, title, context, or status"
           class="field pl-9"
           autocomplete="off"
         />
@@ -109,10 +109,13 @@
           All
         </button>
         <button type="button" data-filter="completed" class="filter-chip">
-          Done
+          Completed
         </button>
-        <button type="button" data-filter="running" class="filter-chip">
-          Running
+        <button type="button" data-filter="active" class="filter-chip">
+          In progress
+        </button>
+        <button type="button" data-filter="failed" class="filter-chip">
+          Failed
         </button>
       </div>
     </div>
@@ -124,6 +127,7 @@
       href="{{ url_for('main.video_page', job_id=job.id) }}"
       class="video-card group flex flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-neutral-400 hover:shadow-lg"
       data-status="{{ job.status }}"
+      data-state="{{ 'active' if job.is_active else job.status }}"
       data-search="{{ ((job.title or '') ~ ' ' ~ (job.concept or '') ~ ' ' ~ (job.research or '') ~ ' ' ~ (job.status or '')) | lower }}"
     >
       <div
@@ -168,12 +172,19 @@
         {% endif %}
       </div>
       <div class="flex flex-1 flex-col gap-3 p-4">
-        <h3 class="line-clamp-2 font-semibold leading-snug">
-          {{ job.title or job.concept }}
-        </h3>
-        <p class="line-clamp-1 text-xs text-neutral-500">
-          {{ job.progress_detail }}
+        <div class="space-y-1">
+          <p class="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-neutral-400">
+            {{ "Ready to watch" if job.status == "completed" else job.progress_detail }}
+          </p>
+          <h3 class="line-clamp-2 font-semibold leading-snug">
+            {{ job.title or job.concept }}
+          </h3>
+        </div>
+        {% if job.research %}
+        <p class="line-clamp-2 text-xs leading-5 text-neutral-500">
+          {{ job.research }}
         </p>
+        {% endif %}
         <div class="mt-auto flex items-center justify-between gap-3">
           <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-neutral-100">
             <div
@@ -185,10 +196,12 @@
             >{{ job.progress_percent }}%</span
           >
         </div>
-        <p class="text-xs text-neutral-400">
-          {{ job.timing.input_relative }} ·
-          {% if job.status == "completed" %}{{ job.timing.total_label }}{% else %}{{ job.timing.status_label }}{% endif %}
-        </p>
+        <dl class="grid grid-cols-2 gap-x-3 gap-y-1 border-t border-neutral-100 pt-3 text-xs">
+          <dt class="text-neutral-400">Video length</dt>
+          <dd class="text-right font-medium text-neutral-700">{{ job.video_runtime.label }}</dd>
+          <dt class="text-neutral-400">Status</dt>
+          <dd class="truncate text-right font-medium capitalize text-neutral-700">{{ job.status }}</dd>
+        </dl>
       </div>
     </a>
     {% endfor %}
@@ -253,7 +266,7 @@
         const matchesSearch =
           !query || card.dataset.search.includes(query);
         const matchesFilter =
-          activeFilter === "all" || card.dataset.status === activeFilter;
+          activeFilter === "all" || card.dataset.state === activeFilter;
         const visible = matchesSearch && matchesFilter;
         card.style.display = visible ? "" : "none";
         if (visible) visibleCount += 1;

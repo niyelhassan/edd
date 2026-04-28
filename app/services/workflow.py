@@ -507,7 +507,11 @@ class VideoWorkflow:
 
         try:
             thumbnail_path = final_dir / "thumbnail.jpg"
-            extract_thumbnail(video_path=final_video, output_path=thumbnail_path)
+            extract_thumbnail(
+                video_path=final_video,
+                output_path=thumbnail_path,
+                title_duration=clip_durations[0] if clip_durations else None,
+            )
             add_log(job["id"], "Thumbnail extracted.")
         except Exception as exc:
             add_log(job["id"], f"Thumbnail extraction skipped: {exc}", level="warning")

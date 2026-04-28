@@ -1,6 +1,6 @@
 {% extends "base.html" %} {% block content %} {% set quiz = quiz_state.questions
 or [] %}
-<section class="mx-auto max-w-3xl space-y-6">
+<section class="mx-auto max-w-4xl space-y-6">
   {% set current = "pre" if phase == "pre" else "post" %} {% include "_flow.html" %}
   {% if quiz_state.status == "ready" %}
   <form method="post" class="space-y-6" id="quiz-form">

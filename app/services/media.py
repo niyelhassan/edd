@@ -105,8 +105,21 @@ def mux_video_with_audio(*, video_path: Path, audio_path: Path, output_path: Pat
     return output_path
 
 
-def extract_thumbnail(*, video_path: Path, output_path: Path, timestamp: float = 1.2, width: int = 720) -> Path:
+def extract_thumbnail(
+    *,
+    video_path: Path,
+    output_path: Path,
+    timestamp: float | None = None,
+    title_duration: float | None = None,
+    width: int = 720,
+) -> Path:
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    if timestamp is None:
+        if title_duration and title_duration > 1.25:
+            timestamp = title_duration - 1.0
+        else:
+            duration = probe_duration(video_path)
+            timestamp = min(max(duration - 0.5, 0.1), 2.0)
     command = [
         "ffmpeg",
         "-y",

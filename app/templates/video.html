@@ -25,9 +25,9 @@
     </div>
     <div class="flex items-center gap-2">
       <span class="status-badge status-{{ job.status }}">{{ job.status }}</span>
-      {% if job.timing.total_seconds %}
+      {% if job.video_runtime.seconds %}
       <span class="rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-600">
-        {{ job.timing.total_label }}
+        {{ job.video_runtime.label }}
       </span>
       {% endif %}
     </div>
@@ -138,15 +138,15 @@
         At a glance
       </p>
       <dl class="mt-2 grid grid-cols-2 gap-y-2 text-sm">
-        <dt class="text-neutral-500">Length</dt>
-        <dd class="text-right font-medium text-neutral-950">{{ job.duration_label | capitalize }}</dd>
+        <dt class="text-neutral-500">Video length</dt>
+        <dd class="text-right font-medium text-neutral-950">{{ job.video_runtime.label }}</dd>
         <dt class="text-neutral-500">Scenes</dt>
         <dd class="text-right font-medium text-neutral-950">{{ job.scene_count or "—" }}</dd>
         <dt class="text-neutral-500">Pre-quiz</dt>
         <dd class="text-right font-medium text-neutral-950">
-          {% if job.pre_score is not none and job.question_count %}{{ job.pre_score }}/{{ job.question_count }}{% else %}—{% endif %}
+          {% if job.post_score is not none and job.pre_score is not none and job.question_count %}{{ job.pre_score }}/{{ job.question_count }}{% else %}Hidden{% endif %}
         </dd>
-        <dt class="text-neutral-500">Total time</dt>
+        <dt class="text-neutral-500">Generated in</dt>
         <dd class="text-right font-medium text-neutral-950">{{ job.timing.total_label }}</dd>
       </dl>
     </div>
