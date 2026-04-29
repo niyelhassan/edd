@@ -269,7 +269,7 @@ def _parse_iso(value: str | None) -> datetime | None:
 
 def _format_duration(seconds: float | None) -> str:
     if seconds is None or seconds < 0:
-        return "—"
+        return "-"
     seconds = int(round(seconds))
     if seconds < 60:
         return f"{seconds}s"
@@ -300,7 +300,7 @@ def _title_card_duration(payload: dict) -> float | None:
 
 def _format_relative(target: datetime | None, now: datetime | None = None) -> str:
     if target is None:
-        return "—"
+        return "-"
     now = now or datetime.now(timezone.utc)
     delta = (now - target).total_seconds()
     if delta < 60:
@@ -346,7 +346,7 @@ def _compute_timing(job: dict, logs: list[dict]) -> dict:
         "status_seconds": status_seconds,
         "status_label": _format_duration(status_seconds) if status_seconds is not None else _format_duration(total_seconds),
         "input_relative": _format_relative(created, now),
-        "input_absolute": created.astimezone().strftime("%b %d, %I:%M %p") if created else "—",
+        "input_absolute": created.astimezone().strftime("%b %d, %I:%M %p") if created else "-",
         "completed_relative": _format_relative(completed, now) if completed else None,
     }
 
@@ -459,7 +459,10 @@ def index():
 
 @bp.get("/home")
 def home():
+    library_completed_only = bool(current_app.config.get("LIBRARY_COMPLETED_ONLY", True))
     jobs = [_build_job_payload(job) for job in list_jobs()]
+    if library_completed_only:
+        jobs = [job for job in jobs if job.get("status") == "completed"]
     environment = {
         "claude": True,
         "deepgram": bool(current_app.config["DEEPGRAM_API_KEY"]),
@@ -469,7 +472,14 @@ def home():
         "questions": current_app.config["CLAUDE_QUESTION_MODEL"],
         "video": current_app.config["CLAUDE_CODE_MODEL"],
     }
-    return render_template("index.html", jobs=jobs, environment=environment, models=models, color_themes=VALID_COLOR_THEMES)
+    return render_template(
+        "index.html",
+        jobs=jobs,
+        environment=environment,
+        models=models,
+        color_themes=VALID_COLOR_THEMES,
+        library_completed_only=library_completed_only,
+    )
 
 
 @bp.get("/onboarding")

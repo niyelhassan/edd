@@ -9,7 +9,7 @@
       </p>
       <h1 class="text-3xl font-semibold tracking-tight md:text-4xl">{{ job.title or job.concept }}</h1>
       <p class="text-sm text-neutral-500">
-        {% if phase == "pre" %}Five quick questions before the lesson — your baseline.{% else %}Same five questions, after the lesson.{% endif %}
+        {% if phase == "pre" %}Five quick questions before the lesson, your baseline.{% else %}Same five questions, after the lesson.{% endif %}
       </p>
     </div>
 
@@ -20,7 +20,13 @@
           <span class="lern-loading-dot h-2 w-2 rounded-full bg-blue-500"></span>
           Video rendering
         </span>
-        <span id="progress-label" class="shrink-0 text-xs tabular-nums text-neutral-500">{{ job.progress_percent }}%</span>
+        <span class="flex shrink-0 items-center gap-2">
+          <span id="progress-label" class="text-xs tabular-nums text-neutral-500">{{ job.progress_percent }}%</span>
+          <a href="{{ url_for('main.debug_job', job_id=job.id) }}"
+            class="rounded-md border border-neutral-200 px-2 py-1 text-[0.68rem] font-medium text-neutral-500 transition hover:border-neutral-300 hover:text-neutral-950">
+            Dev details
+          </a>
+        </span>
       </div>
       <p id="progress-detail" class="mt-2 truncate text-sm text-neutral-700">{{ job.progress_detail }}</p>
       <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-neutral-200">
@@ -178,7 +184,13 @@
           <span class="lern-loading-dot h-2 w-2 rounded-full bg-blue-500"></span>
           Lesson rendering
         </span>
-        <span id="progress-label" class="shrink-0 text-xs tabular-nums text-neutral-500">{{ job.progress_percent }}%</span>
+        <span class="flex shrink-0 items-center gap-2">
+          <span id="progress-label" class="text-xs tabular-nums text-neutral-500">{{ job.progress_percent }}%</span>
+          <a href="{{ url_for('main.debug_job', job_id=job.id) }}"
+            class="rounded-md border border-neutral-200 px-2 py-1 text-[0.68rem] font-medium text-neutral-500 transition hover:border-neutral-300 hover:text-neutral-950">
+            Dev details
+          </a>
+        </span>
       </div>
       <p id="progress-detail" class="mt-2 truncate text-sm text-neutral-700">{{ job.progress_detail }}</p>
       <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-neutral-200">
@@ -207,7 +219,7 @@
       if (progressDetail) progressDetail.textContent = job.progress_detail || "";
       if (job.is_active) window.setTimeout(pollProgress, {{ poll_interval_ms }});
   }
-  if ({{ "true" if phase == "pre" and job.is_active else "false" }}) pollProgress();
+  if ({{ "true" if phase == "pre" and (job.is_active or quiz_state.status == "pending") else "false" }}) pollProgress();
 
   async function pollQuiz() {
       const response = await fetch(`/api/jobs/${jobId}/quiz`, { cache: "no-store" });

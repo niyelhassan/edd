@@ -22,7 +22,7 @@
       <p class="dev-metric-label">Total time</p>
       <p class="dev-metric-value">{{ job.timing.total_label }}</p>
       <p class="dev-metric-sub">
-        {% if job.is_active %}{{ job.timing.status_label }} elapsed{% elif job.timing.completed_relative %}done {{ job.timing.completed_relative }}{% else %}—{% endif %}
+        {% if job.is_active %}{{ job.timing.status_label }} elapsed{% elif job.timing.completed_relative %}done {{ job.timing.completed_relative }}{% else %}-{% endif %}
       </p>
     </div>
     <div class="dev-metric">
@@ -39,7 +39,7 @@
         {% if job.token_usage.cost_usd is not none %} · ${{ "%.4f"|format(job.token_usage.cost_usd) }}{% endif %}
       </p>
       {% else %}
-      <p class="dev-metric-value text-neutral-400">—</p>
+      <p class="dev-metric-value text-neutral-400">-</p>
       <p class="dev-metric-sub">{{ job.token_usage_message or "appears after planning" }}</p>
       {% endif %}
     </div>
@@ -52,7 +52,7 @@
         {% if job.quiz_token_usage.cost_usd is not none %} · ${{ "%.4f"|format(job.quiz_token_usage.cost_usd) }}{% endif %}
       </p>
       {% else %}
-      <p class="dev-metric-value text-neutral-400">—</p>
+      <p class="dev-metric-value text-neutral-400">-</p>
       <p class="dev-metric-sub">appears after question gen</p>
       {% endif %}
     </div>

@@ -174,6 +174,12 @@ Available content layouts (pick the one that matches the visual idea):
 - `bar_chart`: ranking, percentages, magnitude comparison. 2–4 category labels in `visual_items`.
 - `bullets`: only when no more visual layout fits. Use sparingly.
 
+VISUAL STYLE:
+- Think of each scene as a polished 16:9 research explainer slide: clean off-white background, slate typography, cyan accent, thin bottom rule, white cards, subtle borders, and generous spacing.
+- Prefer short, slide-ready labels over dense paragraphs. Use 2–4 visual elements that can be arranged as cards, numbered steps, tags, side-by-side panels, charts, or a single formula block.
+- Make headlines specific enough to stand alone, but keep them calm and professional rather than salesy or shouty.
+- For process scenes, provide concise stage names that will look good as numbered steps. For comparison scenes, provide exactly two short side labels. For equation scenes, provide compact symbol labels that can become small tags.
+
 REQUIREMENTS:
 - Each content scene teaches exactly one visual idea. The narration must describe what is on screen for that scene only.
 - Aim for {per_scene_words} words of narration per scene; total near {total_words} words. Do not come in short.

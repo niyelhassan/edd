@@ -11,7 +11,7 @@ class MediaError(RuntimeError):
     pass
 
 
-MANIM_720P_FLAG = "-qm"
+MANIM_QUAL_FLAG = "-qh"
 
 
 def extract_scene_class_names(module_path: Path) -> list[str]:
@@ -40,7 +40,7 @@ def render_scene(*, module_path: Path, class_name: str, media_dir: Path) -> Path
         sys.executable,
         "-m",
         "manim",
-        MANIM_720P_FLAG,
+        MANIM_QUAL_FLAG,
         str(module_path),
         class_name,
         "--media_dir",
