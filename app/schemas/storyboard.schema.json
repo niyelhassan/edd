@@ -7,6 +7,8 @@
     "summary",
     "learning_objective",
     "closing_takeaway",
+    "category",
+    "quiz",
     "scenes"
   ],
   "properties": {
@@ -14,6 +16,46 @@
     "summary": { "type": "string", "minLength": 12 },
     "learning_objective": { "type": "string", "minLength": 10 },
     "closing_takeaway": { "type": "string", "minLength": 10 },
+    "category": {
+      "type": "string",
+      "enum": [
+        "CS & ML",
+        "Statistics & probability",
+        "Calculus",
+        "Linear algebra",
+        "Physics",
+        "Chemistry",
+        "Biology",
+        "Other"
+      ]
+    },
+    "quiz": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["questions"],
+      "properties": {
+        "questions": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["prompt", "choices", "answer"],
+            "properties": {
+              "prompt": { "type": "string", "minLength": 12, "maxLength": 180 },
+              "choices": {
+                "type": "array",
+                "minItems": 4,
+                "maxItems": 4,
+                "items": { "type": "string", "minLength": 1, "maxLength": 120 }
+              },
+              "answer": { "type": "integer", "minimum": 0, "maximum": 3 }
+            }
+          }
+        }
+      }
+    },
     "scenes": {
       "type": "array",
       "minItems": 3,

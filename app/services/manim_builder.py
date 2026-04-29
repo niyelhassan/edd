@@ -1049,7 +1049,9 @@ def render_bar_chart(scene_obj, scene_data, pal):
     max_val = max(values)
 
     base_y, max_h = -2.25, 2.55
-    n, w, spacing = len(items), min(0.92, 7.5 / max(n, 1) - 0.40), 0.45
+    n = len(items)
+    w = min(0.92, 7.5 / max(n, 1) - 0.40)
+    spacing = 0.45
     total_w = n * w + (n - 1) * spacing
     start_x = -total_w / 2 + w / 2
 

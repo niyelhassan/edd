@@ -4,7 +4,7 @@ EDD Video Generator is a web app that creates short STEM explainer videos for st
 
 ## Core capabilities
 
-- Topic intake with optional research context, length presets, and color theme selection.
+- Topic intake with required research area, length presets, and color theme selection.
 - Automated storyboard creation and lesson structuring into title, content, summary, and closing scenes.
 - Template-driven visual layouts (equations, charts, comparisons, flows, timelines, networks, and more).
 - Narrated video production with captions and a thumbnail preview.
@@ -16,7 +16,7 @@ EDD Video Generator is a web app that creates short STEM explainer videos for st
 ## User experience flow
 
 1. First visit shows onboarding, then the home library.
-2. Student enters a topic, optional context, length, and color theme.
+2. Student enters a topic, research area, length, and color theme.
 3. Pre-quiz appears once questions are ready; progress is visible while the video renders.
 4. Watch page shows the video or a live progress state until the video is ready.
 5. Post-quiz, results, and feedback survey conclude the flow.

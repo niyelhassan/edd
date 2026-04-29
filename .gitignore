@@ -5,3 +5,4 @@ instance/
 media/
 temps/
 .prettierignore
+testing_videos/

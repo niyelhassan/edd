@@ -23,6 +23,7 @@ from flask import (
 
 from .services.captions import write_captions
 from .services.claude_code import extract_json_text
+from .services.google_sheets import sync_csv_to_google_sheet
 from .services.media import MediaError, extract_thumbnail, probe_duration
 from .services.repository import add_log, clone_job, create_job, get_job, get_job_logs, list_jobs, update_job
 from .services.workflow import VALID_COLOR_THEMES, VALID_EXPLANATION_LEVELS
@@ -31,6 +32,18 @@ from .services.workflow import VALID_COLOR_THEMES, VALID_EXPLANATION_LEVELS
 RESULTS_CSV_FIELDNAMES = [
     "timestamp",
     "job_id",
+    "topic",
+    "research_area",
+    "category",
+    "length",
+    "explanation_level",
+    "color_theme",
+    "video_length_actual",
+    "time",
+    "storyboard_tokens",
+    "storyboard_cost",
+    "quiz_tokens",
+    "quiz_cost",
     "is_trial",
     "name",
     "grade",
@@ -52,11 +65,34 @@ RESULTS_CSV_FIELDNAMES = [
 ]
 
 
-def _survey_csv_path() -> Path:
+def _results_csv_path() -> Path:
     base_dir = Path(current_app.config["BASE_DIR"])
-    csv_path = base_dir / "survey_results.csv"
+    legacy_path = base_dir / "survey_results.csv"
+    if legacy_path.exists():
+        legacy_path.unlink()
+    csv_path = base_dir / "results.csv"
     csv_path.parent.mkdir(parents=True, exist_ok=True)
     return csv_path
+
+
+def _sync_results_csv(csv_path: Path) -> None:
+    spreadsheet_id = current_app.config.get("GOOGLE_RESULTS_SPREADSHEET_ID", "")
+    if not spreadsheet_id:
+        return
+
+    try:
+        synced = sync_csv_to_google_sheet(
+            csv_path=csv_path,
+            spreadsheet_id=spreadsheet_id,
+            worksheet_name=current_app.config.get("GOOGLE_RESULTS_WORKSHEET_NAME", "results"),
+            config=current_app.config,
+        )
+    except Exception:
+        current_app.logger.exception("Could not sync results.csv to Google Sheets.")
+        return
+
+    if synced:
+        current_app.logger.info("Synced results.csv to Google Sheets.")
 
 
 def _quiz_question_count(job: dict) -> int:
@@ -77,8 +113,67 @@ def _score_percentage(score: int | None, question_count: int) -> float | str:
     return round((score / question_count) * 100, 1)
 
 
+def _token_total(usage: dict | None, stage: str | None = None) -> int | str:
+    if not usage:
+        return ""
+    if stage:
+        stage_totals = usage.get("stage_totals")
+        if isinstance(stage_totals, dict) and stage_totals.get(stage) is not None:
+            return int(stage_totals.get(stage) or 0)
+    return int(usage.get("total_tokens") or 0)
+
+
+def _cost_value(usage: dict | None) -> float | str:
+    if not usage or usage.get("cost_usd") is None:
+        return ""
+    try:
+        return round(float(usage["cost_usd"]), 6)
+    except (TypeError, ValueError):
+        return ""
+
+
+def _job_results_metadata(job: dict) -> dict[str, str | int | float]:
+    logs = get_job_logs(job["id"])
+    timing = _compute_timing(job, logs)
+    video_runtime = {"seconds": None, "label": ""}
+    if job.get("video_path"):
+        video_runtime = _video_runtime(Path(job["video_path"]), job.get("duration_seconds"))
+    token_usage = _parse_token_usage(job.get("token_usage_json"))
+    quiz_token_usage = _parse_quiz_token_usage(job.get("quiz_token_usage_json"))
+    return {
+        "topic": job.get("concept", ""),
+        "research_area": job.get("research", ""),
+        "category": job.get("topic_category", ""),
+        "length": job.get("duration_label", ""),
+        "explanation_level": job.get("explanation_level", ""),
+        "color_theme": job.get("color_theme", ""),
+        "video_length_actual": video_runtime["label"],
+        "time": timing["total_label"],
+        "storyboard_tokens": _token_total(token_usage, "storyboard"),
+        "storyboard_cost": _cost_value(token_usage),
+        "quiz_tokens": _token_total(quiz_token_usage),
+        "quiz_cost": _cost_value(quiz_token_usage),
+    }
+
+
+def _job_survey_payload(job: dict) -> dict[str, str]:
+    if not job.get("survey_json"):
+        return {}
+    try:
+        parsed = json.loads(job["survey_json"])
+    except json.JSONDecodeError:
+        return {}
+    if not isinstance(parsed, dict):
+        return {}
+    return {
+        key: str(parsed.get(key, ""))
+        for key in RESULTS_CSV_FIELDNAMES
+        if key in parsed
+    }
+
+
 def _upsert_results_csv_row(row: dict[str, str | int | float | None]) -> None:
-    csv_path = _survey_csv_path()
+    csv_path = _results_csv_path()
     rows: list[dict[str, str]] = []
     if csv_path.exists():
         with csv_path.open(newline="", encoding="utf-8") as csvfile:
@@ -99,6 +194,7 @@ def _upsert_results_csv_row(row: dict[str, str | int | float | None]) -> None:
         writer = csv.DictWriter(csvfile, fieldnames=RESULTS_CSV_FIELDNAMES)
         writer.writeheader()
         writer.writerows({key: row.get(key, "") for key in RESULTS_CSV_FIELDNAMES} for row in rows)
+    _sync_results_csv(csv_path)
 
 
 def _save_quiz_results_to_csv(job_id: str, job: dict) -> None:
@@ -107,8 +203,10 @@ def _save_quiz_results_to_csv(job_id: str, job: dict) -> None:
     post_score = job.get("post_score")
     _upsert_results_csv_row(
         {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "job_id": job_id,
+            **_job_results_metadata(job),
+            **_job_survey_payload(job),
             "pre_score": pre_score if pre_score is not None else "",
             "pre_percentage": _score_percentage(pre_score, question_count),
             "post_score": post_score if post_score is not None else "",
@@ -149,6 +247,18 @@ def _quiz_state(job: dict) -> dict:
                 return {"status": "pending", "questions": None, "error": None}
         elif isinstance(parsed, list):
             return {"status": "ready", "questions": parsed, "error": None}
+    if job.get("status") == "failed":
+        return {
+            "status": "error",
+            "questions": None,
+            "error": job.get("error_message") or "Question generation failed.",
+        }
+    if job.get("status") in {"completed", "canceled"}:
+        return {
+            "status": "error",
+            "questions": None,
+            "error": "Questions were not generated for this video.",
+        }
     return {"status": "pending", "questions": None, "error": None}
 
 
@@ -462,14 +572,18 @@ def home():
     library_completed_only = bool(current_app.config.get("LIBRARY_COMPLETED_ONLY", True))
     jobs = [_build_job_payload(job) for job in list_jobs()]
     if library_completed_only:
-        jobs = [job for job in jobs if job.get("status") == "completed"]
+        jobs = [
+            job for job in jobs
+            if job.get("status") == "completed"
+            or job.get("is_active")
+            or job.get("status") in {"failed", "canceled"}
+        ]
     environment = {
         "claude": True,
         "deepgram": bool(current_app.config["DEEPGRAM_API_KEY"]),
         "ffmpeg": bool(shutil.which("ffmpeg")),
     }
     models = {
-        "questions": current_app.config["CLAUDE_QUESTION_MODEL"],
         "video": current_app.config["CLAUDE_CODE_MODEL"],
     }
     return render_template(
@@ -507,13 +621,16 @@ def create_job_view():
         flash("A topic is required.")
         return redirect(url_for("main.index"))
     research = request.form.get("research", "").strip()
-    duration_label = request.form.get("duration_label", "medium").strip().lower()
+    if not research:
+        flash("A research area is required.")
+        return redirect(url_for("main.index"))
+    duration_label = request.form.get("duration_label", "short").strip().lower()
     color_theme = request.form.get("color_theme", "blue").strip().lower()
     if color_theme not in VALID_COLOR_THEMES:
         color_theme = "blue"
-    explanation_level = request.form.get("explanation_level", "college").strip().lower()
+    explanation_level = request.form.get("explanation_level", "high_school").strip().lower()
     if explanation_level not in VALID_EXPLANATION_LEVELS:
-        explanation_level = "college"
+        explanation_level = "high_school"
 
     style_notes = " ".join(
         [
@@ -531,7 +648,7 @@ def create_job_view():
         model=current_app.config["CLAUDE_CODE_MODEL"],
         duration_label=duration_label,
         voice_model=current_app.config["DEEPGRAM_VOICE_MODEL"],
-        render_quality="720p",
+        render_quality="1080p30",
         style_notes=style_notes,
         color_theme=color_theme,
         explanation_level=explanation_level,
@@ -548,6 +665,22 @@ def rerun_job(job_id: str):
     new_job_id = clone_job(source)
     current_app.extensions["job_manager"].enqueue(new_job_id)
     return redirect(url_for("main.pre_quiz", job_id=new_job_id))
+
+
+@bp.post("/jobs/<job_id>/cancel")
+def cancel_job(job_id: str):
+    job = get_job(job_id)
+    if job is None:
+        abort(404)
+    if job.get("status") in {"queued", "running"}:
+        update_job(
+            job_id,
+            status="canceled",
+            current_step="Canceled",
+            error_message="Stopped by user.",
+        )
+        add_log(job_id, "Job stopped by user.", level="warning")
+    return redirect(url_for("main.debug_job", job_id=job_id))
 
 
 @bp.get("/jobs/<job_id>")
@@ -572,7 +705,6 @@ def pre_quiz(job_id: str):
         "quiz.html",
         job=_build_job_payload(job),
         quiz_state=_quiz_state(job),
-        models={"questions": current_app.config["CLAUDE_QUESTION_MODEL"]},
         phase="pre",
     )
 
@@ -614,7 +746,6 @@ def post_quiz(job_id: str):
         "quiz.html",
         job=_build_job_payload(job),
         quiz_state=state,
-        models={"questions": current_app.config["CLAUDE_QUESTION_MODEL"]},
         phase="post",
     )
 
@@ -702,8 +833,9 @@ def submit_survey(job_id: str):
     update_job(job_id, survey_json=json.dumps(survey_payload))
     _upsert_results_csv_row(
         {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "job_id": job_id,
+            **_job_results_metadata(job),
             **survey_payload,
             "pre_score": pre_score if pre_score is not None else "",
             "pre_percentage": _score_percentage(pre_score, question_count),

@@ -898,6 +898,11 @@ body {
   color: rgb(185 28 28);
 }
 
+.status-canceled {
+  background: rgb(245 245 245);
+  color: rgb(82 82 82);
+}
+
 .filter-chip {
   display: inline-flex;
   align-items: center;

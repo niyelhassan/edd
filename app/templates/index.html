@@ -19,7 +19,7 @@
     id="generate-form"
     action="{{ url_for('main.create_job_view') }}"
     method="post"
-    class="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm transition hover:shadow-md"
+    class="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm transition"
   >
     <div class="grid gap-4 lg:grid-cols-2">
       <label class="block">
@@ -33,15 +33,13 @@
         ></textarea>
       </label>
       <label class="block">
-        <span class="mb-2 block text-sm font-semibold">
-          Context
-          <span class="ml-1 font-normal text-neutral-400">(optional)</span>
-        </span>
+        <span class="mb-2 block text-sm font-semibold">Research area</span>
         <textarea
           name="research"
           rows="4"
           class="field resize-none"
-          placeholder="Class level, field, dataset, misconception, or example"
+          placeholder="Computer science, biology, physics, humanities, or another field"
+          required
         ></textarea>
       </label>
     </div>
@@ -51,16 +49,16 @@
         <label class="block">
           <span class="mb-2 block text-sm font-semibold">Length</span>
           <select name="duration_label" class="field">
-            <option value="short">Short, about 1 min</option>
-            <option value="medium" selected>Medium, about 3 min</option>
+            <option value="short" selected>Short, about 1 min</option>
+            <option value="medium">Medium, about 3 min</option>
             <option value="long">Long, about 5 min</option>
           </select>
         </label>
         <label class="block">
           <span class="mb-2 block text-sm font-semibold">Explanation level</span>
           <select name="explanation_level" class="field">
-            <option value="high_school">High school</option>
-            <option value="college" selected>College</option>
+            <option value="high_school" selected>High school</option>
+            <option value="college">College</option>
             <option value="expert">Expert</option>
           </select>
         </label>
@@ -108,7 +106,11 @@
         <span id="video-count">{{ jobs | length }}</span> videos
       </p>
     </div>
-    <div class="flex flex-1 items-center gap-2 md:max-w-md">
+    <div class="flex flex-1 flex-wrap items-center justify-end gap-3 md:max-w-2xl">
+      <label class="inline-flex items-center gap-2 text-xs font-semibold text-neutral-600">
+        <input id="show-failed" type="checkbox" class="accent-neutral-950 h-3.5 w-3.5 rounded border-neutral-300 focus:ring-neutral-950" />
+        Show failed
+      </label>
       <label class="relative flex-1">
         <span class="sr-only">Search videos</span>
         <svg
@@ -127,7 +129,7 @@
         <input
           id="video-search"
           type="search"
-          placeholder="Search topic, title, or context"
+          placeholder="Search topic, title, or research area"
           class="field pl-9"
           autocomplete="off"
         />
@@ -135,48 +137,9 @@
     </div>
   </div>
 
-  {% if not library_completed_only %}
-  <div
-    class="flex flex-wrap items-center gap-2"
-    role="tablist"
-    aria-label="Filter videos"
-  >
-    <button
-      type="button"
-      data-filter="all"
-      class="filter-chip filter-chip-active"
-    >
-      All
-    </button>
-    <button type="button" data-filter="completed" class="filter-chip">
-      Completed
-    </button>
-    <button type="button" data-filter="active" class="filter-chip">
-      In progress
-    </button>
-    <button type="button" data-filter="failed" class="filter-chip">
-      Failed
-    </button>
-  </div>
-  {% endif %} {# Bucket jobs by inferred topic group, derived from concept
-  keywords. #} {% set groups = namespace(items={}) %} {% for job in jobs %} {%
-  set blob = ((job.concept or '') ~ ' ' ~ (job.research or '') ~ ' ' ~
-  (job.title or '')) | lower %} {% if 'bayes' in blob or 'probability' in blob
-  or 'p-value' in blob or 'p value' in blob or 'distribution' in blob or
-  'statisti' in blob or 'sampling' in blob %} {% set group_key = 'Statistics &
-  probability' %} {% elif 'derivative' in blob or 'integral' in blob or
-  'calculus' in blob or 'limit' in blob %} {% set group_key = 'Calculus' %} {%
-  elif 'matrix' in blob or 'vector' in blob or 'linear algebra' in blob or
-  'eigen' in blob or 'tensor' in blob %} {% set group_key = 'Linear algebra' %}
-  {% elif 'physics' in blob or 'quantum' in blob or 'force' in blob or 'wave' in
-  blob or 'particle' in blob or 'energy' in blob %} {% set group_key = 'Physics'
-  %} {% elif 'chem' in blob or 'molecule' in blob or 'reaction' in blob or
-  'bond' in blob %} {% set group_key = 'Chemistry' %} {% elif 'genetic' in blob
-  or 'biology' in blob or 'cell' in blob or 'protein' in blob or 'dna' in blob
-  or 'rna' in blob %} {% set group_key = 'Biology' %} {% elif 'algorithm' in
-  blob or 'neural' in blob or 'machine learning' in blob or 'gradient descent'
-  in blob or 'data structure' in blob %} {% set group_key = 'CS & ML' %} {% else
-  %} {% set group_key = 'Other' %} {% endif %} {% if group_key not in
+  {# Bucket jobs by the persisted category assigned during storyboard generation. #}
+  {% set groups = namespace(items={}) %} {% for job in jobs %}
+  {% set group_key = job.topic_category or 'Other' %} {% if group_key not in
   groups.items %}{% set _ = groups.items.update({group_key: []}) %}{% endif %}
   {% set _ = groups.items[group_key].append(job) %} {% endfor %}
 
@@ -194,6 +157,7 @@
           class="video-card group flex flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-neutral-400 hover:shadow-md"
           data-status="{{ job.status }}"
           data-state="{{ 'active' if job.is_active else job.status }}"
+          data-hidden-by-default="{{ 'true' if job.status in ['failed', 'canceled'] else 'false' }}"
           data-search="{{ ((job.title or '') ~ ' ' ~ (job.concept or '') ~ ' ' ~ (job.research or '') ~ ' ' ~ (job.status or '')) | lower }}"
         >
           <div
@@ -290,21 +254,19 @@
     const root = document.getElementById("video-grid-root");
     const empty = document.getElementById("video-empty");
     const countEl = document.getElementById("video-count");
-    const filterButtons = Array.from(document.querySelectorAll(".filter-chip"));
+    const showFailed = document.getElementById("show-failed");
     if (!search || !root) return;
-
-    let activeFilter = "all";
 
     function applyFilters() {
       const query = search.value.trim().toLowerCase();
+      const includeFailed = Boolean(showFailed && showFailed.checked);
       let visible = 0;
       Array.from(root.querySelectorAll(".library-group")).forEach((group) => {
         let groupVisible = 0;
         group.querySelectorAll(".video-card").forEach((card) => {
           const matchesSearch = !query || card.dataset.search.includes(query);
-          const matchesFilter =
-            activeFilter === "all" || card.dataset.state === activeFilter;
-          const show = matchesSearch && matchesFilter;
+          const hiddenByDefault = card.dataset.hiddenByDefault === "true";
+          const show = matchesSearch && (!hiddenByDefault || includeFailed);
           card.style.display = show ? "" : "none";
           if (show) {
             visible += 1;
@@ -318,15 +280,8 @@
     }
 
     search.addEventListener("input", applyFilters);
-    filterButtons.forEach((btn) =>
-      btn.addEventListener("click", () => {
-        activeFilter = btn.dataset.filter;
-        filterButtons.forEach((b) =>
-          b.classList.toggle("filter-chip-active", b === btn),
-        );
-        applyFilters();
-      }),
-    );
+    if (showFailed) showFailed.addEventListener("change", applyFilters);
+    applyFilters();
   })();
 
   (function () {

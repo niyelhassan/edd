@@ -12,7 +12,7 @@ from .claude_code import ClaudeCodeError, run_claude_json
 from .deepgram_tts import DeepgramError, DeepgramTTSClient
 from .manim_builder import build_manim_module
 from .media import MediaError, concat_clips, extract_thumbnail, mux_video_with_audio, probe_duration, render_scene
-from .question_generation import generate_quiz_from_storyboard
+from .question_generation import VIDEO_CATEGORIES, _normalize_category, _normalize_quiz
 from .repository import add_log, get_job, update_job
 from .template_registry import VALID_LAYOUTS, content_layout_prompt
 
@@ -157,9 +157,9 @@ def _normalize_explanation_level(value: str | None) -> str:
         "intermediate": "college",
         "advanced": "expert",
     }
-    level = (value or "college").strip().lower()
+    level = (value or "high_school").strip().lower()
     level = aliases.get(level, level)
-    return level if level in VALID_EXPLANATION_LEVELS else "college"
+    return level if level in VALID_EXPLANATION_LEVELS else "high_school"
 
 
 def _build_storyboard_prompt(job: dict) -> str:
@@ -171,14 +171,16 @@ def _build_storyboard_prompt(job: dict) -> str:
     research = (job.get("research") or "").strip()
     level = _normalize_explanation_level(job.get("explanation_level"))
     level_guidance = _EXPLANATION_LEVEL_GUIDANCE[level]
+    categories = ", ".join(VIDEO_CATEGORIES)
     return f"""
 You are storyboarding a short, visual-first explainer video.
 
 Topic: {job["concept"]}
 Explanation level: {level.upper()} — {level_guidance}
-Research context: {research or "None provided. Use stable background knowledge."}
+Research area: {research}
 Target runtime: about {job["duration_seconds"]} seconds.
 Total scenes: exactly {total_scenes} ({content_scenes} content scenes between an opening title and closing key-takeaways scene).
+Category: choose exactly one of these labels: {categories}.
 
 REQUIRED STRUCTURE (in order):
 1. Scene 1 — `title_card`: lesson title with one short framing line in `hook`. Empty `key_points`, `visual_items`, `equations`. Set `takeaway` to "".
@@ -226,10 +228,37 @@ CONTENT REQUIREMENTS:
 - `highlight_terms`: 1–3 word concept names (max 24 chars). No filler like "Topic" or "Concept".
 - `equations`: compact LaTeX, max 80 chars. Up to 6 for `step_derivation`; 1–2 for `equation`.
 - `data_points` must be {{"label": "Short Label", "value": 42.0}} with numeric values.
-- Build the lesson so the viewer leaves able to answer concrete questions — name specific quantities, contrasts, or misconceptions worth quizzing.
-- Tie all examples to the research context when provided.
-- Return ONLY JSON matching the provided schema. No prose outside the schema.
+- Include a `quiz` object with exactly 5 multiple-choice questions.
+- The quiz is a pre/post assessment, so questions must be understandable before watching by a student familiar with the topic words.
+- Do not phrase questions as "according to the lesson" or "in the video".
+- The video must explicitly teach every correct answer, and every correct answer must be recoverable from the storyboard.
+- Questions should test core ideas, definitions, steps, contrasts, examples, and misconceptions that the video teaches.
+- Each quiz question must have exactly 4 plausible choices and a zero-based `answer` index.
+- Tie examples to the research area.
+- Return exactly one top-level JSON object matching the provided schema, never an array.
+- No prose outside the schema.
 """.strip()
+
+
+def _validate_storyboard_payload(storyboard: object, *, min_scenes: int) -> dict:
+    if not isinstance(storyboard, dict):
+        raise WorkflowError(f"Storyboard JSON must be an object, got {type(storyboard).__name__}.")
+    for field in ("title", "summary", "learning_objective", "closing_takeaway"):
+        if not str(storyboard.get(field) or "").strip():
+            raise WorkflowError(f"Storyboard JSON must include `{field}`.")
+    category = str(storyboard.get("category") or "").strip()
+    if category not in VIDEO_CATEGORIES:
+        raise WorkflowError("Storyboard JSON must include a valid category.")
+    scenes = storyboard.get("scenes")
+    if not isinstance(scenes, list):
+        raise WorkflowError("Storyboard JSON must include a scenes array.")
+    if len(scenes) < min_scenes:
+        raise WorkflowError(f"Storyboard returned {len(scenes)} scenes, need at least {min_scenes}.")
+    for index, scene in enumerate(scenes, start=1):
+        if not isinstance(scene, dict):
+            raise WorkflowError(f"Scene {index} must be an object.")
+    _normalize_quiz(storyboard.get("quiz") or {})
+    return storyboard
 
 
 class VideoWorkflow:
@@ -253,24 +282,25 @@ class VideoWorkflow:
 
         try:
             self._require_tools()
+            self._check_canceled(job_id)
 
             update_job(job_id, status="running", current_step="Starting job", error_message=None)
             add_log(job_id, "Worker started.")
 
             self._set_state(job_id, status="running", current_step="Planning storyboard")
             storyboard = self._generate_storyboard(job, agent_dir)
-
-            # Now that we have the storyboard, kick off the quiz: it can be answered
-            # directly from what the video is going to teach.
-            self._generate_quiz(job, storyboard, agent_dir)
+            self._check_canceled(job_id)
 
             self._set_state(job_id, current_step="Synthesizing narration")
             storyboard = self._generate_audio(job, storyboard, audio_dir)
+            self._check_canceled(job_id)
 
             self._set_state(job_id, current_step="Preparing scenes")
             code_path = self._build_scene_module(job, storyboard, agent_dir)
+            self._check_canceled(job_id)
 
             final_video = self._render_and_assemble(job, storyboard, code_path, render_dir, clips_dir, final_dir)
+            self._check_canceled(job_id)
 
             update_job(
                 job_id,
@@ -282,6 +312,11 @@ class VideoWorkflow:
             )
             add_log(job_id, f"Final video ready: {final_video.name}")
         except (ClaudeCodeError, DeepgramError, MediaError, WorkflowError) as exc:
+            latest = get_job(job_id)
+            if latest and latest.get("status") == "canceled":
+                update_job(job_id, current_step="Canceled", error_message="Stopped by user.")
+                add_log(job_id, "Worker stopped after cancellation.", level="warning")
+                return
             update_job(job_id, status="failed", current_step="Failed", error_message=str(exc))
             add_log(job_id, f"Job failed: {exc}", level="error")
         except Exception as exc:
@@ -294,37 +329,74 @@ class VideoWorkflow:
             raise WorkflowError(f"Missing required tools: {', '.join(missing)}")
 
     def _set_state(self, job_id: str, **fields) -> None:
+        self._check_canceled(job_id)
         update_job(job_id, **fields)
         if "current_step" in fields:
             add_log(job_id, fields["current_step"])
+
+    def _check_canceled(self, job_id: str) -> None:
+        latest = get_job(job_id)
+        if latest and latest.get("status") == "canceled":
+            raise WorkflowError("Stopped by user.")
 
     def _generate_storyboard(self, job: dict, agent_dir: Path) -> dict:
         storyboard_path = agent_dir / "storyboard.json"
         min_scenes, max_scenes = _storyboard_scene_limits()
         add_log(
             job["id"],
-            f"Claude planning: model {self.app.config['CLAUDE_CODE_MODEL']}",
+            f"Claude storyboard: model {self.app.config['CLAUDE_CODE_MODEL']}",
         )
-        storyboard, token_usage = run_claude_json(
-            prompt=_build_storyboard_prompt(job),
-            workdir=agent_dir,
-            output_path=storyboard_path,
-            model=self.app.config["CLAUDE_CODE_MODEL"],
-            max_turns=self.app.config["CLAUDE_CODE_MAX_TURNS"],
-        )
+        prompt = _build_storyboard_prompt(job)
+        last_error: Exception | None = None
+        storyboard: dict | None = None
+        token_usage: dict | None = None
+        for attempt in range(2):
+            attempt_path = agent_dir / f"storyboard.raw{attempt + 1}.json"
+            attempt_prompt = prompt
+            if attempt:
+                attempt_prompt = (
+                    f"{prompt}\n\n"
+                    "Your previous response was invalid. Return one JSON object only. "
+                    "The top-level value must be an object with title, summary, learning_objective, "
+                    "closing_takeaway, category, quiz, and scenes. It must not be a list."
+                )
+                add_log(job["id"], f"Retrying storyboard after invalid JSON: {last_error}", level="warning")
+            try:
+                candidate, candidate_usage = run_claude_json(
+                    prompt=attempt_prompt,
+                    workdir=agent_dir,
+                    output_path=attempt_path,
+                    model=self.app.config["CLAUDE_CODE_MODEL"],
+                    max_turns=self.app.config["CLAUDE_CODE_MAX_TURNS"],
+                    permission_mode="default",
+                    system_prompt=(
+                        "Return only the requested JSON object. Do not return a plan, markdown, prose, "
+                        "tool calls, or a top-level array."
+                    ),
+                )
+                storyboard = _validate_storyboard_payload(candidate, min_scenes=min_scenes)
+                token_usage = candidate_usage
+                break
+            except (ClaudeCodeError, WorkflowError, ValueError) as exc:
+                last_error = exc
+        if storyboard is None or token_usage is None:
+            raise WorkflowError(f"Storyboard generation returned invalid JSON: {last_error}")
+
         scenes = storyboard.get("scenes") or []
-        if len(scenes) < min_scenes:
-            raise WorkflowError(f"Storyboard returned {len(scenes)} scenes, need at least {min_scenes}.")
         if len(scenes) > max_scenes:
             scenes = scenes[:max_scenes]
             storyboard["scenes"] = scenes
 
         color_theme = _normalize_color_theme(job.get("color_theme"))
         storyboard["color_theme"] = color_theme
-        storyboard["title"] = storyboard.get("title") or job["concept"]
-        storyboard["summary"] = storyboard.get("summary") or f"A concise explainer about {job['concept']}."
-        storyboard["learning_objective"] = storyboard.get("learning_objective") or f"Understand the core idea behind {job['concept']}."
-        storyboard["closing_takeaway"] = storyboard.get("closing_takeaway") or f"Use {job['concept']} by tracking the assumptions, changes, and result."
+        storyboard["title"] = str(storyboard["title"]).strip()
+        storyboard["summary"] = str(storyboard["summary"]).strip()
+        storyboard["learning_objective"] = str(storyboard["learning_objective"]).strip()
+        storyboard["closing_takeaway"] = str(storyboard["closing_takeaway"]).strip()
+        category = _normalize_category(storyboard)
+        quiz = _normalize_quiz(storyboard.get("quiz") or {})
+        storyboard["category"] = category
+        storyboard["quiz"] = {"questions": quiz}
 
         expected_scene_count = _target_content_scene_count(int(job["duration_seconds"])) + 2
         if len(scenes) > expected_scene_count:
@@ -424,43 +496,32 @@ class VideoWorkflow:
             title=storyboard.get("title") or job["concept"],
             storyboard_path=str(storyboard_path),
             token_usage_json=json.dumps(token_usage),
+            quiz_json=json.dumps({"status": "ready", "category": category, "questions": quiz}),
+            topic_category=category,
+            quiz_token_usage_json=json.dumps(
+                {
+                    "model": self.app.config["CLAUDE_CODE_MODEL"],
+                    "total_tokens": 0,
+                    "input_tokens": 0,
+                    "output_tokens": 0,
+                    "cache_read_input_tokens": 0,
+                    "cache_creation_input_tokens": 0,
+                    "cost_usd": 0,
+                    "included_in": "storyboard",
+                }
+            ),
         )
         add_log(job["id"], f"Storyboard ready: {len(scenes)} scenes, theme {color_theme}, level {_normalize_explanation_level(job.get('explanation_level'))}.")
         add_log(
             job["id"],
             f"Storyboard tokens: {token_usage['stage_totals']['storyboard']} (in {token_usage['input_tokens']} / out {token_usage['output_tokens']}).",
         )
+        add_log(job["id"], f"Quiz included in storyboard ({len(quiz)} questions, category {category}).")
         return storyboard
-
-    def _generate_quiz(self, job: dict, storyboard: dict, agent_dir: Path) -> None:
-        quiz_dir = agent_dir.parent / "quiz"
-        quiz_dir.mkdir(parents=True, exist_ok=True)
-        try:
-            quiz, usage = generate_quiz_from_storyboard(
-                concept=job["concept"],
-                research=job.get("research") or "",
-                storyboard=storyboard,
-                workdir=quiz_dir,
-                output_path=quiz_dir / "questions.json",
-                model=self.app.config["CLAUDE_QUESTION_MODEL"],
-            )
-        except Exception as exc:
-            update_job(job["id"], quiz_json=json.dumps({"status": "error", "error": str(exc)}))
-            add_log(job["id"], f"Question generation failed: {exc}", level="error")
-            return
-
-        update_job(
-            job["id"],
-            quiz_json=json.dumps({"status": "ready", "questions": quiz}),
-            quiz_token_usage_json=json.dumps(usage),
-        )
-        add_log(
-            job["id"],
-            f"Quiz ready ({self.app.config['CLAUDE_QUESTION_MODEL']}, {usage.get('total_tokens', 0)} tokens).",
-        )
 
     def _generate_audio(self, job: dict, storyboard: dict, audio_dir: Path) -> dict:
         for index, scene in enumerate(storyboard["scenes"], start=1):
+            self._check_canceled(job["id"])
             output_path = audio_dir / f"{index:02d}_{scene['slug']}.mp3"
             duration = self.tts.synthesize(
                 text=scene["narration"],
@@ -489,6 +550,7 @@ class VideoWorkflow:
         clip_paths = []
         clip_durations: list[float] = []
         for index, scene in enumerate(storyboard["scenes"], start=1):
+            self._check_canceled(job["id"])
             self._set_state(job["id"], current_step=f"Rendering scene {index} of {len(storyboard['scenes'])}")
             add_log(job["id"], f"Rendering scene {index}: {scene['headline']}")
             scene_media_dir = render_dir / scene["slug"]
@@ -509,6 +571,7 @@ class VideoWorkflow:
                 clip_durations.append(float(scene.get("target_duration_seconds") or 0) or 6.0)
             clip_paths.append(clip_path)
             add_log(job["id"], f"Scene {index} clip assembled.")
+            self._check_canceled(job["id"])
 
         self._set_state(job["id"], current_step="Finalizing video")
         final_video = final_dir / f"{_slugify(job['concept'])}.mp4"

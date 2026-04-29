@@ -10,9 +10,15 @@
     </div>
     <div class="flex items-center gap-2">
       <span class="status-badge status-{{ job.status }}">{{ job.status }}</span>
+      {% if job.is_active %}
+      <form method="post" action="{{ url_for('main.cancel_job', job_id=job.id) }}">
+        <button type="submit" class="btn-secondary">Stop</button>
+      </form>
+      {% else %}
       <form method="post" action="{{ url_for('main.rerun_job', job_id=job.id) }}">
         <button type="submit" class="btn-secondary">Rerun</button>
       </form>
+      {% endif %}
     </div>
   </div>
 
@@ -46,10 +52,16 @@
     <div class="dev-metric">
       <p class="dev-metric-label">Quiz tokens</p>
       {% if job.quiz_token_usage %}
-      <p class="dev-metric-value tabular-nums">{{ job.quiz_token_usage.total_tokens or 0 }}</p>
+      <p class="dev-metric-value tabular-nums">
+        {% if job.quiz_token_usage.included_in == "storyboard" %}Included{% else %}{{ job.quiz_token_usage.total_tokens or 0 }}{% endif %}
+      </p>
       <p class="dev-metric-sub">
+        {% if job.quiz_token_usage.included_in == "storyboard" %}
+        generated in storyboard call
+        {% else %}
         {{ job.quiz_token_usage.model or "" }} · in {{ job.quiz_token_usage.input_tokens or 0 }} · out {{ job.quiz_token_usage.output_tokens or 0 }}
         {% if job.quiz_token_usage.cost_usd is not none %} · ${{ "%.4f"|format(job.quiz_token_usage.cost_usd) }}{% endif %}
+        {% endif %}
       </p>
       {% else %}
       <p class="dev-metric-value text-neutral-400">-</p>
@@ -71,7 +83,7 @@
     <div class="dev-card">
       <p class="dev-card-label">Input</p>
       <p class="mt-2 text-sm font-medium text-neutral-950">{{ job.concept }}</p>
-      <p class="mt-1 text-xs text-neutral-600">{{ job.research or "No context provided." }}</p>
+      <p class="mt-1 text-xs text-neutral-600">{{ job.research }}</p>
       <p class="mt-2 text-[0.65rem] uppercase tracking-wider text-neutral-400">
         {{ job.duration_label }} · theme {{ job.color_theme or "blue" }} · {{ job.scene_count or 0 }} scenes
       </p>
@@ -80,7 +92,7 @@
       <p class="dev-card-label">Models</p>
       <p class="mt-2 text-sm text-neutral-950"><span class="text-neutral-500">Video:</span> {{ job.model }}</p>
       <p class="text-sm text-neutral-950"><span class="text-neutral-500">Voice:</span> {{ job.voice_model }}</p>
-      {% if job.quiz_token_usage and job.quiz_token_usage.model %}
+      {% if job.quiz_token_usage and job.quiz_token_usage.model and job.quiz_token_usage.included_in != "storyboard" %}
       <p class="text-sm text-neutral-950"><span class="text-neutral-500">Quiz:</span> {{ job.quiz_token_usage.model }}</p>
       {% endif %}
     </div>

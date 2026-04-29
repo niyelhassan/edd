@@ -79,6 +79,8 @@ async def _run_query(
     workdir: Path,
     model: str,
     max_turns: int | None,
+    permission_mode: str | None,
+    system_prompt: str | None,
 ) -> ResultMessage:
     result: ResultMessage | None = None
     try:
@@ -89,7 +91,8 @@ async def _run_query(
                 model=model,
                 max_turns=max_turns,
                 tools=[],
-                permission_mode="plan",
+                permission_mode=permission_mode,
+                system_prompt=system_prompt,
                 effort="low",
             ),
         ):
@@ -120,6 +123,8 @@ def run_claude_json(
     model: str,
     max_turns: int | None = None,
     timeout_seconds: int = 900,
+    permission_mode: str | None = "plan",
+    system_prompt: str | None = None,
 ) -> tuple[dict, dict]:
     del timeout_seconds
     workdir = workdir.resolve()
@@ -130,7 +135,14 @@ def run_claude_json(
     for _ in range(2):
         try:
             result = asyncio.run(
-                _run_query(prompt, workdir=workdir, model=model, max_turns=max_turns)
+                _run_query(
+                    prompt,
+                    workdir=workdir,
+                    model=model,
+                    max_turns=max_turns,
+                    permission_mode=permission_mode,
+                    system_prompt=system_prompt,
+                )
             )
             cleaned = extract_json_text(result.result or "")
             parsed = json.loads(cleaned)

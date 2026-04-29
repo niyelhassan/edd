@@ -33,11 +33,11 @@ def create_job(
     render_quality: str,
     style_notes: str,
     color_theme: str = "blue",
-    explanation_level: str = "college",
+    explanation_level: str = "high_school",
 ) -> str:
     now = utc_now()
     job_id = uuid.uuid4().hex[:12]
-    duration_seconds = DURATION_PRESETS.get(duration_label, DURATION_PRESETS["medium"])
+    duration_seconds = DURATION_PRESETS.get(duration_label, DURATION_PRESETS["short"])
     db = get_db()
     db.execute(
         """
@@ -85,7 +85,7 @@ def clone_job(source: dict) -> str:
         render_quality=source["render_quality"],
         style_notes=source["style_notes"],
         color_theme=source.get("color_theme", "blue"),
-        explanation_level=source.get("explanation_level", "college"),
+        explanation_level=source.get("explanation_level", "high_school"),
     )
 
 

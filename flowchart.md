@@ -8,7 +8,7 @@ graph TD
     SetCookie --> Home[Home + library]
 
     OnboardCheck -- Yes --> Home
-    Home --> Input[/Topic + context + length + theme/]
+    Home --> Input[/Topic + research area + length + theme/]
     Input --> Submit[Create job]
     Submit --> JobRow[Persist job + log]
     JobRow --> Queue[Queue for worker pool]

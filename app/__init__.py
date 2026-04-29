@@ -19,10 +19,13 @@ def create_app() -> Flask:
     app.config.update(
         SECRET_KEY=os.getenv("SECRET_KEY", app.config["SECRET_KEY"]),
         CLAUDE_CODE_MODEL=os.getenv("CLAUDE_CODE_MODEL", app.config["CLAUDE_CODE_MODEL"]),
-        CLAUDE_QUESTION_MODEL=os.getenv("CLAUDE_QUESTION_MODEL", app.config["CLAUDE_QUESTION_MODEL"]),
         CLAUDE_CODE_MAX_TURNS=int(claude_max_turns_raw) if claude_max_turns_raw.strip() else None,
         DEEPGRAM_API_KEY=os.getenv("DEEPGRAM_API_KEY", app.config["DEEPGRAM_API_KEY"]),
         DEEPGRAM_VOICE_MODEL=os.getenv("DEEPGRAM_VOICE_MODEL", app.config["DEEPGRAM_VOICE_MODEL"]),
+        GOOGLE_RESULTS_SPREADSHEET_ID=os.getenv("GOOGLE_RESULTS_SPREADSHEET_ID", app.config["GOOGLE_RESULTS_SPREADSHEET_ID"]),
+        GOOGLE_RESULTS_WORKSHEET_NAME=os.getenv("GOOGLE_RESULTS_WORKSHEET_NAME", app.config["GOOGLE_RESULTS_WORKSHEET_NAME"]),
+        GOOGLE_SERVICE_ACCOUNT_FILE=os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE", app.config["GOOGLE_SERVICE_ACCOUNT_FILE"]),
+        GOOGLE_SERVICE_ACCOUNT_JSON=os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", app.config["GOOGLE_SERVICE_ACCOUNT_JSON"]),
         MAX_WORKERS=int(os.getenv("MAX_WORKERS", str(app.config["MAX_WORKERS"]))),
         POLL_INTERVAL_MS=int(os.getenv("POLL_INTERVAL_MS", str(app.config["POLL_INTERVAL_MS"]))),
     )

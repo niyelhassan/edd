@@ -1,0 +1,6 @@
+timestamp,job_id,topic,research_area,category,length,explanation_level,color_theme,video_length_actual,time,storyboard_tokens,storyboard_cost,quiz_tokens,quiz_cost,is_trial,name,grade,enrollment,difficulty_frequency,first_resource,resource_satisfaction,first_video_time,understanding_change,video_quality,appropriate_length,easy_without_guidance,use_again,improvement,pre_score,pre_percentage,post_score,post_percentage
+2026-04-29T18:00:14.141380+00:00,4e2d3dd9fe72,LLMs,I know CNNs and Neural Networks but not much about LLMs,CS & ML,medium,college,blue,3m 13s,5m 12s,5524,0.044321,29295,0.056997,yes,Samvarth Raj,10th,Research Practicum,Often,"Ask a
+      teacher/peer",Neutral,"3-5
+    min",Slightly better,Excellent,Strongly Agree,Strongly Agree,Very Likely,"I think adjusting the difficulty/allowing you to go back to the video during the post-quiz could be helpful, or like an Edpuzzle asking questions during the video",1,20.0,4,80.0
+2026-04-29T19:49:08.630592+00:00,354e2de2e322,fast fourier transform,wifi,CS & ML,short,high_school,slate,1m 13s,2m 13s,5176,0.03933,6989,0.027858,no,d,9th,Research Practicum,Never,YouTube,Very Unsatisfied,Under 3 min,"Much
+    worse",Very Poor,Strongly Disagree,Strongly Disagree,Very Unlikely,e,0,0.0,3,60.0
