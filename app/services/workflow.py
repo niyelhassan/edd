@@ -18,6 +18,25 @@ from .template_registry import VALID_LAYOUTS, content_layout_prompt
 
 
 VALID_COLOR_THEMES = ("blue", "violet", "green", "amber", "rose", "slate")
+VALID_EXPLANATION_LEVELS = ("high_school", "college", "expert")
+
+_EXPLANATION_LEVEL_GUIDANCE = {
+    "high_school": (
+        "Target audience is a high school student. Use plain language, define technical terms "
+        "on first use, rely on concrete examples, keep equations minimal, and build each idea "
+        "from the ground up."
+    ),
+    "college": (
+        "Target audience is a college student. Assume basic familiarity with the domain "
+        "but explain technical terms clearly. "
+        "Balance conceptual intuition with precise language, and use equations where they add clarity."
+    ),
+    "expert": (
+        "Target audience is an advanced learner or domain expert. "
+        "Use precise technical vocabulary, skip over introductory context, go deep on mechanism "
+        "and derivation, assume fluency with standard notation, and highlight non-obvious insights."
+    ),
+}
 FIXED_THANKS_NARRATION = "Thanks for watching. Take a moment to review the key idea, then try the quiz to see what stuck."
 FIXED_THANKS_HOOK = ""
 
@@ -132,6 +151,17 @@ def _truncate_clean(value: str, limit: int) -> str:
     return cut.rstrip(",;:.-")
 
 
+def _normalize_explanation_level(value: str | None) -> str:
+    aliases = {
+        "beginner": "high_school",
+        "intermediate": "college",
+        "advanced": "expert",
+    }
+    level = (value or "college").strip().lower()
+    level = aliases.get(level, level)
+    return level if level in VALID_EXPLANATION_LEVELS else "college"
+
+
 def _build_storyboard_prompt(job: dict) -> str:
     min_scenes, max_scenes = _storyboard_scene_limits()
     content_scenes = _target_content_scene_count(int(job["duration_seconds"]))
@@ -139,11 +169,14 @@ def _build_storyboard_prompt(job: dict) -> str:
     total_words = int(round(job["duration_seconds"] * 2.5))
     per_scene_words = max(35, int(round(total_words / max(content_scenes + 1, 1))))
     research = (job.get("research") or "").strip()
+    level = _normalize_explanation_level(job.get("explanation_level"))
+    level_guidance = _EXPLANATION_LEVEL_GUIDANCE[level]
     return f"""
-You are storyboarding a short, visual-first explainer video for advanced high school students.
+You are storyboarding a short, visual-first explainer video.
 
 Topic: {job["concept"]}
-Research context: {research or "None provided. Use stable background knowledge appropriate for an advanced high school student."}
+Explanation level: {level.upper()} — {level_guidance}
+Research context: {research or "None provided. Use stable background knowledge."}
 Target runtime: about {job["duration_seconds"]} seconds.
 Total scenes: exactly {total_scenes} ({content_scenes} content scenes between an opening title and closing key-takeaways scene).
 
@@ -164,6 +197,10 @@ LAYOUT DIVERSITY — CRITICAL:
 - Use charts (`bar_chart`, `line_chart`, `proportional_chart`) whenever there are quantitative comparisons or distributions.
 - Use `flow` or `timeline` for any sequential process or historical progression.
 - Mix diagram layouts (`network`, `cause_effect`) with equation and chart layouts to vary visual rhythm.
+- For `equation`: pair EVERY symbol in `highlight_terms` with its full definition in the matching `key_points` entry. This is how the variable-definitions table is built.
+- For `step_derivation`: provide up to 8 LaTeX steps. Label each step with a short action word in `visual_items` (e.g. "Given", "Expand", "Factor", "Result").
+- For `flow`: provide a full description sentence per stage in `key_points` — not just labels — so the stage cards have meaningful body text.
+- For `timeline`: provide a brief description for each milestone in `key_points` to populate the label blocks below each dot.
 
 VISUAL STYLE:
 - Each scene is a polished 16:9 research explainer frame: off-white background, dark slate typography, accent color, thin bottom rule, white cards, generous spacing.
@@ -342,14 +379,14 @@ class VideoWorkflow:
             narration = scene["narration"]
             shown = (scene["headline"], scene["hook"], scene["takeaway"])
 
-            highlight = _filter_visual_strings(scene.get("highlight_terms"), narration, exclude=shown)[:4]
+            highlight = _filter_visual_strings(scene.get("highlight_terms"), narration, exclude=shown)[:6]
             scene["highlight_terms"] = highlight or [scene["headline"]]
             scene["visual_items"] = _filter_visual_strings(
                 scene.get("visual_items"), narration,
                 exclude=shown + tuple(scene["highlight_terms"]),
-            )[:5]
-            scene["key_points"] = _filter_visual_strings(scene.get("key_points"), narration, exclude=shown)[:5]
-            max_equations = 6 if scene["layout"] == "step_derivation" else 2
+            )[:6]
+            scene["key_points"] = _filter_visual_strings(scene.get("key_points"), narration, exclude=shown)[:8]
+            max_equations = 8 if scene["layout"] == "step_derivation" else 2
             equations = [str(eq).strip() for eq in (scene.get("equations") or []) if str(eq).strip()][:max_equations]
             scene["equations"] = equations
             data_points = []
@@ -388,7 +425,7 @@ class VideoWorkflow:
             storyboard_path=str(storyboard_path),
             token_usage_json=json.dumps(token_usage),
         )
-        add_log(job["id"], f"Storyboard ready: {len(scenes)} scenes, theme {color_theme}.")
+        add_log(job["id"], f"Storyboard ready: {len(scenes)} scenes, theme {color_theme}, level {_normalize_explanation_level(job.get('explanation_level'))}.")
         add_log(
             job["id"],
             f"Storyboard tokens: {token_usage['stage_totals']['storyboard']} (in {token_usage['input_tokens']} / out {token_usage['output_tokens']}).",

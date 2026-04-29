@@ -6,4 +6,7 @@ timestamp,job_id,is_trial,name,grade,enrollment,difficulty_frequency,first_resou
 2026-04-28T19:04:53.389995,163eadc487d0,false,",mnn,m",9th,ITR,Sometimes,"Ask a
       teacher/peer",Neutral,5-10 min,Slightly worse,Neutral,Neutral,Neutral,Unlikely,k,0,0.0,3,60.0
 2026-04-29T11:43:39.288157,5179232c2b82,,,,,,,,,,,,,,,2,40.0,2,40.0
-2026-04-29T13:35:57.635423,aed8f9b6981b,,,,,,,,,,,,,,,0,0.0,2,40.0
+2026-04-29T14:57:56.097977,aed8f9b6981b,,,,,,,,,,,,,,,0,0.0,0,0.0
+2026-04-29T15:17:43.770410,4e2d3dd9fe72,yes,Samvarth Raj,10th,Research Practicum,Often,"Ask a
+      teacher/peer",Neutral,"3-5
+    min",Slightly better,Excellent,Strongly Agree,Strongly Agree,Very Likely,"I think adjusting the difficulty/allowing you to go back to the video during the post-quiz could be helpful, or like an Edpuzzle asking questions during the video",1,20.0,4,80.0

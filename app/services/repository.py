@@ -33,6 +33,7 @@ def create_job(
     render_quality: str,
     style_notes: str,
     color_theme: str = "blue",
+    explanation_level: str = "college",
 ) -> str:
     now = utc_now()
     job_id = uuid.uuid4().hex[:12]
@@ -43,9 +44,9 @@ def create_job(
         INSERT INTO jobs (
             id, concept, research, audience, provider, model, duration_label,
             duration_seconds, voice_model, render_quality, style_notes, color_theme,
-            status, current_step, created_at, updated_at
+            explanation_level, status, current_step, created_at, updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             job_id,
@@ -60,6 +61,7 @@ def create_job(
             render_quality,
             style_notes,
             color_theme,
+            explanation_level,
             "queued",
             "Waiting for worker",
             now,
@@ -83,6 +85,7 @@ def clone_job(source: dict) -> str:
         render_quality=source["render_quality"],
         style_notes=source["style_notes"],
         color_theme=source.get("color_theme", "blue"),
+        explanation_level=source.get("explanation_level", "college"),
     )
 
 

@@ -25,7 +25,7 @@ from .services.captions import write_captions
 from .services.claude_code import extract_json_text
 from .services.media import MediaError, extract_thumbnail, probe_duration
 from .services.repository import add_log, clone_job, create_job, get_job, get_job_logs, list_jobs, update_job
-from .services.workflow import VALID_COLOR_THEMES
+from .services.workflow import VALID_COLOR_THEMES, VALID_EXPLANATION_LEVELS
 
 
 RESULTS_CSV_FIELDNAMES = [
@@ -478,6 +478,7 @@ def home():
         environment=environment,
         models=models,
         color_themes=VALID_COLOR_THEMES,
+        explanation_levels=VALID_EXPLANATION_LEVELS,
         library_completed_only=library_completed_only,
     )
 
@@ -510,6 +511,9 @@ def create_job_view():
     color_theme = request.form.get("color_theme", "blue").strip().lower()
     if color_theme not in VALID_COLOR_THEMES:
         color_theme = "blue"
+    explanation_level = request.form.get("explanation_level", "college").strip().lower()
+    if explanation_level not in VALID_EXPLANATION_LEVELS:
+        explanation_level = "college"
 
     style_notes = " ".join(
         [
@@ -530,6 +534,7 @@ def create_job_view():
         render_quality="720p",
         style_notes=style_notes,
         color_theme=color_theme,
+        explanation_level=explanation_level,
     )
     current_app.extensions["job_manager"].enqueue(job_id)
     return redirect(url_for("main.pre_quiz", job_id=job_id))

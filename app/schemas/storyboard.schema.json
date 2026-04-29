@@ -65,23 +65,23 @@
           "visual_goal": { "type": "string", "minLength": 8 },
           "key_points": {
             "type": "array",
-            "maxItems": 5,
-            "items": { "type": "string", "minLength": 4, "maxLength": 90 }
+            "maxItems": 8,
+            "items": { "type": "string", "minLength": 4, "maxLength": 100 }
           },
           "visual_items": {
             "type": "array",
-            "maxItems": 5,
-            "items": { "type": "string", "minLength": 2, "maxLength": 40 }
+            "maxItems": 6,
+            "items": { "type": "string", "minLength": 2, "maxLength": 48 }
           },
           "highlight_terms": {
             "type": "array",
-            "maxItems": 5,
-            "items": { "type": "string", "minLength": 2, "maxLength": 24 }
+            "maxItems": 6,
+            "items": { "type": "string", "minLength": 2, "maxLength": 30 }
           },
           "equations": {
             "type": "array",
-            "maxItems": 6,
-            "items": { "type": "string", "maxLength": 80 }
+            "maxItems": 8,
+            "items": { "type": "string", "maxLength": 100 }
           },
           "data_points": {
             "type": "array",

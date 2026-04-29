@@ -46,17 +46,25 @@
       </label>
     </div>
 
-    <div
-      class="mt-5 grid gap-8 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-20 lg:items-start"
-    >
-      <label class="block">
-        <span class="mb-2 block text-sm font-semibold">Length</span>
-        <select name="duration_label" class="field">
-          <option value="short">Short, about 1 min</option>
-          <option value="medium" selected>Medium, about 3 min</option>
-          <option value="long">Long, about 5 min</option>
-        </select>
-      </label>
+    <div class="mt-5 grid gap-5 lg:grid-cols-[minmax(0,460px)_minmax(0,1fr)] lg:gap-12 lg:items-start">
+      <div class="grid gap-4 sm:grid-cols-2">
+        <label class="block">
+          <span class="mb-2 block text-sm font-semibold">Length</span>
+          <select name="duration_label" class="field">
+            <option value="short">Short, about 1 min</option>
+            <option value="medium" selected>Medium, about 3 min</option>
+            <option value="long">Long, about 5 min</option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="mb-2 block text-sm font-semibold">Explanation level</span>
+          <select name="explanation_level" class="field">
+            <option value="high_school">High school</option>
+            <option value="college" selected>College</option>
+            <option value="expert">Expert</option>
+          </select>
+        </label>
+      </div>
       <div>
         <span class="mb-2 block text-sm font-semibold">Color theme</span>
         <div

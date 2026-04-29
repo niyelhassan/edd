@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     render_quality TEXT NOT NULL,
     style_notes TEXT NOT NULL,
     color_theme TEXT NOT NULL DEFAULT 'blue',
+    explanation_level TEXT NOT NULL DEFAULT 'college',
     status TEXT NOT NULL,
     current_step TEXT NOT NULL,
     title TEXT,
@@ -81,6 +82,7 @@ def _migrate_schema(db: sqlite3.Connection) -> None:
         "survey_json": "ALTER TABLE jobs ADD COLUMN survey_json TEXT",
         "color_theme": "ALTER TABLE jobs ADD COLUMN color_theme TEXT NOT NULL DEFAULT 'blue'",
         "quiz_token_usage_json": "ALTER TABLE jobs ADD COLUMN quiz_token_usage_json TEXT",
+        "explanation_level": "ALTER TABLE jobs ADD COLUMN explanation_level TEXT NOT NULL DEFAULT 'college'",
     }
     for column, statement in migrations.items():
         if column not in columns:
