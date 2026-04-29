@@ -1,49 +1,81 @@
 # EDD Video Generator
 
-A Flask application that generates explainer videos for advanced math and science topics aimed at high school students.
+A Flask app that turns a STEM topic into a short narrated lesson video with pre/post quizzes and feedback capture.
 
-Workflow:
+## What it does
 
-1. Collect a topic in the web UI.
-2. Use Claude Code headless mode once to create a structured 3-scene lesson plan and narration.
-3. Use Deepgram TTS to generate narration audio scene by scene.
-4. Build a deterministic basic Manim module from the storyboard so layout and timing stay stable.
-5. Render scenes with Manim and stitch them into a final MP4 with `ffmpeg`.
+- Collects a topic, context, length, and color theme.
+- Generates a storyboard, narration, and a Manim scene plan.
+- Renders an MP4 with captions and a thumbnail.
+- Runs a 5-question pre-quiz and post-quiz with results and score delta.
+- Captures survey feedback and stores results in CSV.
+- Stores jobs, logs, and artifacts locally, and lets you rerun jobs.
+
+## User flow
+
+1. Onboarding (first visit only) -> Home (completed library + new lesson).
+2. Create lesson -> Pre-quiz (wait if questions are still generating).
+3. Watch video (live progress while rendering).
+4. Post-quiz -> Results -> Feedback survey -> Thanks.
+
+## Generation pipeline (background workers)
+
+- Queue job and log state changes.
+- Plan a storyboard (Claude Agent SDK).
+- Generate a 5-question quiz (Claude CLI).
+- Synthesize narration (Deepgram TTS).
+- Build a Manim module, render scenes, mux audio, and concatenate.
+- Produce captions (VTT) and a thumbnail image.
+- Save final artifacts under `instance/jobs/<job_id>/`.
+
+## Video templates
+
+Production videos are assembled from storyboard scenes. Each scene uses one layout from the template registry:
+
+- Structure: `title_card`, `summary`, `thanks`
+- Statement: `statement`
+- Math/data: `equation`, `step_derivation`, `distribution`, `axes_plot`, `line_chart`, `bar_chart`, `proportional_chart`
+- Explanation: `comparison`, `before_after`, `flow`, `timeline`, `cause_effect`, `network`, `bullets`
+
+Chart templates can use optional `data_points` objects shaped like `{"label": "A", "value": 42}` so generated videos can use real user-provided quantities instead of generic seeded values.
 
 ## Run
 
 ```bash
-pyenv local edd
 pip install -r requirements.txt
-npm install -g @anthropic-ai/claude-code
 python app.py
 ```
 
 Open `http://127.0.0.1:5000`.
 
-Default behavior:
+## Requirements
 
-- High-school audience
-- About 72 seconds
-- 3 scenes
-- `claude-sonnet-4-6`
-- Max 2 Claude turns for planning
-- Simplified Tailwind UI with live progress states
+- `claude` CLI installed and authenticated (quiz generation).
+- Claude Agent SDK available in the Python environment (storyboard generation).
+- `ffmpeg` and `ffprobe` available on PATH.
+- LaTeX (required by Manim).
+- A Deepgram API key for narration.
 
 ## Environment
 
-The app reads `.env` automatically. Important variables:
+The app reads `.env` automatically. Common variables:
 
-- `DEEPGRAM_API_KEY`
-- `DEEPGRAM_VOICE_MODEL`
+- `SECRET_KEY`
 - `CLAUDE_CODE_MODEL`
 - `CLAUDE_QUESTION_MODEL`
 - `CLAUDE_CODE_MAX_TURNS`
-- `DEFAULT_RENDER_QUALITY`
+- `DEEPGRAM_API_KEY`
+- `DEEPGRAM_VOICE_MODEL`
+- `MAX_WORKERS`
+- `POLL_INTERVAL_MS`
 
-## Notes
+## Outputs
 
-- `claude` CLI must already be installed and authenticated.
-- The app uses the Claude Agent SDK and Claude Code CLI session on this machine.
-- `ffmpeg` and LaTeX are required for Manim rendering.
-- Generated jobs and media are stored under `instance/`.
+- SQLite DB: `instance/edd.sqlite3`
+- Job artifacts: `instance/jobs/<job_id>/`
+- Survey + quiz results: `survey_results.csv`
+
+## Docs
+
+- `project.md` for a full capability overview.
+- `flowchart.md` for the updated system flow.

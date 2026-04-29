@@ -14,11 +14,12 @@ from .manim_builder import build_manim_module
 from .media import MediaError, concat_clips, extract_thumbnail, mux_video_with_audio, probe_duration, render_scene
 from .question_generation import generate_quiz_from_storyboard
 from .repository import add_log, get_job, update_job
+from .template_registry import VALID_LAYOUTS, content_layout_prompt
 
 
 VALID_COLOR_THEMES = ("blue", "violet", "green", "amber", "rose", "slate")
 FIXED_THANKS_NARRATION = "Thanks for watching. Take a moment to review the key idea, then try the quiz to see what stuck."
-FIXED_THANKS_HOOK = "Review the idea, then check what stuck."
+FIXED_THANKS_HOOK = ""
 
 
 class WorkflowError(RuntimeError):
@@ -74,17 +75,6 @@ def _fixed_thanks_scene() -> dict:
         "equations": [],
         "takeaway": "",
     }
-
-
-_VALID_LAYOUTS = {
-    "auto", "title_card", "summary", "thanks", "bullets", "concept_map",
-    "equation", "distribution", "axes_plot", "comparison", "flow", "bar_chart",
-}
-
-_CONTENT_LAYOUTS = {
-    "bullets", "concept_map", "equation", "distribution",
-    "axes_plot", "comparison", "flow", "bar_chart",
-}
 
 
 def _norm_for_compare(value: str) -> str:
@@ -159,38 +149,48 @@ Total scenes: exactly {total_scenes} ({content_scenes} content scenes between an
 
 REQUIRED STRUCTURE (in order):
 1. Scene 1 — `title_card`: lesson title with one short framing line in `hook`. Empty `key_points`, `visual_items`, `equations`. Set `takeaway` to "".
-2. Scenes 2..{1 + content_scenes} — content scenes that teach one visual idea each. Pick the layout that fits the idea best.
+2. Scenes 2..{1 + content_scenes} — content scenes that each teach one distinct visual idea. Choose the layout that best reveals the visual idea — not the safest choice.
 3. Scene {2 + content_scenes} — `summary`: bold one-sentence `takeaway` plus 2–3 short `key_points` that crystallize the lesson. No new material.
 
-Do not create a thank-you or sign-off scene. The application adds the fixed closing card and fixed closing narration after this storyboard.
+Do not create a thank-you or sign-off scene. The application adds the fixed closing card after this storyboard.
 
 Available content layouts (pick the one that matches the visual idea):
-- `equation`: a single short equation is the focus. Provide 1 (or at most 2) compact LaTeX equations and 1–3 short symbol labels in `highlight_terms`.
-- `distribution`: probability, p-values, sampling, statistical significance, normal/Gaussian curves. Use `highlight_terms` for the x-axis label and tail-area label.
-- `axes_plot`: an x-y plot of a function (growth, decay, log, parabola, oscillation). Use `highlight_terms` for axis labels and `visual_items` for 1–3 named points.
-- `comparison`: side-by-side contrast. Two thing-names in `visual_items` (left, right), shared traits in `key_points`.
-- `flow`: pipelines, processes, ordered transformations or numbered procedural steps. 3–4 short stage names in `visual_items`.
-- `concept_map`: one central concept with 3 supporting ideas. Central idea first in `highlight_terms`, supporting ideas in `visual_items`.
-- `bar_chart`: ranking, percentages, magnitude comparison. 2–4 category labels in `visual_items`.
-- `bullets`: only when no more visual layout fits. Use sparingly.
+{content_layout_prompt()}
+
+LAYOUT DIVERSITY — CRITICAL:
+- No two content scenes may use the same layout. Every content scene must have a different layout type.
+- `bullets` is an emergency fallback only — avoid it whenever a more visual layout fits.
+- `statement` is the right choice for one powerful insight, principle, or memorable definition — use it at least once when the topic has a central idea worth stating boldly.
+- Use charts (`bar_chart`, `line_chart`, `proportional_chart`) whenever there are quantitative comparisons or distributions.
+- Use `flow` or `timeline` for any sequential process or historical progression.
+- Mix diagram layouts (`network`, `cause_effect`) with equation and chart layouts to vary visual rhythm.
 
 VISUAL STYLE:
-- Think of each scene as a polished 16:9 research explainer slide: clean off-white background, slate typography, cyan accent, thin bottom rule, white cards, subtle borders, and generous spacing.
-- Prefer short, slide-ready labels over dense paragraphs. Use 2–4 visual elements that can be arranged as cards, numbered steps, tags, side-by-side panels, charts, or a single formula block.
-- Make headlines specific enough to stand alone, but keep them calm and professional rather than salesy or shouty.
-- For process scenes, provide concise stage names that will look good as numbered steps. For comparison scenes, provide exactly two short side labels. For equation scenes, provide compact symbol labels that can become small tags.
+- Each scene is a polished 16:9 research explainer frame: off-white background, dark slate typography, accent color, thin bottom rule, white cards, generous spacing.
+- Labels must be short and slide-ready — they appear as visual elements, not prose.
+- For `statement`: put the key insight in `takeaway`, the eyebrow label in `highlight_terms[0]`, and 1–2 supporting clauses in `key_points`.
+- For `flow`: provide concise 2–5 word labels as `visual_items` and matching one-line descriptions as `key_points`.
+- For `timeline` / `network` / `cause_effect`: provide concise 2–5 word labels as `visual_items` that read well as node text. For `network`, use `highlight_terms[0]` as the center node and `key_points` as child descriptions.
+- For `comparison` / `before_after`: provide exactly two short labels as `visual_items[0]` and `visual_items[1]`.
+- For `equation`: provide compact LaTeX in `equations`; symbol/component meanings as `highlight_terms`; short definitions may go in `key_points`.
+- For `step_derivation`: provide up to 6 compact LaTeX lines in `equations` and short step labels in `visual_items`.
+- For charts: use `data_points` with concrete labels and values whenever the topic supports them; keep labels under 20 chars and include a short interpretation in `takeaway` or `key_points`.
+- Headlines must be specific and descriptive — no generic "Introduction" or "Overview". Each headline should stand alone as a meaningful title.
 
-REQUIREMENTS:
-- Each content scene teaches exactly one visual idea. The narration must describe what is on screen for that scene only.
-- Aim for {per_scene_words} words of narration per scene; total near {total_words} words. Do not come in short.
-- ZERO REPETITION: `headline`, `hook`, `takeaway`, every entry of `key_points`, `visual_items`, `highlight_terms` must be mutually distinct phrases. No paraphrases or substring matches.
-- `headline` is a short title (Title Case, never SHOUTY ALL CAPS), max 60 chars. `hook` is a short framing line, never a restatement of the headline. `takeaway` is one sentence, distinct from headline and hook.
-- `visual_items` are short noun-phrase labels (max 40 chars). Never narration fragments, never sentences, never end in punctuation.
-- `key_points` are short standalone clauses (max 90 chars), never substrings of `narration`.
-- `highlight_terms` are 1–3 word concept names (max 24 chars). No filler.
-- Equations are compact LaTeX, 60 chars max.
-- Tie examples to the research context whenever provided.
-- Build the lesson so the viewer leaves able to answer concrete questions about the topic — name specific quantities, contrasts, or misconceptions worth quizzing.
+CONTENT REQUIREMENTS:
+- Each content scene teaches exactly one visual idea; narration describes only what is on screen for that scene.
+- Aim for {per_scene_words} words of narration per scene; total near {total_words} words.
+- ZERO REPETITION: `headline`, `hook`, `takeaway`, every entry of `key_points`, `visual_items`, `highlight_terms` must be distinct phrases — no paraphrases or substring matches across any field.
+- `headline`: Title Case, max 60 chars, never repeats anything from `hook` or `takeaway`.
+- `hook`: one short framing line, distinct from `headline`, max 70 chars.
+- `takeaway`: one sentence, distinct from `headline` and `hook`, max 90 chars.
+- `visual_items`: short noun-phrase labels only (max 40 chars each). Never sentences, never narration fragments, never end in punctuation.
+- `key_points`: short standalone clauses (max 90 chars each), never substrings of `narration`.
+- `highlight_terms`: 1–3 word concept names (max 24 chars). No filler like "Topic" or "Concept".
+- `equations`: compact LaTeX, max 80 chars. Up to 6 for `step_derivation`; 1–2 for `equation`.
+- `data_points` must be {{"label": "Short Label", "value": 42.0}} with numeric values.
+- Build the lesson so the viewer leaves able to answer concrete questions — name specific quantities, contrasts, or misconceptions worth quizzing.
+- Tie all examples to the research context when provided.
 - Return ONLY JSON matching the provided schema. No prose outside the schema.
 """.strip()
 
@@ -334,7 +334,7 @@ class VideoWorkflow:
             layout = (scene.get("layout") or "auto").strip().lower() or "auto"
             if layout == "axes":
                 layout = "axes_plot"
-            if layout not in _VALID_LAYOUTS:
+            if layout not in VALID_LAYOUTS:
                 layout = "auto"
             scene["layout"] = layout
             scene["scene_variant"] = "basic"
@@ -347,10 +347,28 @@ class VideoWorkflow:
             scene["visual_items"] = _filter_visual_strings(
                 scene.get("visual_items"), narration,
                 exclude=shown + tuple(scene["highlight_terms"]),
-            )[:4]
-            scene["key_points"] = _filter_visual_strings(scene.get("key_points"), narration, exclude=shown)[:3]
-            equations = [str(eq).strip() for eq in (scene.get("equations") or []) if str(eq).strip()][:2]
+            )[:5]
+            scene["key_points"] = _filter_visual_strings(scene.get("key_points"), narration, exclude=shown)[:5]
+            max_equations = 6 if scene["layout"] == "step_derivation" else 2
+            equations = [str(eq).strip() for eq in (scene.get("equations") or []) if str(eq).strip()][:max_equations]
             scene["equations"] = equations
+            data_points = []
+            for point in scene.get("data_points") or []:
+                if not isinstance(point, dict):
+                    continue
+                label = _truncate_clean(str(point.get("label") or ""), 28)
+                try:
+                    value = float(point.get("value"))
+                except (TypeError, ValueError):
+                    continue
+                if label:
+                    data_points.append({"label": label, "value": value})
+                if len(data_points) >= 6:
+                    break
+            if data_points:
+                scene["data_points"] = data_points
+            else:
+                scene.pop("data_points", None)
             if scene["layout"] == "thanks":
                 class_name = scene["class_name"]
                 scene_number = scene.get("scene_number")

@@ -6,3 +6,4 @@ timestamp,job_id,is_trial,name,grade,enrollment,difficulty_frequency,first_resou
 2026-04-28T19:04:53.389995,163eadc487d0,false,",mnn,m",9th,ITR,Sometimes,"Ask a
       teacher/peer",Neutral,5-10 min,Slightly worse,Neutral,Neutral,Neutral,Unlikely,k,0,0.0,3,60.0
 2026-04-29T11:43:39.288157,5179232c2b82,,,,,,,,,,,,,,,2,40.0,2,40.0
+2026-04-29T13:35:57.635423,aed8f9b6981b,,,,,,,,,,,,,,,0,0.0,2,40.0
