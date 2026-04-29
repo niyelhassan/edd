@@ -28,7 +28,6 @@ CREATE TABLE IF NOT EXISTS jobs (
     code_path TEXT,
     video_path TEXT,
     token_usage_json TEXT,
-    quiz_token_usage_json TEXT,
     pre_score INTEGER,
     post_score INTEGER,
     quiz_json TEXT,
@@ -83,7 +82,6 @@ def _migrate_schema(db: sqlite3.Connection) -> None:
         "survey_json": "ALTER TABLE jobs ADD COLUMN survey_json TEXT",
         "color_theme": "ALTER TABLE jobs ADD COLUMN color_theme TEXT NOT NULL DEFAULT 'blue'",
         "topic_category": "ALTER TABLE jobs ADD COLUMN topic_category TEXT NOT NULL DEFAULT ''",
-        "quiz_token_usage_json": "ALTER TABLE jobs ADD COLUMN quiz_token_usage_json TEXT",
         "explanation_level": "ALTER TABLE jobs ADD COLUMN explanation_level TEXT NOT NULL DEFAULT 'high_school'",
     }
     for column, statement in migrations.items():

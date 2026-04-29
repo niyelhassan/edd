@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import ast
 import json
 import subprocess
 import sys
@@ -13,26 +12,6 @@ class MediaError(RuntimeError):
 
 MANIM_RESOLUTION = "1920,1080"
 MANIM_FPS = "30"
-
-
-def extract_scene_class_names(module_path: Path) -> list[str]:
-    module = ast.parse(module_path.read_text(encoding="utf-8"))
-
-    for node in module.body:
-        if isinstance(node, ast.Assign):
-            for target in node.targets:
-                if isinstance(target, ast.Name) and target.id == "SCENE_CLASS_NAMES":
-                    value = ast.literal_eval(node.value)
-                    if isinstance(value, list):
-                        return [str(item) for item in value]
-
-    names = []
-    for node in module.body:
-        if isinstance(node, ast.ClassDef):
-            for base in node.bases:
-                if isinstance(base, ast.Name) and base.id == "Scene":
-                    names.append(node.name)
-    return names
 
 
 def render_scene(*, module_path: Path, class_name: str, media_dir: Path) -> Path:

@@ -25,13 +25,9 @@ def create_job(
     *,
     concept: str,
     research: str,
-    audience: str,
-    provider: str,
     model: str,
     duration_label: str,
     voice_model: str,
-    render_quality: str,
-    style_notes: str,
     color_theme: str = "blue",
     explanation_level: str = "high_school",
 ) -> str:
@@ -52,14 +48,18 @@ def create_job(
             job_id,
             concept,
             research,
-            audience,
-            provider,
+            "Student",
+            "claude-agent-sdk",
             model,
             duration_label,
             duration_seconds,
             voice_model,
-            render_quality,
-            style_notes,
+            "1080p30",
+            (
+                "Calm, confident, technically accurate. "
+                "Use simple diagrams, equations, arrows, and transformations that basic Manim can render well. "
+                "Prefer precise explanations and high-signal visuals over marketing language."
+            ),
             color_theme,
             explanation_level,
             "queued",
@@ -77,13 +77,9 @@ def clone_job(source: dict) -> str:
     return create_job(
         concept=source["concept"],
         research=source.get("research", ""),
-        audience=source["audience"],
-        provider=source.get("provider", "claude-agent-sdk"),
         model=source.get("model", "claude-sonnet-4-6"),
         duration_label=source["duration_label"],
         voice_model=source["voice_model"],
-        render_quality=source["render_quality"],
-        style_notes=source["style_notes"],
         color_theme=source.get("color_theme", "blue"),
         explanation_level=source.get("explanation_level", "high_school"),
     )

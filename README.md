@@ -22,7 +22,7 @@ A Flask app that turns a STEM topic into a short narrated lesson video with pre/
 
 - Queue job and log state changes.
 - Plan a storyboard (Claude Agent SDK).
-- Generate a 5-question quiz (Claude CLI).
+- Include a 5-question quiz in the storyboard response.
 - Synthesize narration (Deepgram TTS).
 - Build a Manim module, render scenes, mux audio, and concatenate.
 - Produce captions (VTT) and a thumbnail image.

@@ -22,8 +22,7 @@
     </div>
   </div>
 
-  {# Top-level metrics row: timing, storyboard tokens, quiz tokens, render scenes/runtime #}
-  <section class="grid gap-3 md:grid-cols-4">
+  <section class="grid gap-3 md:grid-cols-3">
     <div class="dev-metric">
       <p class="dev-metric-label">Total time</p>
       <p class="dev-metric-value">{{ job.timing.total_label }}</p>
@@ -47,25 +46,6 @@
       {% else %}
       <p class="dev-metric-value text-neutral-400">-</p>
       <p class="dev-metric-sub">{{ job.token_usage_message or "appears after planning" }}</p>
-      {% endif %}
-    </div>
-    <div class="dev-metric">
-      <p class="dev-metric-label">Quiz tokens</p>
-      {% if job.quiz_token_usage %}
-      <p class="dev-metric-value tabular-nums">
-        {% if job.quiz_token_usage.included_in == "storyboard" %}Included{% else %}{{ job.quiz_token_usage.total_tokens or 0 }}{% endif %}
-      </p>
-      <p class="dev-metric-sub">
-        {% if job.quiz_token_usage.included_in == "storyboard" %}
-        generated in storyboard call
-        {% else %}
-        {{ job.quiz_token_usage.model or "" }} · in {{ job.quiz_token_usage.input_tokens or 0 }} · out {{ job.quiz_token_usage.output_tokens or 0 }}
-        {% if job.quiz_token_usage.cost_usd is not none %} · ${{ "%.4f"|format(job.quiz_token_usage.cost_usd) }}{% endif %}
-        {% endif %}
-      </p>
-      {% else %}
-      <p class="dev-metric-value text-neutral-400">-</p>
-      <p class="dev-metric-sub">appears after question gen</p>
       {% endif %}
     </div>
   </section>
@@ -92,9 +72,6 @@
       <p class="dev-card-label">Models</p>
       <p class="mt-2 text-sm text-neutral-950"><span class="text-neutral-500">Video:</span> {{ job.model }}</p>
       <p class="text-sm text-neutral-950"><span class="text-neutral-500">Voice:</span> {{ job.voice_model }}</p>
-      {% if job.quiz_token_usage and job.quiz_token_usage.model and job.quiz_token_usage.included_in != "storyboard" %}
-      <p class="text-sm text-neutral-950"><span class="text-neutral-500">Quiz:</span> {{ job.quiz_token_usage.model }}</p>
-      {% endif %}
     </div>
   </section>
 

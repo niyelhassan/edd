@@ -163,7 +163,6 @@ def _normalize_explanation_level(value: str | None) -> str:
 
 
 def _build_storyboard_prompt(job: dict) -> str:
-    min_scenes, max_scenes = _storyboard_scene_limits()
     content_scenes = _target_content_scene_count(int(job["duration_seconds"]))
     total_scenes = content_scenes + 2  # title_card + content + summary; app appends thanks.
     total_words = int(round(job["duration_seconds"] * 2.5))
@@ -173,71 +172,125 @@ def _build_storyboard_prompt(job: dict) -> str:
     level_guidance = _EXPLANATION_LEVEL_GUIDANCE[level]
     categories = ", ".join(VIDEO_CATEGORIES)
     return f"""
-You are storyboarding a short, visual-first explainer video.
+Return one JSON object only. No markdown. No prose.
 
 Topic: {job["concept"]}
-Explanation level: {level.upper()} — {level_guidance}
-Research area: {research}
-Target runtime: about {job["duration_seconds"]} seconds.
-Total scenes: exactly {total_scenes} ({content_scenes} content scenes between an opening title and closing key-takeaways scene).
-Category: choose exactly one of these labels: {categories}.
+Research area: {research or "general"}
+Level: {level} — {level_guidance}
+Runtime target: {job["duration_seconds"]} seconds
+Narration target: about {per_scene_words} words per scene, {total_words} words total
+Category: choose one of {categories}
 
-REQUIRED STRUCTURE (in order):
-1. Scene 1 — `title_card`: lesson title with one short framing line in `hook`. Empty `key_points`, `visual_items`, `equations`. Set `takeaway` to "".
-2. Scenes 2..{1 + content_scenes} — content scenes that each teach one distinct visual idea. Choose the layout that best reveals the visual idea — not the safest choice.
-3. Scene {2 + content_scenes} — `summary`: bold one-sentence `takeaway` plus 2–3 short `key_points` that crystallize the lesson. No new material.
+Top-level JSON keys, in this order:
+title, summary, learning_objective, closing_takeaway, category, scenes, quiz
 
-Do not create a thank-you or sign-off scene. The application adds the fixed closing card after this storyboard.
+Scenes must be chronological and appear in viewing order:
+1. `title_card`: title plus one short `hook`; empty `key_points`, `visual_items`, `highlight_terms`, `equations`; `takeaway` is "".
+2. Scenes 2-{1 + content_scenes}: exactly {content_scenes} content scenes. Each scene teaches the next required idea in order. One idea per scene.
+3. Scene {total_scenes}: `summary`. No new ideas. Include one `takeaway` and 2-3 `key_points`.
 
-Available content layouts (pick the one that matches the visual idea):
+Use exactly {total_scenes} scenes. The app adds the final thank-you scene.
+
+Allowed content layouts:
 {content_layout_prompt()}
 
-LAYOUT DIVERSITY — CRITICAL:
-- No two content scenes may use the same layout. Every content scene must have a different layout type.
-- `bullets` is an emergency fallback only — avoid it whenever a more visual layout fits.
-- `statement` is the right choice for one powerful insight, principle, or memorable definition — use it at least once when the topic has a central idea worth stating boldly.
-- Use charts (`bar_chart`, `line_chart`, `proportional_chart`) whenever there are quantitative comparisons or distributions.
-- Use `flow` or `timeline` for any sequential process or historical progression.
-- Mix diagram layouts (`network`, `cause_effect`) with equation and chart layouts to vary visual rhythm.
-- For `equation`: pair EVERY symbol in `highlight_terms` with its full definition in the matching `key_points` entry. This is how the variable-definitions table is built.
-- For `step_derivation`: provide up to 8 LaTeX steps. Label each step with a short action word in `visual_items` (e.g. "Given", "Expand", "Factor", "Result").
-- For `flow`: provide a full description sentence per stage in `key_points` — not just labels — so the stage cards have meaningful body text.
-- For `timeline`: provide a brief description for each milestone in `key_points` to populate the label blocks below each dot.
+Scene fields:
+- `slug`: short kebab-case id
+- `headline`: specific Title Case title, max 60 characters
+- `hook`: short framing line, max 70 characters
+- `narration`: what the viewer hears for this scene only
+- `layout`: one allowed layout
+- `visual_goal`: one sentence describing the frame
+- `key_points`: short standalone display text, max 8 items
+- `visual_items`: short labels only, max 6 items
+- `highlight_terms`: 1-3 word concept labels, max 6 items
+- `equations`: compact LaTeX strings, max 8 items
+- `takeaway`: one sentence, max 90 characters
+- `data_points`: only for charts; objects like {{"label": "A", "value": 42}}
 
-VISUAL STYLE:
-- Each scene is a polished 16:9 research explainer frame: off-white background, dark slate typography, accent color, thin bottom rule, white cards, generous spacing.
-- Labels must be short and slide-ready — they appear as visual elements, not prose.
-- For `statement`: put the key insight in `takeaway`, the eyebrow label in `highlight_terms[0]`, and 1–2 supporting clauses in `key_points`.
-- For `flow`: provide concise 2–5 word labels as `visual_items` and matching one-line descriptions as `key_points`.
-- For `timeline` / `network` / `cause_effect`: provide concise 2–5 word labels as `visual_items` that read well as node text. For `network`, use `highlight_terms[0]` as the center node and `key_points` as child descriptions.
-- For `comparison` / `before_after`: provide exactly two short labels as `visual_items[0]` and `visual_items[1]`.
-- For `equation`: provide compact LaTeX in `equations`; symbol/component meanings as `highlight_terms`; short definitions may go in `key_points`.
-- For `step_derivation`: provide up to 6 compact LaTeX lines in `equations` and short step labels in `visual_items`.
-- For charts: use `data_points` with concrete labels and values whenever the topic supports them; keep labels under 20 chars and include a short interpretation in `takeaway` or `key_points`.
-- Headlines must be specific and descriptive — no generic "Introduction" or "Overview". Each headline should stand alone as a meaningful title.
+Layout-specific requirements:
+- `flow`: 3-4 ordered stage labels in `visual_items`; matching descriptions in `key_points`.
+- `timeline`: 3-5 ordered milestone labels in `visual_items`; matching descriptions in `key_points`.
+- `comparison` or `before_after`: exactly two labels in `visual_items`.
+- `equation`: 1-2 equations; symbol names in `highlight_terms`; definitions in matching `key_points`.
+- `step_derivation`: 2-8 equation steps; short step names in `visual_items`.
+- chart layouts: provide numeric `data_points`.
+- Avoid `bullets` unless no visual layout fits.
 
-CONTENT REQUIREMENTS:
-- Each content scene teaches exactly one visual idea; narration describes only what is on screen for that scene.
-- Aim for {per_scene_words} words of narration per scene; total near {total_words} words.
-- ZERO REPETITION: `headline`, `hook`, `takeaway`, every entry of `key_points`, `visual_items`, `highlight_terms` must be distinct phrases — no paraphrases or substring matches across any field.
-- `headline`: Title Case, max 60 chars, never repeats anything from `hook` or `takeaway`.
-- `hook`: one short framing line, distinct from `headline`, max 70 chars.
-- `takeaway`: one sentence, distinct from `headline` and `hook`, max 90 chars.
-- `visual_items`: short noun-phrase labels only (max 40 chars each). Never sentences, never narration fragments, never end in punctuation.
-- `key_points`: short standalone clauses (max 90 chars each), never substrings of `narration`.
-- `highlight_terms`: 1–3 word concept names (max 24 chars). No filler like "Topic" or "Concept".
-- `equations`: compact LaTeX, max 80 chars. Up to 6 for `step_derivation`; 1–2 for `equation`.
-- `data_points` must be {{"label": "Short Label", "value": 42.0}} with numeric values.
-- Include a `quiz` object with exactly 5 multiple-choice questions.
-- The quiz is a pre/post assessment, so questions must be understandable before watching by a student familiar with the topic words.
-- Do not phrase questions as "according to the lesson" or "in the video".
-- The video must explicitly teach every correct answer, and every correct answer must be recoverable from the storyboard.
-- Questions should test core ideas, definitions, steps, contrasts, examples, and misconceptions that the video teaches.
-- Each quiz question must have exactly 4 plausible choices and a zero-based `answer` index.
-- Tie examples to the research area.
-- Return exactly one top-level JSON object matching the provided schema, never an array.
-- No prose outside the schema.
+No repetition:
+- Do not reuse or paraphrase the same phrase in `headline`, `hook`, `takeaway`, `key_points`, `visual_items`, or `highlight_terms`.
+- Do not copy narration sentences into display fields.
+
+Quiz comes after `scenes`:
+- `quiz` must be an object: {{"questions": [...]}}.
+- Generate exactly 5 questions after planning the scenes.
+- Use key `prompt`, not `question`.
+- Each question has exactly 4 choices and zero-based integer `answer`.
+- Correct answers must be explicitly taught by the scenes.
+- Do not write "according to the lesson" or "in the video".
+
+Return valid JSON matching the schema.
 """.strip()
+
+
+def _repair_storyboard_candidate(raw: object, job: dict) -> object:
+    if not isinstance(raw, dict):
+        return raw
+
+    storyboard = dict(raw)
+    scenes = storyboard.get("scenes") if isinstance(storyboard.get("scenes"), list) else []
+    title = str(storyboard.get("title") or job.get("concept") or "Lesson").strip()
+    storyboard["title"] = title
+
+    if not str(storyboard.get("summary") or "").strip():
+        summary_scene = next((s for s in reversed(scenes) if isinstance(s, dict) and s.get("layout") == "summary"), None)
+        storyboard["summary"] = str(
+            (summary_scene or {}).get("takeaway")
+            or (summary_scene or {}).get("narration")
+            or f"A concise explanation of {title}."
+        ).strip()
+
+    if not str(storyboard.get("learning_objective") or "").strip():
+        storyboard["learning_objective"] = f"Understand the core idea of {title} and apply it to the provided examples."
+
+    if not str(storyboard.get("closing_takeaway") or "").strip():
+        storyboard["closing_takeaway"] = str(storyboard.get("summary") or f"{title} has one core idea to remember.").strip()
+
+    quiz = storyboard.get("quiz")
+    if isinstance(quiz, list):
+        quiz = {"questions": quiz}
+    if isinstance(quiz, dict):
+        questions = []
+        for item in quiz.get("questions") or []:
+            if not isinstance(item, dict):
+                continue
+            question = dict(item)
+            if "prompt" not in question and "question" in question:
+                question["prompt"] = question.pop("question")
+            if "prompt" not in question and "text" in question:
+                question["prompt"] = question.pop("text")
+            questions.append(question)
+        storyboard["quiz"] = {"questions": questions}
+
+    return storyboard
+
+
+def _order_storyboard_for_storage(storyboard: dict) -> dict:
+    ordered_keys = (
+        "title",
+        "summary",
+        "learning_objective",
+        "closing_takeaway",
+        "category",
+        "color_theme",
+        "scenes",
+        "quiz",
+    )
+    ordered = {key: storyboard[key] for key in ordered_keys if key in storyboard}
+    for key, value in storyboard.items():
+        if key not in ordered:
+            ordered[key] = value
+    return ordered
 
 
 def _validate_storyboard_payload(storyboard: object, *, min_scenes: int) -> dict:
@@ -358,7 +411,8 @@ class VideoWorkflow:
                     f"{prompt}\n\n"
                     "Your previous response was invalid. Return one JSON object only. "
                     "The top-level value must be an object with title, summary, learning_objective, "
-                    "closing_takeaway, category, quiz, and scenes. It must not be a list."
+                    "closing_takeaway, category, scenes, and quiz. It must not be a list. "
+                    "Quiz must be an object with a questions array, and each question uses the key prompt."
                 )
                 add_log(job["id"], f"Retrying storyboard after invalid JSON: {last_error}", level="warning")
             try:
@@ -374,6 +428,7 @@ class VideoWorkflow:
                         "tool calls, or a top-level array."
                     ),
                 )
+                candidate = _repair_storyboard_candidate(candidate, job)
                 storyboard = _validate_storyboard_payload(candidate, min_scenes=min_scenes)
                 token_usage = candidate_usage
                 break
@@ -489,6 +544,7 @@ class VideoWorkflow:
                 if scene_total is not None:
                     scene["scene_total"] = scene_total
 
+        storyboard = _order_storyboard_for_storage(storyboard)
         storyboard_path.write_text(json.dumps(storyboard, indent=2), encoding="utf-8")
 
         update_job(
@@ -498,18 +554,6 @@ class VideoWorkflow:
             token_usage_json=json.dumps(token_usage),
             quiz_json=json.dumps({"status": "ready", "category": category, "questions": quiz}),
             topic_category=category,
-            quiz_token_usage_json=json.dumps(
-                {
-                    "model": self.app.config["CLAUDE_CODE_MODEL"],
-                    "total_tokens": 0,
-                    "input_tokens": 0,
-                    "output_tokens": 0,
-                    "cache_read_input_tokens": 0,
-                    "cache_creation_input_tokens": 0,
-                    "cost_usd": 0,
-                    "included_in": "storyboard",
-                }
-            ),
         )
         add_log(job["id"], f"Storyboard ready: {len(scenes)} scenes, theme {color_theme}, level {_normalize_explanation_level(job.get('explanation_level'))}.")
         add_log(

@@ -3,7 +3,6 @@ from __future__ import annotations
 import csv
 import json
 import re
-import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -42,8 +41,6 @@ RESULTS_CSV_FIELDNAMES = [
     "time",
     "storyboard_tokens",
     "storyboard_cost",
-    "quiz_tokens",
-    "quiz_cost",
     "is_trial",
     "name",
     "grade",
@@ -67,9 +64,6 @@ RESULTS_CSV_FIELDNAMES = [
 
 def _results_csv_path() -> Path:
     base_dir = Path(current_app.config["BASE_DIR"])
-    legacy_path = base_dir / "survey_results.csv"
-    if legacy_path.exists():
-        legacy_path.unlink()
     csv_path = base_dir / "results.csv"
     csv_path.parent.mkdir(parents=True, exist_ok=True)
     return csv_path
@@ -100,11 +94,7 @@ def _quiz_question_count(job: dict) -> int:
         quiz = json.loads(job.get("quiz_json") or "{}")
     except json.JSONDecodeError:
         return 0
-    if isinstance(quiz, dict):
-        return len(quiz.get("questions") or [])
-    if isinstance(quiz, list):
-        return len(quiz)
-    return 0
+    return len(quiz.get("questions") or []) if isinstance(quiz, dict) else 0
 
 
 def _score_percentage(score: int | None, question_count: int) -> float | str:
@@ -139,7 +129,6 @@ def _job_results_metadata(job: dict) -> dict[str, str | int | float]:
     if job.get("video_path"):
         video_runtime = _video_runtime(Path(job["video_path"]), job.get("duration_seconds"))
     token_usage = _parse_token_usage(job.get("token_usage_json"))
-    quiz_token_usage = _parse_quiz_token_usage(job.get("quiz_token_usage_json"))
     return {
         "topic": job.get("concept", ""),
         "research_area": job.get("research", ""),
@@ -151,8 +140,6 @@ def _job_results_metadata(job: dict) -> dict[str, str | int | float]:
         "time": timing["total_label"],
         "storyboard_tokens": _token_total(token_usage, "storyboard"),
         "storyboard_cost": _cost_value(token_usage),
-        "quiz_tokens": _token_total(quiz_token_usage),
-        "quiz_cost": _cost_value(quiz_token_usage),
     }
 
 
@@ -239,14 +226,9 @@ def _quiz_state(job: dict) -> dict:
         except json.JSONDecodeError:
             return {"status": "error", "questions": None, "error": "Saved quiz JSON could not be parsed."}
         if isinstance(parsed, dict):
-            if parsed.get("status") == "error":
-                return {"status": "error", "questions": None, "error": parsed.get("error") or "Question generation failed."}
             if isinstance(parsed.get("questions"), list):
                 return {"status": "ready", "questions": parsed["questions"], "error": None}
-            if parsed.get("status") == "pending":
-                return {"status": "pending", "questions": None, "error": None}
-        elif isinstance(parsed, list):
-            return {"status": "ready", "questions": parsed, "error": None}
+        return {"status": "error", "questions": None, "error": "Saved quiz JSON is missing questions."}
     if job.get("status") == "failed":
         return {
             "status": "error",
@@ -279,25 +261,7 @@ def _parse_token_usage(raw: str | None) -> dict | None:
         return None
     if not isinstance(parsed, dict):
         return None
-    if "stage_totals" not in parsed:
-        input_tokens = int(parsed.get("input_tokens") or 0)
-        output_tokens = int(parsed.get("output_tokens") or 0)
-        cache_read = int(parsed.get("cache_read_input_tokens") or 0)
-        cache_create = int(parsed.get("cache_creation_input_tokens") or 0)
-        total = input_tokens + output_tokens + cache_read + cache_create
-        parsed["stage_totals"] = {"storyboard": total, "scene_prep_and_code": 0, "other": 0}
-        parsed["total_tokens"] = int(parsed.get("total_tokens") or total)
     return parsed
-
-
-def _parse_quiz_token_usage(raw: str | None) -> dict | None:
-    if not raw:
-        return None
-    try:
-        parsed = json.loads(raw)
-    except json.JSONDecodeError:
-        return None
-    return parsed if isinstance(parsed, dict) else None
 
 
 def _progress_metrics(job: dict, logs: list[dict], scene_count: int) -> tuple[int, str, str]:
@@ -489,10 +453,7 @@ def _build_job_payload(job: dict, include_logs: bool = False) -> dict:
     payload["captions_url"] = None
     payload["storyboard"] = None
     payload["raw_storyboard"] = None
-    payload["claude_available"] = True
-    payload["deepgram_ready"] = bool(current_app.config["DEEPGRAM_API_KEY"])
     payload["token_usage"] = _parse_token_usage(payload.get("token_usage_json"))
-    payload["quiz_token_usage"] = _parse_quiz_token_usage(payload.get("quiz_token_usage_json"))
     payload["token_usage_message"] = None
     payload["video_runtime"] = {
         "seconds": payload.get("duration_seconds"),
@@ -569,31 +530,16 @@ def index():
 
 @bp.get("/home")
 def home():
-    library_completed_only = bool(current_app.config.get("LIBRARY_COMPLETED_ONLY", True))
     jobs = [_build_job_payload(job) for job in list_jobs()]
-    if library_completed_only:
-        jobs = [
-            job for job in jobs
-            if job.get("status") == "completed"
-            or job.get("is_active")
-            or job.get("status") in {"failed", "canceled"}
-        ]
-    environment = {
-        "claude": True,
-        "deepgram": bool(current_app.config["DEEPGRAM_API_KEY"]),
-        "ffmpeg": bool(shutil.which("ffmpeg")),
-    }
-    models = {
-        "video": current_app.config["CLAUDE_CODE_MODEL"],
-    }
+    jobs = [
+        job for job in jobs
+        if job.get("status") == "completed"
+        or job.get("is_active")
+        or job.get("status") in {"failed", "canceled"}
+    ]
     return render_template(
         "index.html",
         jobs=jobs,
-        environment=environment,
-        models=models,
-        color_themes=VALID_COLOR_THEMES,
-        explanation_levels=VALID_EXPLANATION_LEVELS,
-        library_completed_only=library_completed_only,
     )
 
 
@@ -632,24 +578,12 @@ def create_job_view():
     if explanation_level not in VALID_EXPLANATION_LEVELS:
         explanation_level = "high_school"
 
-    style_notes = " ".join(
-        [
-            "Calm, confident, technically accurate.",
-            "Use simple diagrams, equations, arrows, and transformations that basic Manim can render well.",
-            "Prefer precise explanations and high-signal visuals over marketing language.",
-        ]
-    )
-
     job_id = create_job(
         concept=concept,
         research=research,
-        audience="Student",
-        provider="claude-agent-sdk",
         model=current_app.config["CLAUDE_CODE_MODEL"],
         duration_label=duration_label,
         voice_model=current_app.config["DEEPGRAM_VOICE_MODEL"],
-        render_quality="1080p30",
-        style_notes=style_notes,
         color_theme=color_theme,
         explanation_level=explanation_level,
     )

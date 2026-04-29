@@ -13,15 +13,13 @@ VIDEO_CATEGORIES = (
 )
 
 
-def _normalize_category(raw: object) -> str:
-    if not isinstance(raw, dict):
-        return "Other"
+def _normalize_category(raw: dict) -> str:
     category = str(raw.get("category") or "").strip()
     return category if category in VIDEO_CATEGORIES else "Other"
 
 
 def _normalize_quiz(raw: object) -> list[dict]:
-    raw_questions = raw.get("questions") if isinstance(raw, dict) else raw
+    raw_questions = raw.get("questions") if isinstance(raw, dict) else None
     if not isinstance(raw_questions, list):
         raise ValueError("Claude returned JSON without a questions array.")
 
@@ -29,7 +27,7 @@ def _normalize_quiz(raw: object) -> list[dict]:
     for item in raw_questions[:5]:
         if not isinstance(item, dict):
             continue
-        prompt = str(item.get("prompt") or item.get("question") or "").strip()
+        prompt = str(item.get("prompt") or "").strip()
         choices = [str(c).strip() for c in item.get("choices") or [] if str(c).strip()]
         try:
             answer = int(item.get("answer"))
