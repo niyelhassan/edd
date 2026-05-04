@@ -121,7 +121,7 @@ def _looks_like_narration_fragment(item: str, narration: str) -> bool:
         return True
     n_item = _norm_for_compare(text)
     n_narration = _norm_for_compare(narration)
-    if n_item and n_narration and len(n_item) >= 12 and n_item in n_narration:
+    if n_item and n_narration and len(n_item) >= 30 and n_item in n_narration:
         return True
     return False
 
@@ -196,7 +196,7 @@ Allowed content layouts:
 
 Scene fields:
 - `slug`: short kebab-case id
-- `headline`: specific Title Case title, max 60 characters
+- `headline`: specific Title Case title, max 48 characters (must fit one line)
 - `hook`: short framing line, max 70 characters
 - `narration`: what the viewer hears for this scene only
 - `layout`: one allowed layout
@@ -205,17 +205,18 @@ Scene fields:
 - `visual_items`: short labels only, max 6 items
 - `highlight_terms`: 1-3 word concept labels, max 6 items
 - `equations`: compact LaTeX strings, max 8 items
-- `takeaway`: one sentence, max 90 characters
+- `takeaway`: one sentence, max 80 characters
 - `data_points`: only for charts; objects like {{"label": "A", "value": 42}}
 
 Layout-specific requirements:
 - `flow`: 3-4 ordered stage labels in `visual_items`; matching descriptions in `key_points`.
 - `timeline`: 3-5 ordered milestone labels in `visual_items`; matching descriptions in `key_points`.
-- `comparison` or `before_after`: exactly two labels in `visual_items`.
+- `comparison`: exactly two thing-names in `visual_items` — these become the panel headers (e.g. ["Brushed Motor", "Brushless Motor"]). Required.
+- `before_after`: exactly two state labels in `visual_items`.
 - `equation`: 1-2 equations; symbol names in `highlight_terms`; definitions in matching `key_points`.
 - `step_derivation`: 2-8 equation steps; short step names in `visual_items`.
 - chart layouts: provide numeric `data_points`.
-- Avoid `bullets` unless no visual layout fits.
+- Use `statement` as a default when no other visual layout fits naturally.
 
 No repetition:
 - Do not reuse or paraphrase the same phrase in `headline`, `hook`, `takeaway`, `key_points`, `visual_items`, or `highlight_terms`.
@@ -474,7 +475,7 @@ class VideoWorkflow:
             if scene.get("layout") == "thanks":
                 scene.update(_fixed_thanks_scene())
             headline = (scene.get("headline") or scene.get("title") or f"{job['concept']} part {index}").strip()
-            scene["headline"] = _truncate_clean(headline, 60)
+            scene["headline"] = _truncate_clean(headline, 48)
             scene["slug"] = _slugify(scene.get("slug") or scene["headline"] or f"scene-{index}")
             scene["class_name"] = _class_name(index, scene["slug"])
 
@@ -490,14 +491,14 @@ class VideoWorkflow:
             )
             takeaway_raw = (scene.get("takeaway") or "").strip()
             scene["takeaway"] = (
-                _truncate_clean(takeaway_raw, 90)
+                _truncate_clean(takeaway_raw, 80)
                 if _is_distinct_text(takeaway_raw, scene["headline"], scene["hook"]) else ""
             )
 
             scene["visual_goal"] = (scene.get("visual_goal") or f"Show {scene['headline']}.").strip()
             layout = (scene.get("layout") or "auto").strip().lower() or "auto"
-            if layout == "axes":
-                layout = "axes_plot"
+            if layout in ("axes", "axes_plot", "distribution", "bullets"):
+                layout = "auto"
             if layout not in VALID_LAYOUTS:
                 layout = "auto"
             scene["layout"] = layout

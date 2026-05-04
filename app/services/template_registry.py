@@ -14,23 +14,15 @@ SPECIAL_LAYOUTS = ("title_card", "summary", "thanks")
 CONTENT_TEMPLATES = (
     TemplateDefinition(
         "statement",
-        "one powerful insight, principle, or definition stated boldly. Put the statement in `takeaway` (or `hook`). Add 1–2 supporting clauses in `key_points`. Use `highlight_terms` for the eyebrow label. No equations or data needed.",
+        "one powerful insight, principle, or definition stated boldly and centered. Put the statement in `takeaway` (or `hook`). Add 1–3 supporting clauses in `key_points` — each appears as a centered line below the main statement. Use `highlight_terms` for the eyebrow label. No equations or data needed. This is also the default layout when no other visual template fits.",
     ),
     TemplateDefinition(
         "equation",
-        "a single equation is the visual centerpiece. Provide 1–2 compact LaTeX equations in `equations`. Put each symbol name (e.g. 'E', 'm', 'c') in `highlight_terms` and the matching definition ('Energy', 'Mass', 'Speed of light') in the corresponding `key_points` entry — one per symbol. The renderer builds a clean variable-definitions table from these pairs.",
+        "a single equation is the visual centerpiece. Provide 1–2 compact LaTeX equations in `equations`. Put each symbol name (e.g. 'E', 'm', 'c') in `highlight_terms` and the matching definition ('Energy', 'Mass', 'Speed of light') in the corresponding `key_points` entry — one per symbol. Add a `takeaway` sentence explaining the significance of the equation.",
     ),
     TemplateDefinition(
         "step_derivation",
-        "a formula, proof, or multi-step calculation that unfolds line by line. Provide 2–8 compact LaTeX strings in `equations` (each a single step or transformation). Add short step labels in `visual_items` (e.g. 'Given', 'Expand', 'Simplify'). No data or chips needed.",
-    ),
-    TemplateDefinition(
-        "distribution",
-        "probability, p-values, sampling, statistical significance, normal/Gaussian curves. Use `highlight_terms` for the x-axis label and tail-area label. Put a concise interpretation in `takeaway` and additional context in `key_points[0]`.",
-    ),
-    TemplateDefinition(
-        "axes_plot",
-        "an x-y plot of a function such as growth, decay, log, parabola, sine, or oscillation. Use `highlight_terms[0]` for the x-axis label and `highlight_terms[1]` for the y-axis label. Provide 1–3 named points in `visual_items`. Put the reading of the curve in `takeaway`.",
+        "a formula, proof, or multi-step calculation that unfolds line by line. Provide 2–8 compact LaTeX strings in `equations` (each a single step or transformation). Add short step labels in `visual_items` (e.g. 'Given', 'Expand', 'Simplify'). Add a `takeaway` summarizing the result.",
     ),
     TemplateDefinition(
         "line_chart",
@@ -42,19 +34,19 @@ CONTENT_TEMPLATES = (
     ),
     TemplateDefinition(
         "proportional_chart",
-        "parts of a whole, ratios, mixture, composition, or percentage breakdown. Provide `data_points` (up to 5) that sum to a meaningful whole. Each slice is labeled with its name and percentage. Add `takeaway` for the headline insight.",
+        "parts of a whole, ratios, mixture, composition, or percentage breakdown. Provide `data_points` (up to 5) that sum to a meaningful whole. Add `takeaway` for the headline insight and one `key_points` line for context.",
     ),
     TemplateDefinition(
         "comparison",
-        "side-by-side contrast of two things. Provide exactly two thing-names in `visual_items[0]` and `visual_items[1]`. Provide 3–4 shared traits or tradeoffs in `key_points` — the renderer splits them evenly across the two panels.",
+        "side-by-side contrast of two things. Provide exactly two thing-names in `visual_items[0]` and `visual_items[1]`. Provide 3–4 shared traits or tradeoffs in `key_points` — the renderer splits them evenly across the two panels. Add a `takeaway` summarizing which is preferred or why the distinction matters.",
     ),
     TemplateDefinition(
         "before_after",
-        "a misconception, transformation, or state change. Provide before/after labels in `visual_items` and the changed properties in `key_points`.",
+        "a misconception, transformation, or state change. Provide before/after labels in `visual_items` and 2–3 changed properties in `key_points`. Add a `takeaway` explaining the significance of the change.",
     ),
     TemplateDefinition(
         "flow",
-        "pipelines, processes, ordered transformations, or numbered procedural steps. Provide 3–4 short stage names (2–5 words each) in `visual_items`. Provide a matching description sentence for each stage in `key_points` — these appear inside the stage cards.",
+        "pipelines, processes, ordered transformations, or numbered procedural steps. Provide 3–4 short stage names (2–5 words each) in `visual_items`. Provide a matching description sentence for each stage in `key_points` — these appear inside the stage cards. Add a `takeaway` for the overall process.",
     ),
     TemplateDefinition(
         "timeline",
@@ -62,15 +54,11 @@ CONTENT_TEMPLATES = (
     ),
     TemplateDefinition(
         "cause_effect",
-        "one driver branching into 2–4 consequences. Put the cause in `highlight_terms[0]`. Put each effect label in `visual_items` and the corresponding explanation in `key_points`.",
+        "one driver branching into 2–4 consequences. Put the cause in `highlight_terms[0]`. Put each effect label in `visual_items` and the corresponding explanation in `key_points`. Add a `takeaway` with the key implication.",
     ),
     TemplateDefinition(
         "network",
         "a center concept connected to child nodes showing relationships or dependencies. Put the center title in `highlight_terms[0]`, child titles (2–5) in `visual_items`, and matching child descriptions in `key_points`.",
-    ),
-    TemplateDefinition(
-        "bullets",
-        "only when no visual layout fits. Use sparingly as an emergency fallback.",
     ),
 )
 

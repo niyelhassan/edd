@@ -81,7 +81,13 @@ def safe_centered_text(text, *, font_size=24, color=None, weight=NORMAL, width=N
     color = color or pal["ink"]
     raw = str(text or "").strip()
     lines = textwrap.wrap(raw, width=wrap, break_long_words=False, break_on_hyphens=False) if wrap and raw else [raw]
-    obj = Paragraph(*(lines or [" "]), font=SANS, font_size=TEXT_BASE_FONT_SIZE, color=color, weight=weight, line_spacing=0.95, alignment="center")
+    if not lines or all(not l.strip() for l in lines):
+        lines = [" "]
+    if len(lines) == 1:
+        obj = Text(lines[0], font=SANS, font_size=TEXT_BASE_FONT_SIZE, color=color, weight=weight)
+    else:
+        line_objs = [Text(l, font=SANS, font_size=TEXT_BASE_FONT_SIZE, color=color, weight=weight) for l in lines]
+        obj = VGroup(*line_objs).arrange(DOWN, buff=0.12)
     obj.scale(font_size / TEXT_BASE_FONT_SIZE)
     if width and obj.width > width:
         obj.scale_to_fit_width(width)
@@ -164,7 +170,7 @@ def _data_points(scene_data, fallback_labels=None, limit=6):
 
 # ---- shared chrome ----
 
-CHROME_BOTTOM_Y = 1.95
+CHROME_BOTTOM_Y = 2.20
 
 
 def make_brand_mark(pal):
@@ -188,7 +194,7 @@ def make_eyebrow_label(text, pal, *, color=None, font_size=14):
 
 
 def make_tag(text, pal, *, font_size=15):
-    label = safe_text(_truncate(text, 28), font_size=font_size, weight=SEMIBOLD, color="#0369A1")
+    label = safe_text(_truncate(text, 48), font_size=font_size, weight=SEMIBOLD, color="#0369A1")
     pad_x, pad_y = 0.30, 0.14
     bg = RoundedRectangle(
         corner_radius=(label.height + pad_y * 2) / 2,
@@ -247,7 +253,7 @@ def setup_frame(scene_obj, scene_data, pal, *, show_counter=False, show_brand=Tr
 
 
 def add_top_bar(scene_obj, scene_data, pal):
-    """Header chrome: uppercase accent label + bold headline, left-aligned."""
+    """Header chrome: left-aligned uppercase accent label + bold headline."""
     setup_frame(scene_obj, scene_data, pal)
 
     eyebrow_text = (TITLE or "Lesson").strip().upper()
@@ -256,15 +262,16 @@ def add_top_bar(scene_obj, scene_data, pal):
 
     eyebrow = make_eyebrow_label(eyebrow_text, pal) if show_eyebrow else None
     headline = safe_text(
-        headline_text or " ", font_size=42, weight=SEMIBOLD,
-        color=pal["ink"], width=11.0, wrap=46,
+        headline_text or " ", font_size=40, weight=SEMIBOLD,
+        color=pal["ink"], width=11.0, wrap=48,
     )
 
     parts = [m for m in (eyebrow, headline) if m is not None]
     header = VGroup(*parts)
     if len(parts) > 1:
-        header.arrange(DOWN, buff=0.22, aligned_edge=LEFT)
-    header.to_edge(UP, buff=0.62).to_edge(LEFT, buff=0.90)
+        header.arrange(DOWN, buff=0.18, aligned_edge=LEFT)
+    header.to_edge(UP, buff=0.55)
+    header.to_edge(LEFT, buff=0.85)
 
     if eyebrow is not None:
         scene_obj.play(FadeIn(eyebrow, shift=DOWN * 0.08), run_time=0.3)
@@ -305,7 +312,7 @@ def render_title_card(scene_obj, scene_data, pal):
     )
 
     accent_line = Rectangle(height=0.035, width=0.70, stroke_width=0, fill_color=pal["accent"], fill_opacity=1)
-    headline = safe_text(title, font_size=66, weight=SEMIBOLD, color=pal["ink"], width=11.2, wrap=24)
+    headline = safe_text(title, font_size=66, weight=SEMIBOLD, color=pal["ink"], width=11.2, wrap=40)
     subtitle = (
         safe_centered_text(subtitle_text, font_size=23, color=pal["muted"], width=8.8, wrap=44)
         if subtitle_text else None
@@ -332,7 +339,7 @@ def render_title_card(scene_obj, scene_data, pal):
 
 
 def render_summary(scene_obj, scene_data, pal):
-    """Key takeaways: bold accent statement + clean bullet points."""
+    """Key takeaways: centered bold accent statement + clean bullet list."""
     add_top_bar(scene_obj, scene_data, pal)
 
     headline = scene_data.get("headline", "")
@@ -340,38 +347,43 @@ def render_summary(scene_obj, scene_data, pal):
     if not _is_distinct(takeaway, headline):
         takeaway = (STORY.get("closing_takeaway") or "").strip()
 
-    bullets, seen = [], {_norm(headline), _norm(takeaway)}
+    points, seen = [], {_norm(headline), _norm(takeaway)}
     for b in (scene_data.get("key_points") or []):
         n = _norm(b)
         if n and n not in seen:
-            seen.add(n); bullets.append(b)
-        if len(bullets) >= 3:
+            seen.add(n); points.append(b)
+        if len(points) >= 4:
             break
 
     accent_top = Rectangle(
         height=0.035, width=1.2, stroke_width=0,
         fill_color=pal["accent"], fill_opacity=1,
     )
-    big = safe_text(
-        takeaway or "Key takeaway", font_size=38, weight=SEMIBOLD,
-        color=pal["ink"], width=11.0, wrap=40,
+    big = safe_centered_text(
+        takeaway or "Key takeaway", font_size=36, weight=SEMIBOLD,
+        color=pal["ink"], width=10.5, wrap=42,
     )
 
-    divider = Line(LEFT * 5.5, RIGHT * 5.5, color=pal["soft"], stroke_width=1.5)
+    divider = Line(LEFT * 4.5, RIGHT * 4.5, color=pal["soft"], stroke_width=1.5)
 
     rows = VGroup()
-    for line in bullets:
+    for line in points:
         marker = Dot(radius=0.08, color=pal["accent"], fill_opacity=1)
-        text = safe_text(line, font_size=21, color=pal["ink"], width=10.0, wrap=66)
+        text = safe_centered_text(line, font_size=20, color=pal["ink"], width=9.0, wrap=60)
         row = VGroup(marker, text).arrange(RIGHT, buff=0.30, aligned_edge=UP)
         marker.shift(DOWN * 0.05)
         rows.add(row)
     if len(rows):
-        rows.arrange(DOWN, buff=0.34, aligned_edge=LEFT)
+        rows.arrange(DOWN, buff=0.32, aligned_edge=LEFT)
+        rows.set_x(0)
 
     parts = [accent_top, big] + ([divider, rows] if len(rows) else [])
-    body = VGroup(*parts).arrange(DOWN, buff=0.38, aligned_edge=LEFT)
-    place_body(body, top=CHROME_BOTTOM_Y - 0.35, center_x=-0.3, max_height=4.8, max_width=11.5)
+    body = VGroup(*parts).arrange(DOWN, buff=0.36)
+    for mob in parts:
+        if mob is not accent_top:
+            mob.set_x(0)
+    accent_top.set_x(0)
+    place_body(body, top=CHROME_BOTTOM_Y - 0.35, max_height=4.6, max_width=11.5)
 
     scene_obj.play(GrowFromCenter(accent_top), run_time=0.30)
     scene_obj.play(FadeIn(big, shift=UP * 0.12), run_time=0.6)
@@ -407,58 +419,9 @@ def render_thanks(scene_obj, scene_data, pal):
 
 # ---- content layouts ----
 
-def render_bullets(scene_obj, scene_data, pal):
-    add_top_bar(scene_obj, scene_data, pal)
-    headline = scene_data.get("headline", "")
-    hook = (scene_data.get("hook") or "").strip()
-    if not _is_distinct(hook, headline):
-        hook = (scene_data.get("takeaway") or "").strip()
-        if not _is_distinct(hook, headline):
-            hook = ""
-
-    raw = scene_data.get("key_points") or scene_data.get("visual_items") or []
-    bullets, seen = [], {_norm(headline), _norm(hook)}
-    for b in raw:
-        n = _norm(b)
-        if n and n not in seen:
-            seen.add(n); bullets.append(b)
-        if len(bullets) >= 3:
-            break
-
-    hook_text = (
-        safe_text(hook, font_size=26, weight=SEMIBOLD, color=pal["ink"], width=10.5, wrap=56)
-        if hook else None
-    )
-
-    rows = VGroup()
-    for line in bullets:
-        marker = Dot(radius=0.09, color=pal["accent"], fill_opacity=1)
-        text = safe_text(line, font_size=22, color=pal["ink"], width=9.6, wrap=60)
-        row = VGroup(marker, text).arrange(RIGHT, buff=0.36, aligned_edge=UP)
-        marker.shift(DOWN * 0.06)
-        rows.add(row)
-    if len(rows):
-        rows.arrange(DOWN, buff=0.46, aligned_edge=LEFT)
-
-    parts = [m for m in (hook_text, rows) if m is not None and (not isinstance(m, VGroup) or len(m))]
-    body = VGroup(*parts).arrange(DOWN, buff=0.52, aligned_edge=LEFT)
-    accent_rule = Rectangle(
-        height=max(body.height, 3.1), width=0.045, stroke_width=0,
-        fill_color=pal["accent"], fill_opacity=1,
-    )
-    body_with_rule = VGroup(accent_rule, body).arrange(RIGHT, buff=0.50, aligned_edge=UP)
-    place_body(body_with_rule, top=CHROME_BOTTOM_Y - 0.5, center_x=-0.25, max_height=5.0, max_width=11.0)
-
-    if hook_text is not None:
-        scene_obj.play(FadeIn(hook_text, shift=UP * 0.1), run_time=0.4)
-    scene_obj.play(GrowFromEdge(accent_rule, UP), run_time=0.35)
-    for row in rows:
-        scene_obj.play(FadeIn(row[0], scale=0.5), FadeIn(row[1], shift=RIGHT * 0.1), run_time=0.35)
-    _hold(scene_obj, scene_data.get("target_duration_seconds", 12.0), 1.0 + 0.4 * (len(rows) + 1))
-
 
 def render_equation(scene_obj, scene_data, pal):
-    """Equation card with a clean variable definitions table below."""
+    """Centered equation showcase with variable definitions and takeaway."""
     add_top_bar(scene_obj, scene_data, pal)
 
     expr_list = [e for e in (scene_data.get("equations") or []) if e]
@@ -468,66 +431,70 @@ def render_equation(scene_obj, scene_data, pal):
     eq_main = safe_math(primary, color=pal["ink"], font_size=58, max_width=9.6) if primary else None
     eq_secondary = safe_math(secondary, color=pal["muted"], font_size=36, max_width=8.6) if secondary else None
     if eq_main is None:
-        eq_main = safe_text(
+        eq_main = safe_centered_text(
             scene_data.get("hook") or scene_data.get("headline") or "Idea",
             font_size=42, weight=BOLD, color=pal["ink"], width=9.6, wrap=22,
         )
 
     eq_block_parts = [eq_main] + ([eq_secondary] if eq_secondary is not None else [])
     eq_block = VGroup(*eq_block_parts).arrange(DOWN, buff=0.38)
-    card_w = max(eq_block.width + 1.8, 6.6)
-    card_h = eq_block.height + 1.10
+    card_w = max(eq_block.width + 2.0, 7.0)
+    card_h = eq_block.height + 1.20
     eq_card = make_card(card_w, card_h, pal, radius=0.14, stroke_width=1.2)
-    accent_rule = Rectangle(
-        height=card_h, width=0.07, stroke_width=0,
+    accent_bottom = Rectangle(
+        height=0.06, width=card_w, stroke_width=0,
         fill_color=pal["accent"], fill_opacity=1,
-    ).align_to(eq_card, LEFT).move_to(eq_card.get_left() + RIGHT * 0.035)
+    ).align_to(eq_card, DOWN).move_to(eq_card.get_bottom() + UP * 0.03)
     eq_block.move_to(eq_card)
-    eq_panel = VGroup(eq_card, accent_rule, eq_block)
+    eq_panel = VGroup(eq_card, accent_bottom, eq_block)
+    eq_panel.set_x(0)
 
-    # Variable definitions table: symbol — meaning
     component_terms = [t for t in (scene_data.get("highlight_terms") or []) if t][:5]
     definitions = [p for p in (scene_data.get("key_points") or []) if p][:5]
     var_rows = VGroup()
     for i, term in enumerate(component_terms):
-        sym = safe_text(term, font_size=15, weight=BOLD, color=pal["accent"], width=1.5, wrap=12)
+        sym = safe_centered_text(term, font_size=15, weight=BOLD, color=pal["accent"], width=1.8, wrap=12)
         dash = safe_text("—", font_size=14, color=pal["light"])
         defn_text = definitions[i] if i < len(definitions) else ""
-        defn = safe_text(defn_text, font_size=15, color=pal["ink"], width=7.2, wrap=54) if defn_text else None
+        defn = safe_text(defn_text, font_size=15, color=pal["ink"], width=6.8, wrap=50) if defn_text else None
         if defn is not None:
             row = VGroup(sym, dash, defn).arrange(RIGHT, buff=0.18, aligned_edge=DOWN)
         else:
             row = VGroup(sym, dash).arrange(RIGHT, buff=0.18, aligned_edge=DOWN)
         var_rows.add(row)
     if len(var_rows):
-        var_rows.arrange(DOWN, buff=0.20, aligned_edge=LEFT)
-        def_rule = Rectangle(
-            height=var_rows.height + 0.28, width=0.04, stroke_width=0,
-            fill_color=pal["accent_soft"], fill_opacity=1,
-        )
-        def_block = VGroup(def_rule, var_rows).arrange(RIGHT, buff=0.28, aligned_edge=UP)
-        def_card = make_card(def_block.width + 0.80, def_block.height + 0.46, pal, radius=0.12, stroke_width=1.0)
-        def_block.move_to(def_card)
-        def_panel = VGroup(def_card, def_block)
-    else:
-        def_panel = None
+        var_rows.arrange(DOWN, buff=0.22, aligned_edge=LEFT)
+        var_rows.set_x(0)
 
-    layout_parts = [eq_panel] + ([def_panel] if def_panel is not None else [])
-    body = VGroup(*layout_parts).arrange(DOWN, buff=0.36)
-    place_body(body, top=CHROME_BOTTOM_Y - 0.40, max_height=5.2, max_width=11.5)
+    takeaway = (scene_data.get("takeaway") or "").strip()
+    headline = scene_data.get("headline", "")
+    show_takeaway = takeaway and _is_distinct(takeaway, headline)
+    takeaway_obj = safe_centered_text(
+        takeaway, font_size=17, color=pal["muted"], width=9.0, wrap=62,
+    ) if show_takeaway else None
 
-    scene_obj.play(FadeIn(eq_card, shift=UP * 0.05), GrowFromEdge(accent_rule, UP), run_time=0.45)
+    layout_parts = [eq_panel]
+    if len(var_rows):
+        layout_parts.append(var_rows)
+    if takeaway_obj is not None:
+        layout_parts.append(takeaway_obj)
+    body = VGroup(*layout_parts).arrange(DOWN, buff=0.34)
+    body.set_x(0)
+    place_body(body, top=CHROME_BOTTOM_Y - 0.40, max_height=5.0, max_width=11.5)
+
+    scene_obj.play(FadeIn(eq_card, shift=UP * 0.05), GrowFromCenter(accent_bottom), run_time=0.45)
     scene_obj.play(Write(eq_main), run_time=1.2)
     if eq_secondary is not None:
         scene_obj.play(Write(eq_secondary), run_time=0.7)
-    if def_panel is not None:
-        scene_obj.play(FadeIn(def_card, shift=UP * 0.05), run_time=0.30)
+    if len(var_rows):
         scene_obj.play(LaggedStart(*[FadeIn(r, shift=RIGHT * 0.08) for r in var_rows], lag_ratio=0.14), run_time=0.7)
+    if takeaway_obj is not None:
+        scene_obj.play(FadeIn(takeaway_obj, shift=UP * 0.06), run_time=0.3)
     _hold(scene_obj, scene_data.get("target_duration_seconds", 14.0), 3.25)
 
 
 def render_step_derivation(scene_obj, scene_data, pal):
-    """Stacked derivation steps — clean, flexible, supports up to 8 equations."""
+    """Centered stacked derivation steps with step labels and takeaway."""
     add_top_bar(scene_obj, scene_data, pal)
 
     equations = [e for e in (scene_data.get("equations") or []) if e][:8]
@@ -535,7 +502,6 @@ def render_step_derivation(scene_obj, scene_data, pal):
         equations = [scene_data.get("headline") or "Start", scene_data.get("takeaway") or "Result"]
     step_labels = _labels(scene_data, "visual_items", "highlight_terms", limit=len(equations))
     n = len(equations)
-    # Adaptive font — more steps = smaller to fit
     eq_font = 42 if n <= 3 else (36 if n <= 5 else (30 if n <= 7 else 26))
     row_gap = 0.38 if n <= 4 else (0.26 if n <= 6 else 0.18)
 
@@ -544,6 +510,20 @@ def render_step_derivation(scene_obj, scene_data, pal):
         raw_label = step_labels[i] if i < len(step_labels) else ("Given" if i == 0 else f"Step {i}")
         is_first = i == 0
         is_last = i == n - 1
+        step_num = safe_centered_text(
+            str(i + 1),
+            font_size=13,
+            weight=BOLD,
+            color="#FFFFFF" if (is_first or is_last) else pal["accent"],
+        )
+        num_bg = Circle(
+            radius=0.22,
+            stroke_width=0,
+            fill_color=pal["accent"] if (is_first or is_last) else pal["accent_soft"],
+            fill_opacity=1,
+        )
+        step_num.move_to(num_bg)
+        num_node = VGroup(num_bg, step_num)
         step_text = safe_text(
             raw_label,
             font_size=11,
@@ -552,175 +532,36 @@ def render_step_derivation(scene_obj, scene_data, pal):
             width=1.45,
             wrap=12,
         )
+        label_col = VGroup(num_node, step_text).arrange(DOWN, buff=0.08)
         math_obj = safe_math(expr, color=pal["ink"] if not is_last else pal["accent"],
-                             font_size=eq_font, max_width=8.4, max_height=0.90)
-        row = VGroup(step_text, math_obj).arrange(RIGHT, buff=0.38, aligned_edge=DOWN)
+                             font_size=eq_font, max_width=8.0, max_height=0.85)
+        row = VGroup(label_col, math_obj).arrange(RIGHT, buff=0.40, aligned_edge=DOWN)
         rows.add(row)
-    rows.arrange(DOWN, buff=row_gap, aligned_edge=LEFT)
+    rows.arrange(DOWN, buff=row_gap)
+    rows.set_x(0)
 
-    # Left accent rule
-    rule = Rectangle(
-        height=rows.height + 0.20, width=0.05, stroke_width=0,
-        fill_color=pal["accent"], fill_opacity=1,
-    )
-    rule_soft = Rectangle(
-        height=rows.height + 0.20, width=0.05, stroke_width=0,
-        fill_color=pal["accent_soft"], fill_opacity=1,
-    )
-    # Overlay: soft background + accent top cap
-    accent_cap = Rectangle(
-        height=min(0.30, rows.height * 0.25), width=0.05, stroke_width=0,
-        fill_color=pal["accent"], fill_opacity=1,
-    ).align_to(rule_soft, UP)
-    left_rule = VGroup(rule_soft, accent_cap)
+    takeaway = (scene_data.get("takeaway") or "").strip()
+    headline = scene_data.get("headline", "")
+    show_takeaway = takeaway and _is_distinct(takeaway, headline)
+    takeaway_obj = safe_centered_text(
+        takeaway, font_size=16, color=pal["muted"], width=9.0, wrap=62,
+    ) if show_takeaway else None
 
-    content = VGroup(left_rule, rows).arrange(RIGHT, buff=0.42, aligned_edge=UP)
-    place_body(content, top=CHROME_BOTTOM_Y - 0.38, max_height=5.35, max_width=11.5)
+    parts = [rows] + ([takeaway_obj] if takeaway_obj is not None else [])
+    content = VGroup(*parts).arrange(DOWN, buff=0.36)
+    content.set_x(0)
+    place_body(content, top=CHROME_BOTTOM_Y - 0.38, max_height=5.0, max_width=11.5)
 
-    scene_obj.play(GrowFromEdge(rule_soft, UP), run_time=0.35)
-    scene_obj.play(FadeIn(accent_cap), run_time=0.18)
     for row in rows:
         scene_obj.play(FadeIn(row[0], shift=RIGHT * 0.10), Write(row[1]), run_time=0.50)
-    _hold(scene_obj, scene_data.get("target_duration_seconds", 14.0), 0.70 + 0.50 * n)
+    if takeaway_obj is not None:
+        scene_obj.play(FadeIn(takeaway_obj, shift=UP * 0.06), run_time=0.3)
+    _hold(scene_obj, scene_data.get("target_duration_seconds", 14.0), 0.50 * n + 0.5)
 
-
-def render_distribution(scene_obj, scene_data, pal):
-    """Bell curve with shaded tail and a concise interpretation line."""
-    add_top_bar(scene_obj, scene_data, pal)
-
-    axes = Axes(
-        x_range=[-3.5, 3.5, 1], y_range=[0, 0.5, 0.1],
-        x_length=8.6, y_length=3.6,
-        axis_config={"color": pal["muted"], "stroke_width": 2}, tips=False,
-    ).move_to([0, -0.35, 0])
-
-    def normal(x): return math.exp(-x * x / 2) / math.sqrt(2 * math.pi)
-
-    curve = axes.plot(normal, x_range=[-3.4, 3.4], color=pal["ink"], stroke_width=4)
-    cutoff = 1.65
-    shade = axes.get_area(curve, x_range=[cutoff, 3.4], color=pal["accent"], opacity=0.50)
-    threshold = DashedLine(
-        axes.c2p(cutoff, 0), axes.c2p(cutoff, normal(cutoff)),
-        color=pal["accent"], dash_length=0.12, stroke_width=3,
-    )
-
-    terms = [t for t in (scene_data.get("highlight_terms") or []) if t]
-    tail_label = safe_text(
-        (terms[-1] if terms else "Tail area"),
-        font_size=18, weight=SEMIBOLD, color=pal["accent"], width=2.6, wrap=22,
-    )
-    tail_label.next_to(shade, RIGHT, buff=0.3)
-    x_label = safe_text(
-        (terms[0] if terms else "test statistic"),
-        font_size=18, color=pal["muted"], width=2.6, wrap=22,
-    )
-    x_label.next_to(axes.x_axis, RIGHT, buff=0.18)
-
-    note_text = ""
-    for cand in [scene_data.get("takeaway"), scene_data.get("hook"), *(scene_data.get("key_points") or [])]:
-        if _is_distinct(cand, scene_data.get("headline"), *terms):
-            note_text = cand
-            break
-    note = safe_text(note_text, font_size=17, color=pal["muted"], width=8.6, wrap=62) if note_text else None
-    if note is not None:
-        note.next_to(axes, DOWN, buff=0.26)
-
-    interp_text = ""
-    for cand in [scene_data.get("takeaway"), *(scene_data.get("key_points") or [])]:
-        if _is_distinct(cand, scene_data.get("headline"), *terms):
-            interp_text = cand
-            break
-    interp = safe_text(interp_text, font_size=17, color=pal["muted"], width=9.0, wrap=64) if interp_text else None
-    if interp is not None:
-        interp.next_to(axes, DOWN, buff=0.22)
-    body = VGroup(axes, curve, shade, threshold, tail_label, x_label, *(([interp]) if interp else []))
-    place_body(body, top=CHROME_BOTTOM_Y - 0.2, max_height=5.4, max_width=11.5)
-
-    scene_obj.play(Create(axes), run_time=0.5)
-    scene_obj.play(Create(curve), run_time=1.2)
-    scene_obj.play(FadeIn(x_label, shift=RIGHT * 0.1), run_time=0.35)
-    scene_obj.play(Create(threshold), run_time=0.35)
-    scene_obj.play(FadeIn(shade, shift=RIGHT * 0.06), FadeIn(tail_label, shift=LEFT * 0.06), run_time=0.6)
-    if note is not None:
-        scene_obj.play(FadeIn(note, shift=UP * 0.06), run_time=0.3)
-    if interp is not None:
-        scene_obj.play(FadeIn(interp, shift=UP * 0.06), run_time=0.3)
-    _hold(scene_obj, scene_data.get("target_duration_seconds", 14.0), 3.6)
-
-
-def render_axes_plot(scene_obj, scene_data, pal):
-    """Generic XY function plot with readable labels and explanatory context."""
-    add_top_bar(scene_obj, scene_data, pal)
-
-    axes = Axes(
-        x_range=[-4, 4, 1], y_range=[-2.5, 2.5, 1],
-        x_length=7.8, y_length=3.3,
-        axis_config={"color": pal["muted"], "stroke_width": 2}, tips=False,
-    ).move_to([0.2, -0.2, 0])
-
-    items = [s for s in (scene_data.get("highlight_terms") or []) if s]
-    # Place axis labels at the ends, clear of tick numbers
-    x_lab = safe_text(items[0] if items else "x", font_size=15, color=pal["muted"], width=2.0, wrap=16)
-    x_lab.next_to(axes.x_axis.get_end(), RIGHT, buff=0.18)
-    y_lab = safe_text(items[1] if len(items) > 1 else "y", font_size=15, color=pal["muted"], width=1.8, wrap=14)
-    y_lab.next_to(axes.y_axis.get_end(), UP, buff=0.14)
-
-    blob = ((scene_data.get("headline") or "") + " " + (scene_data.get("hook") or "")).lower()
-    if any(w in blob for w in ("exp", "growth", "decay")):
-        fn = lambda x: 1.6 * math.exp(0.5 * x) / math.exp(2.0)
-    elif any(w in blob for w in ("sin", "wave", "oscill", "period", "frequency")):
-        fn = lambda x: 2.0 * math.sin(1.4 * x)
-    elif "log" in blob:
-        fn = lambda x: math.log(max(x + 4.1, 0.05))
-    elif any(w in blob for w in ("quad", "parab", "square")):
-        fn = lambda x: 0.4 * x * x - 1.5
-    else:
-        fn = lambda x: 0.5 * x + 0.4 * math.sin(1.6 * x)
-
-    curve = axes.plot(fn, x_range=[-3.8, 3.8], color=pal["accent"], stroke_width=4)
-
-    markers = VGroup()
-    points = [s for s in (scene_data.get("visual_items") or scene_data.get("key_points") or []) if s][:3]
-    sample_xs = [-2.0, 0.0, 2.0]
-    label_offsets = [UL, UR, UR]
-    for i, label_str in enumerate(points):
-        x = sample_xs[i % 3]
-        try:
-            y = fn(x)
-        except Exception:
-            y = 0
-        pt = Dot(axes.c2p(x, y), radius=0.10, color=pal["accent_2"])
-        lab = safe_text(label_str, font_size=14, weight=SEMIBOLD, color=pal["ink"], width=2.2, height=0.50, wrap=18)
-        lab.next_to(pt, label_offsets[i % 3], buff=0.22)
-        markers.add(pt, lab)
-
-    note_text = ""
-    for cnd in [scene_data.get("takeaway"), scene_data.get("hook"), *(scene_data.get("key_points") or [])]:
-        if _is_distinct(cnd, scene_data.get("headline"), *items, *points):
-            note_text = cnd
-            break
-    note = safe_text(note_text, font_size=17, color=pal["muted"], width=8.6, wrap=62) if note_text else None
-
-    axis_group = VGroup(axes, curve, x_lab, y_lab, markers)
-    if note is not None:
-        note.next_to(axis_group, DOWN, buff=0.30)
-        body = VGroup(axis_group, note)
-    else:
-        body = axis_group
-    place_body(body, top=CHROME_BOTTOM_Y - 0.3, max_height=5.4, max_width=11.5)
-
-    scene_obj.play(Create(axes), run_time=0.5)
-    scene_obj.play(FadeIn(x_lab, shift=LEFT * 0.08), FadeIn(y_lab, shift=DOWN * 0.08), run_time=0.3)
-    scene_obj.play(Create(curve), run_time=1.2)
-    if len(markers):
-        scene_obj.play(LaggedStart(*[FadeIn(m, shift=UP * 0.1) for m in markers], lag_ratio=0.12), run_time=0.8)
-    if note is not None:
-        scene_obj.play(FadeIn(note, shift=UP * 0.06), run_time=0.3)
-    _hold(scene_obj, scene_data.get("target_duration_seconds", 14.0), 3.1)
 
 
 def render_line_chart(scene_obj, scene_data, pal):
-    """Ordered trend line with summary, labels, and a clear final value."""
+    """Centered trend line with summary, labels, and interpretation."""
     add_top_bar(scene_obj, scene_data, pal)
 
     points = _data_points(scene_data, limit=6)
@@ -734,83 +575,99 @@ def render_line_chart(scene_obj, scene_data, pal):
         x_range=[0, max(len(points) - 1, 1), 1],
         y_range=[low - pad, high + pad, max((high - low) / 3, 1)],
         x_length=8.2,
-        y_length=3.15,
+        y_length=3.0,
         axis_config={"color": pal["muted"], "stroke_width": 2},
         tips=False,
-    ).move_to([0, -0.15, 0])
+    )
 
     coords = [axes.c2p(i, value) for i, (_, value) in enumerate(points)]
     segments = VGroup(*[Line(coords[i], coords[i + 1], color=pal["accent"], stroke_width=4) for i in range(len(coords) - 1)])
     dots = VGroup(*[Dot(coord, radius=0.09, color=pal["accent_2"]) for coord in coords])
     labels = VGroup()
     for i, (label, _value) in enumerate(points):
-        labels.add(safe_text(label, font_size=14, weight=SEMIBOLD, color=pal["muted"], width=1.35, wrap=10)
+        labels.add(safe_centered_text(label, font_size=13, weight=SEMIBOLD, color=pal["muted"], width=1.35, wrap=10)
                    .next_to(axes.c2p(i, low - pad), DOWN, buff=0.12))
-    value_label = safe_text(
+    value_label = safe_centered_text(
         f"{points[-1][1]:g}",
-        font_size=20,
-        weight=BOLD,
-        color=pal["accent"],
-        width=2.0,
+        font_size=20, weight=BOLD, color=pal["accent"], width=2.0,
     ).next_to(dots[-1], UR, buff=0.16)
 
-    summary = safe_text(
-        scene_data.get("takeaway") or scene_data.get("hook") or "The final point shows the direction of change.",
-        font_size=18,
-        color=pal["ink"],
-        width=8.8,
-        wrap=60,
+    summary = safe_centered_text(
+        scene_data.get("takeaway") or scene_data.get("hook") or "The trend reveals the direction of change.",
+        font_size=18, color=pal["ink"], width=9.0, wrap=58,
     )
-    summary.next_to(axes, UP, buff=0.22)
-    note = safe_text(
-        (scene_data.get("key_points") or ["Compare the slope, turning points, and final value."])[0],
-        font_size=15,
-        color=pal["muted"],
-        width=8.6,
-        wrap=62,
-    ).next_to(axes, DOWN, buff=0.34)
+    note_text = (scene_data.get("key_points") or [""])[0]
+    note = safe_centered_text(
+        note_text, font_size=15, color=pal["muted"], width=8.6, wrap=62,
+    ) if note_text else None
 
-    chart = VGroup(summary, axes, segments, dots, labels, value_label, note)
-    place_body(chart, top=CHROME_BOTTOM_Y - 0.28, max_height=5.35, max_width=11.4)
+    chart_group = VGroup(axes, segments, dots, labels, value_label)
+    parts = [summary, chart_group] + ([note] if note is not None else [])
+    body = VGroup(*parts).arrange(DOWN, buff=0.28)
+    body.set_x(0)
+    place_body(body, top=CHROME_BOTTOM_Y - 0.28, max_height=5.1, max_width=11.4)
 
+    scene_obj.play(FadeIn(summary, shift=DOWN * 0.06), run_time=0.35)
     scene_obj.play(Create(axes), run_time=0.5)
     if len(segments):
         scene_obj.play(LaggedStart(*[Create(s) for s in segments], lag_ratio=0.16), run_time=1.0)
     scene_obj.play(FadeIn(dots, scale=0.8), FadeIn(labels, shift=UP * 0.05), run_time=0.55)
     scene_obj.play(FadeIn(value_label, shift=LEFT * 0.08), run_time=0.25)
-    scene_obj.play(FadeIn(summary, shift=DOWN * 0.06), FadeIn(note, shift=UP * 0.06), run_time=0.35)
-    _hold(scene_obj, scene_data.get("target_duration_seconds", 14.0), 2.65)
+    if note is not None:
+        scene_obj.play(FadeIn(note, shift=UP * 0.06), run_time=0.3)
+    _hold(scene_obj, scene_data.get("target_duration_seconds", 14.0), 2.95)
 
 
 def render_comparison(scene_obj, scene_data, pal):
-    """Side-by-side comparison cards with one softly highlighted side."""
+    """Centered side-by-side comparison cards with takeaway."""
     add_top_bar(scene_obj, scene_data, pal)
 
     items = [s for s in (scene_data.get("visual_items") or []) if s]
+    if len(items) < 2:
+        for src in (scene_data.get("headline", ""), scene_data.get("hook", "")):
+            for sep in (" vs ", " vs. ", " versus "):
+                low = src.lower()
+                if sep in low:
+                    idx = low.index(sep)
+                    a = src[:idx].strip()
+                    b = src[idx + len(sep):].strip()
+                    for end in (":", " - ", " \\u2014 "):
+                        if end in b:
+                            b = b[:b.index(end)].strip()
+                            break
+                    if a and b:
+                        items = [a, b]
+                        break
+            if len(items) >= 2:
+                break
+    if len(items) < 2:
+        terms = [s for s in (scene_data.get("highlight_terms") or []) if s]
+        if len(terms) >= 2:
+            items = terms[:2]
     points = [s for s in (scene_data.get("key_points") or []) if s]
-    left_title = items[0] if items else "Approach A"
-    right_title = items[1] if len(items) > 1 else "Approach B"
+    left_title = items[0] if items else "Option A"
+    right_title = items[1] if len(items) > 1 else "Option B"
 
     def panel(label, lines, accent, highlighted=False):
         bullet_limit = 4
         bg = make_card(
-            5.3, 5.0, pal,
+            5.0, 4.2, pal,
             fill=pal["accent_soft"] if highlighted else pal["panel"],
             stroke=pal["accent_mid"] if highlighted else pal["soft"],
             radius=0.14,
             stroke_width=1.35,
         )
         header_label = make_eyebrow_label(label, pal, color=accent, font_size=15)
-        header_label.move_to([bg.get_center()[0], bg.get_top()[1] - 0.52, 0])
+        header_label.move_to([bg.get_center()[0], bg.get_top()[1] - 0.48, 0])
 
         rows = VGroup()
         for line in lines[:bullet_limit]:
             dot = Dot(radius=0.07, color=accent)
-            text = safe_text(line, font_size=17, color=pal["ink"], width=4.0, wrap=34)
-            rows.add(VGroup(dot, text).arrange(RIGHT, buff=0.22, aligned_edge=UP))
+            text = safe_centered_text(line, font_size=16, color=pal["ink"], width=3.8, wrap=30)
+            rows.add(VGroup(dot, text).arrange(RIGHT, buff=0.20, aligned_edge=UP))
         if len(rows):
-            rows.arrange(DOWN, buff=0.28, aligned_edge=LEFT)
-            rows.move_to(bg.get_center() + DOWN * 0.30)
+            rows.arrange(DOWN, buff=0.26, aligned_edge=LEFT)
+            rows.move_to(bg.get_center() + DOWN * 0.20)
             if rows.height > bg.height - 1.1:
                 rows.scale_to_fit_height(bg.height - 1.1)
         return VGroup(bg, header_label, rows)
@@ -830,19 +687,32 @@ def render_comparison(scene_obj, scene_data, pal):
         radius=0.30, stroke_width=1.2,
         color=pal["soft"], fill_color=pal["background"], fill_opacity=1,
     )
-    vs_text = safe_text("vs", font_size=13, weight=SEMIBOLD, color=pal["light"]).move_to(vs_bg)
+    vs_text = safe_centered_text("vs", font_size=13, weight=SEMIBOLD, color=pal["light"]).move_to(vs_bg)
     vs_node = VGroup(vs_bg, vs_text)
 
     pair = VGroup(left, vs_node, right).arrange(RIGHT, buff=0.24)
-    place_body(pair, top=CHROME_BOTTOM_Y - 0.25, max_height=5.5, max_width=11.5)
+
+    takeaway = (scene_data.get("takeaway") or "").strip()
+    headline = scene_data.get("headline", "")
+    show_takeaway = takeaway and _is_distinct(takeaway, headline)
+    takeaway_obj = safe_centered_text(
+        takeaway, font_size=16, color=pal["muted"], width=9.5, wrap=64,
+    ) if show_takeaway else None
+
+    parts = [pair] + ([takeaway_obj] if takeaway_obj is not None else [])
+    body = VGroup(*parts).arrange(DOWN, buff=0.30)
+    body.set_x(0)
+    place_body(body, top=CHROME_BOTTOM_Y - 0.25, max_height=5.3, max_width=11.5)
 
     scene_obj.play(FadeIn(left, shift=LEFT * 0.15), FadeIn(right, shift=RIGHT * 0.15), run_time=0.7)
     scene_obj.play(FadeIn(vs_node, scale=0.7), run_time=0.30)
+    if takeaway_obj is not None:
+        scene_obj.play(FadeIn(takeaway_obj, shift=UP * 0.06), run_time=0.3)
     _hold(scene_obj, scene_data.get("target_duration_seconds", 14.0), 1.7)
 
 
 def render_before_after(scene_obj, scene_data, pal):
-    """Transformation cards with a strong before-to-after direction."""
+    """Centered transformation cards with key changes and takeaway."""
     add_top_bar(scene_obj, scene_data, pal)
 
     items = _labels(scene_data, "visual_items", limit=2)
@@ -850,10 +720,10 @@ def render_before_after(scene_obj, scene_data, pal):
     after = items[1] if len(items) > 1 else "After"
     points = _labels(scene_data, "key_points", "highlight_terms", limit=3)
 
-    def state_card(title, subtitle, highlighted=False):
+    def state_card(title, subtitle, detail_lines, highlighted=False):
         bg = make_card(
-            4.7,
-            3.6,
+            4.5,
+            3.8,
             pal,
             fill=pal["accent_soft"] if highlighted else pal["panel"],
             stroke=pal["accent_mid"] if highlighted else pal["soft"],
@@ -861,35 +731,56 @@ def render_before_after(scene_obj, scene_data, pal):
             stroke_width=1.35,
         )
         label = make_eyebrow_label(title, pal, color=pal["accent"] if highlighted else pal["muted"], font_size=14)
-        label.move_to([bg.get_center()[0], bg.get_top()[1] - 0.48, 0])
-        body = safe_text(subtitle, font_size=22, weight=SEMIBOLD, color=pal["ink"], width=3.75, height=1.35, wrap=22)
-        body.move_to(bg.get_center() + DOWN * 0.05)
-        return VGroup(bg, label, body)
+        label.move_to([bg.get_center()[0], bg.get_top()[1] - 0.42, 0])
+        body = safe_centered_text(subtitle, font_size=20, weight=SEMIBOLD, color=pal["ink"], width=3.6, height=1.0, wrap=22)
+        content_parts = [body]
+        for dl in detail_lines[:2]:
+            content_parts.append(safe_centered_text(dl, font_size=13, color=pal["muted"], width=3.4, wrap=28))
+        content = VGroup(*content_parts).arrange(DOWN, buff=0.14)
+        content.move_to(bg.get_center() + DOWN * 0.10)
+        if content.height > bg.height - 1.0:
+            content.scale_to_fit_height(bg.height - 1.0)
+        return VGroup(bg, label, content)
 
-    left = state_card("Before", before, highlighted=False)
-    right = state_card("After", after, highlighted=True)
+    left_details = [p for p in points[:1] if _is_distinct(p, before)]
+    right_details = [p for p in points[1:2] if _is_distinct(p, after)]
+    left = state_card("Before", before, left_details, highlighted=False)
+    right = state_card("After", after, right_details, highlighted=True)
     arrow = Arrow(LEFT * 0.72, RIGHT * 0.72, color=pal["accent"], stroke_width=4, buff=0.05, tip_length=0.22)
-    arrow_label = safe_text("changes", font_size=15, weight=SEMIBOLD, color=pal["muted"]).next_to(arrow, UP, buff=0.16)
-    pair = VGroup(left, VGroup(arrow, arrow_label), right).arrange(RIGHT, buff=0.42)
+    pair = VGroup(left, arrow, right).arrange(RIGHT, buff=0.38)
 
-    chips = VGroup(*[make_tag(point, pal, font_size=14) for point in points])
+    chips = VGroup(*[make_tag(point, pal, font_size=13) for point in points])
+    takeaway = (scene_data.get("takeaway") or "").strip()
+    headline = scene_data.get("headline", "")
+    show_takeaway = takeaway and _is_distinct(takeaway, headline)
+    takeaway_obj = safe_centered_text(
+        takeaway, font_size=16, color=pal["muted"], width=9.5, wrap=64,
+    ) if show_takeaway else None
+
+    body_parts = [pair]
     if len(chips):
         chips.arrange(RIGHT, buff=0.24)
-        body = VGroup(pair, chips).arrange(DOWN, buff=0.45)
-    else:
-        body = pair
+        if chips.width > 11.0:
+            chips.scale_to_fit_width(11.0)
+        body_parts.append(chips)
+    if takeaway_obj is not None:
+        body_parts.append(takeaway_obj)
+    body = VGroup(*body_parts).arrange(DOWN, buff=0.32)
+    body.set_x(0)
     place_body(body, top=CHROME_BOTTOM_Y - 0.3, max_height=5.2, max_width=11.5)
 
     scene_obj.play(FadeIn(left, shift=LEFT * 0.15), run_time=0.45)
-    scene_obj.play(Create(arrow), FadeIn(arrow_label), run_time=0.45)
+    scene_obj.play(Create(arrow), run_time=0.35)
     scene_obj.play(FadeIn(right, shift=RIGHT * 0.15), run_time=0.45)
     if len(chips):
         scene_obj.play(LaggedStart(*[FadeIn(c, shift=UP * 0.06) for c in chips], lag_ratio=0.12), run_time=0.5)
-    _hold(scene_obj, scene_data.get("target_duration_seconds", 14.0), 2.0)
+    if takeaway_obj is not None:
+        scene_obj.play(FadeIn(takeaway_obj, shift=UP * 0.06), run_time=0.3)
+    _hold(scene_obj, scene_data.get("target_duration_seconds", 14.0), 2.1)
 
 
 def render_flow(scene_obj, scene_data, pal):
-    """Numbered process nodes with content boxes below each stage."""
+    """Centered numbered process nodes with content boxes and takeaway."""
     add_top_bar(scene_obj, scene_data, pal)
 
     items = [s for s in (scene_data.get("visual_items") or scene_data.get("key_points") or []) if s][:4]
@@ -919,22 +810,21 @@ def render_flow(scene_obj, scene_data, pal):
             fill_color=pal["accent"] if is_first else (pal["accent_mid"] if is_last else pal["accent_soft"]),
             fill_opacity=1,
         )
-        num_label = safe_text(str(i + 1), font_size=16, weight=BOLD,
+        num_label = safe_centered_text(str(i + 1), font_size=16, weight=BOLD,
                               color="#FFFFFF" if is_first else pal["accent"]).move_to(bg)
         node = VGroup(bg, num_label).move_to([x, 0.40, 0])
         nodes.add(node)
 
-        title = safe_text(item, font_size=15, weight=SEMIBOLD, color=pal["ink"],
+        title = safe_centered_text(item, font_size=14, weight=SEMIBOLD, color=pal["ink"],
                           width=spacing - 0.50, height=0.44, wrap=17)
-        # Pull detail from key_points first, then highlight_terms as fallback
         detail_source = ""
         if i < len(detail_lines) and _is_distinct(detail_lines[i], item):
             detail_source = detail_lines[i]
         elif i < len(extra_details) and _is_distinct(extra_details[i], item):
             detail_source = extra_details[i]
-        detail = safe_text(detail_source, font_size=12, color=pal["muted"],
-                           width=spacing - 0.44, height=0.68, wrap=26)
-        card = make_card(spacing - 0.24, 1.38, pal, radius=0.12, stroke_width=1.0)
+        detail = safe_centered_text(detail_source, font_size=12, color=pal["muted"],
+                           width=spacing - 0.44, height=0.72, wrap=24)
+        card = make_card(spacing - 0.24, 1.50, pal, radius=0.12, stroke_width=1.0)
         content = VGroup(title, detail).arrange(DOWN, buff=0.10)
         if content.height > card.height - 0.22:
             content.scale_to_fit_height(card.height - 0.22)
@@ -951,17 +841,30 @@ def render_flow(scene_obj, scene_data, pal):
             connectors.add(arrow)
 
     pipeline = VGroup(connectors, nodes, boxes)
-    place_body(pipeline, top=CHROME_BOTTOM_Y - 0.22, max_height=5.2, max_width=11.5)
+
+    takeaway = (scene_data.get("takeaway") or "").strip()
+    headline = scene_data.get("headline", "")
+    show_takeaway = takeaway and _is_distinct(takeaway, headline)
+    takeaway_obj = safe_centered_text(
+        takeaway, font_size=16, color=pal["muted"], width=9.5, wrap=64,
+    ) if show_takeaway else None
+
+    parts = [pipeline] + ([takeaway_obj] if takeaway_obj is not None else [])
+    body = VGroup(*parts).arrange(DOWN, buff=0.32)
+    body.set_x(0)
+    place_body(body, top=CHROME_BOTTOM_Y - 0.22, max_height=5.2, max_width=11.5)
 
     scene_obj.play(LaggedStart(*[FadeIn(node, scale=0.7) for node in nodes], lag_ratio=0.15), run_time=0.9)
     if len(connectors):
         scene_obj.play(LaggedStart(*[Create(c) for c in connectors], lag_ratio=0.15), run_time=0.7)
     scene_obj.play(LaggedStart(*[FadeIn(b, shift=UP * 0.1) for b in boxes], lag_ratio=0.12), run_time=0.6)
+    if takeaway_obj is not None:
+        scene_obj.play(FadeIn(takeaway_obj, shift=UP * 0.06), run_time=0.3)
     _hold(scene_obj, scene_data.get("target_duration_seconds", 14.0), 2.5)
 
 
 def render_timeline(scene_obj, scene_data, pal):
-    """Horizontal milestone sequence with rich label blocks, centered vertically."""
+    """Centered horizontal milestone sequence with details and takeaway."""
     add_top_bar(scene_obj, scene_data, pal)
 
     items = _labels(scene_data, "visual_items", "key_points", limit=5)
@@ -980,16 +883,16 @@ def render_timeline(scene_obj, scene_data, pal):
     for i, item in enumerate(items):
         x = -spine_width / 2 + i * (spine_width / max(n - 1, 1))
         is_first = i == 0
+        is_last = i == n - 1
         dot = Circle(
-            radius=0.17,
+            radius=0.20,
             color=pal["accent"],
             stroke_width=2.2,
-            fill_color=pal["accent"] if is_first else pal["accent_soft"],
+            fill_color=pal["accent"] if (is_first or is_last) else pal["accent_soft"],
             fill_opacity=1,
         ).move_to([x, spine_y, 0])
         dots.add(dot)
 
-        # Pull detail for this milestone from key_points, then highlight_terms
         detail_src = ""
         if i < len(details) and _is_distinct(details[i], item):
             detail_src = details[i]
@@ -997,19 +900,17 @@ def render_timeline(scene_obj, scene_data, pal):
             detail_src = extra[i]
 
         block_w = min(spine_width / max(n, 1) - 0.22, 2.20)
-        title = safe_text(item, font_size=15, weight=SEMIBOLD, color=pal["ink"], width=block_w, wrap=14)
+        title = safe_centered_text(item, font_size=14, weight=SEMIBOLD, color=pal["ink"], width=block_w, wrap=14)
         if detail_src:
-            detail_obj = safe_text(detail_src, font_size=12, color=pal["muted"], width=block_w, wrap=20)
-            block = VGroup(title, detail_obj).arrange(DOWN, buff=0.08, aligned_edge=LEFT)
+            detail_obj = safe_centered_text(detail_src, font_size=11, color=pal["muted"], width=block_w, wrap=20)
+            block = VGroup(title, detail_obj).arrange(DOWN, buff=0.08)
         else:
             block = title
 
         stacks_down = i % 2 == 1
         direction = DOWN if stacks_down else UP
-        block.next_to(dot, direction, buff=0.32)
-        # Nudge gray text lower when stacking downward
-        if stacks_down and detail_src:
-            block.shift(DOWN * 0.10)
+        block.next_to(dot, direction, buff=0.30)
+        block.set_x(x)
         label_blocks.add(block)
 
     note_text = ""
@@ -1017,14 +918,16 @@ def render_timeline(scene_obj, scene_data, pal):
         if _is_distinct(cnd, scene_data.get("headline"), *items):
             note_text = cnd
             break
-    note = safe_text(note_text, font_size=16, color=pal["muted"], width=9.5, wrap=66) if note_text else None
+    note = safe_centered_text(note_text, font_size=16, color=pal["muted"], width=9.5, wrap=66) if note_text else None
 
     content = VGroup(line, dots, label_blocks)
     if note is not None:
-        note.next_to(content, DOWN, buff=0.44)
+        note.next_to(content, DOWN, buff=0.40)
+        note.set_x(0)
         body = VGroup(content, note)
     else:
         body = content
+    body.set_x(0)
     place_body(body, top=CHROME_BOTTOM_Y - 0.12, max_height=5.4, max_width=11.5)
 
     scene_obj.play(Create(line), run_time=0.5)
@@ -1036,7 +939,7 @@ def render_timeline(scene_obj, scene_data, pal):
 
 
 def render_bar_chart(scene_obj, scene_data, pal):
-    """Rounded bars with value labels and a clear bottom interpretation."""
+    """Centered rounded bars with value labels and interpretation text."""
     add_top_bar(scene_obj, scene_data, pal)
 
     points = _data_points(scene_data, limit=5)
@@ -1071,24 +974,22 @@ def render_bar_chart(scene_obj, scene_data, pal):
         )
         bar.move_to([start_x + i * (w + spacing), base_y + (v * max_h) / 2, 0])
         bars.add(bar)
-        labels.add(safe_text(item, font_size=14, weight=SEMIBOLD, color=pal["ink"], width=w + 0.55, wrap=13)
+        labels.add(safe_centered_text(item, font_size=13, weight=SEMIBOLD, color=pal["ink"], width=w + 0.55, wrap=13)
                    .next_to(bar, DOWN, buff=0.20))
-        value_labels.add(safe_text(f"{raw_values[i]:g}", font_size=16, weight=BOLD, color=color)
+        value_labels.add(safe_centered_text(f"{raw_values[i]:g}", font_size=16, weight=BOLD, color=color)
                          .next_to(bar, UP, buff=0.14))
 
-    main_text = safe_text(
+    main_text = safe_centered_text(
         scene_data.get("takeaway") or scene_data.get("hook") or "Compare the tallest bar against the rest.",
-        font_size=19,
-        weight=SEMIBOLD,
-        color=pal["ink"],
-        width=9.0,
-        wrap=58,
+        font_size=18, weight=SEMIBOLD, color=pal["ink"], width=9.0, wrap=58,
     )
     sub_text_raw = (scene_data.get("key_points") or [""])[0]
-    sub_text = safe_text(sub_text_raw, font_size=15, color=pal["muted"], width=8.8, wrap=62) if sub_text_raw else None
-    bottom = VGroup(*([main_text] + ([sub_text] if sub_text else []))).arrange(DOWN, buff=0.16, aligned_edge=LEFT)
+    sub_text = safe_centered_text(sub_text_raw, font_size=15, color=pal["muted"], width=8.8, wrap=62) if sub_text_raw else None
 
     chart = VGroup(baseline, bars, labels, value_labels)
+    bottom_parts = [main_text] + ([sub_text] if sub_text else [])
+    bottom = VGroup(*bottom_parts).arrange(DOWN, buff=0.16)
+
     place_body(chart, top=CHROME_BOTTOM_Y - 0.35, max_height=4.4, max_width=10.5)
     bottom.next_to(chart, DOWN, buff=0.30)
     bottom.set_x(0)
@@ -1104,7 +1005,7 @@ def render_bar_chart(scene_obj, scene_data, pal):
 
 
 def render_proportional_chart(scene_obj, scene_data, pal):
-    """Pie chart for parts-of-a-whole explanations."""
+    """Centered pie chart with legend, takeaway, and interpretation."""
     add_top_bar(scene_obj, scene_data, pal)
 
     points = _data_points(scene_data, limit=5)
@@ -1134,25 +1035,26 @@ def render_proportional_chart(scene_obj, scene_data, pal):
         slices.add(sector)
         swatch = RoundedRectangle(corner_radius=0.04, width=0.22, height=0.22,
                                   stroke_width=0, fill_color=color, fill_opacity=1)
-        label_text = safe_text(f"{label}", font_size=15, weight=SEMIBOLD, color=pal["ink"], width=2.5, wrap=20)
-        pct_text = safe_text(f"{frac * 100:.0f}%", font_size=14, weight=BOLD, color=color, width=0.7)
+        label_text = safe_centered_text(f"{label}", font_size=15, weight=SEMIBOLD, color=pal["ink"], width=2.5, wrap=20)
+        pct_text = safe_centered_text(f"{frac * 100:.0f}%", font_size=14, weight=BOLD, color=color, width=0.7)
         row = VGroup(swatch, label_text, pct_text).arrange(RIGHT, buff=0.14, aligned_edge=DOWN)
         legend.add(row)
     if len(legend):
         legend.arrange(DOWN, buff=0.24, aligned_edge=LEFT)
 
-    title = safe_text(
+    title = safe_centered_text(
         scene_data.get("takeaway") or "Parts of the whole",
-        font_size=22, weight=SEMIBOLD, color=pal["ink"], width=9.5, wrap=48,
+        font_size=20, weight=SEMIBOLD, color=pal["ink"], width=9.5, wrap=48,
     )
-    note = safe_text(
-        scene_data.get("hook") or "Each slice shows its share of the total.",
-        font_size=16, color=pal["muted"], width=9.2, wrap=62,
+    note_text = (scene_data.get("key_points") or [""])[0]
+    note = safe_centered_text(
+        note_text or "Each slice shows its share of the total.",
+        font_size=15, color=pal["muted"], width=9.2, wrap=62,
     )
     chart_row = VGroup(slices, legend).arrange(RIGHT, buff=0.80)
-    body = VGroup(title, chart_row, note).arrange(DOWN, buff=0.38)
+    body = VGroup(title, chart_row, note).arrange(DOWN, buff=0.34)
     body.set_x(0)
-    place_body(body, top=CHROME_BOTTOM_Y - 0.28, max_height=5.35, max_width=11.5)
+    place_body(body, top=CHROME_BOTTOM_Y - 0.28, max_height=5.1, max_width=11.5)
 
     scene_obj.play(FadeIn(title), run_time=0.35)
     scene_obj.play(LaggedStart(*[FadeIn(s, scale=0.90) for s in slices], lag_ratio=0.08), run_time=0.9)
@@ -1163,7 +1065,7 @@ def render_proportional_chart(scene_obj, scene_data, pal):
 
 
 def render_cause_effect(scene_obj, scene_data, pal):
-    """One cause branching into two to four effects with description below."""
+    """Centered cause branching into effects with descriptions and takeaway."""
     add_top_bar(scene_obj, scene_data, pal)
 
     cause = (_labels(scene_data, "highlight_terms", limit=1) or [scene_data.get("headline", "Cause")])[0]
@@ -1172,27 +1074,26 @@ def render_cause_effect(scene_obj, scene_data, pal):
         effects = [scene_data.get("takeaway", "Effect") or "Effect"]
     effect_details = [s for s in (scene_data.get("key_points") or []) if s]
 
-    cause_card = make_card(3.0, 1.35, pal, fill=pal["accent_soft"], stroke=pal["accent_mid"])
-    cause_text = safe_text(cause, font_size=22, weight=BOLD, color=pal["ink"], width=2.35, height=0.9, wrap=18)
+    cause_card = make_card(3.0, 1.45, pal, fill=pal["accent_soft"], stroke=pal["accent_mid"])
+    cause_text = safe_centered_text(cause, font_size=20, weight=BOLD, color=pal["ink"], width=2.35, height=0.9, wrap=18)
     cause_node = VGroup(cause_card, cause_text.move_to(cause_card))
 
     effect_nodes = VGroup()
     arrows = VGroup()
-    y_positions = [1.35, 0.45, -0.45, -1.35] if len(effects) > 3 else [0.95, 0.0, -0.95]
-    if len(effects) == 1:
-        y_positions = [0.0]
+    n_eff = len(effects)
+    y_positions = [1.35, 0.45, -0.45, -1.35] if n_eff > 3 else ([0.95, 0.0, -0.95] if n_eff == 3 else ([0.55, -0.55] if n_eff == 2 else [0.0]))
     for i, effect in enumerate(effects):
         detail_src = effect_details[i] if i < len(effect_details) and _is_distinct(effect_details[i], effect) else ""
-        bg = make_card(3.7, 1.0 if detail_src else 0.80, pal, radius=0.14, stroke_width=1.2)
-        title = safe_text(effect, font_size=16, weight=SEMIBOLD, color=pal["ink"], width=3.1, height=0.42, wrap=26)
+        bg = make_card(3.8, 1.10 if detail_src else 0.85, pal, radius=0.14, stroke_width=1.2)
+        title = safe_centered_text(effect, font_size=15, weight=SEMIBOLD, color=pal["ink"], width=3.2, height=0.42, wrap=24)
         if detail_src:
-            detail = safe_text(detail_src, font_size=13, color=pal["muted"], width=3.1, height=0.36, wrap=30)
+            detail = safe_centered_text(detail_src, font_size=12, color=pal["muted"], width=3.2, height=0.40, wrap=28)
             content = VGroup(title, detail).arrange(DOWN, buff=0.06).move_to(bg)
         else:
             content = title.move_to(bg)
         node = VGroup(bg, content)
-        nodes_x = cause_node.get_center()[0] + 3.7
-        node.move_to([nodes_x, y_positions[i], 0])
+        nodes_x = cause_node.get_center()[0] + 3.8
+        node.move_to([nodes_x, y_positions[i] if i < len(y_positions) else 0, 0])
         effect_nodes.add(node)
         arrows.add(Arrow(
             cause_node.get_right(), node.get_left(),
@@ -1207,13 +1108,15 @@ def render_cause_effect(scene_obj, scene_data, pal):
         if _is_distinct(cnd, cause, scene_data.get("headline")):
             note_text = cnd
             break
-    note = safe_text(note_text, font_size=17, color=pal["muted"], width=10.0, wrap=66) if note_text else None
+    note = safe_centered_text(note_text, font_size=16, color=pal["muted"], width=10.0, wrap=66) if note_text else None
 
     if note is not None:
-        body = VGroup(diagram, note).arrange(DOWN, buff=0.40)
+        body = VGroup(diagram, note).arrange(DOWN, buff=0.36)
+        note.set_x(0)
     else:
         body = diagram
-    place_body(body, top=CHROME_BOTTOM_Y - 0.20, max_height=5.5, max_width=11.5)
+    body.set_x(0)
+    place_body(body, top=CHROME_BOTTOM_Y - 0.20, max_height=5.3, max_width=11.5)
 
     scene_obj.play(FadeIn(cause_node, scale=0.9), run_time=0.45)
     scene_obj.play(LaggedStart(*[Create(a) for a in arrows], lag_ratio=0.12), run_time=0.75)
@@ -1224,7 +1127,7 @@ def render_cause_effect(scene_obj, scene_data, pal):
 
 
 def render_network(scene_obj, scene_data, pal):
-    """Center node with title/body text and well-spaced child nodes."""
+    """Centered hub-and-spoke diagram with child details."""
     add_top_bar(scene_obj, scene_data, pal)
 
     child_titles = _labels(scene_data, "visual_items", limit=5)
@@ -1237,16 +1140,15 @@ def render_network(scene_obj, scene_data, pal):
     center_body = scene_data.get("hook") or scene_data.get("takeaway") or ""
 
     n = len(child_titles)
-    # Scale radius so nodes don't crowd as count increases
-    radius = 2.70 if n <= 3 else (3.00 if n == 4 else 3.20)
+    radius = 2.60 if n <= 3 else (2.90 if n == 4 else 3.10)
     child_w = 2.50 if n <= 4 else 2.30
-    child_h = 1.10
+    child_h = 1.15
 
     nodes = VGroup()
     center_bg = make_card(2.9, 1.55, pal, fill=pal["accent_soft"], stroke=pal["accent_mid"], radius=0.18, stroke_width=1.5)
     center_text = VGroup(
-        safe_text(center_title, font_size=17, weight=BOLD, color=pal["ink"], width=2.40, height=0.44, wrap=20),
-        safe_text(center_body, font_size=12, color=pal["muted"], width=2.38, height=0.58, wrap=26),
+        safe_centered_text(center_title, font_size=17, weight=BOLD, color=pal["ink"], width=2.40, height=0.44, wrap=20),
+        safe_centered_text(center_body, font_size=11, color=pal["muted"], width=2.38, height=0.58, wrap=26),
     ).arrange(DOWN, buff=0.08)
     center_node = VGroup(center_bg, center_text.move_to(center_bg))
     nodes.add(center_node)
@@ -1256,11 +1158,11 @@ def render_network(scene_obj, scene_data, pal):
         pos = np.array([math.cos(angle) * radius, math.sin(angle) * radius - 0.08, 0])
         bg = make_card(child_w, child_h, pal, radius=0.14, stroke_width=1.15)
         detail_source = child_details[i] if i < len(child_details) and _is_distinct(child_details[i], title) else ""
-        title_obj = safe_text(title, font_size=14, weight=SEMIBOLD, color=pal["ink"],
+        title_obj = safe_centered_text(title, font_size=14, weight=SEMIBOLD, color=pal["ink"],
                               width=child_w - 0.40, height=0.38, wrap=18)
         if detail_source:
-            detail_obj = safe_text(detail_source, font_size=11, color=pal["muted"],
-                                   width=child_w - 0.40, height=0.46, wrap=24)
+            detail_obj = safe_centered_text(detail_source, font_size=11, color=pal["muted"],
+                                   width=child_w - 0.40, height=0.48, wrap=24)
             content = VGroup(title_obj, detail_obj).arrange(DOWN, buff=0.07)
         else:
             content = title_obj
@@ -1271,7 +1173,8 @@ def render_network(scene_obj, scene_data, pal):
         edges.add(Line(nodes[0].get_center(), nodes[i].get_center(), color=pal["soft"], stroke_width=2.0))
 
     body = VGroup(edges, nodes)
-    place_body(body, top=CHROME_BOTTOM_Y - 0.18, max_height=5.5, max_width=11.5)
+    body.set_x(0)
+    place_body(body, top=CHROME_BOTTOM_Y - 0.18, max_height=5.3, max_width=11.5)
 
     scene_obj.play(LaggedStart(*[Create(e) for e in edges], lag_ratio=0.08), run_time=0.9)
     scene_obj.play(LaggedStart(*[FadeIn(nd, scale=0.80) for nd in nodes], lag_ratio=0.10), run_time=0.85)
@@ -1279,7 +1182,7 @@ def render_network(scene_obj, scene_data, pal):
 
 
 def render_statement(scene_obj, scene_data, pal):
-    """Full-frame bold statement: left accent bar, large text, soft supporting context."""
+    """Full-frame centered bold statement with accent line and supporting content."""
     setup_frame(scene_obj, scene_data, pal)
 
     terms = _labels(scene_data, "highlight_terms", limit=1)
@@ -1295,46 +1198,50 @@ def render_statement(scene_obj, scene_data, pal):
         "Key Insight",
     )
 
-    big = safe_text(
-        statement_text, font_size=45, weight=SEMIBOLD,
-        color=pal["ink"], width=10.0, wrap=34,
+    big = safe_centered_text(
+        statement_text, font_size=44, weight=SEMIBOLD,
+        color=pal["ink"], width=10.5, wrap=32,
     )
 
-    context_text = ""
-    for cand in (scene_data.get("key_points") or []):
-        cand = str(cand or "").strip()
-        if cand and _is_distinct(cand, statement_text):
-            context_text = cand
-            break
-
-    sub = (
-        safe_text(context_text, font_size=21, color=pal["muted"], width=9.5, wrap=58)
-        if context_text else None
-    )
-
-    text_parts = [eyebrow, big] + ([sub] if sub else [])
-    text_block = VGroup(*text_parts).arrange(DOWN, buff=0.32, aligned_edge=LEFT)
-
-    bar_height = max(text_block.height + 0.50, 2.0)
-    left_bar = Rectangle(
-        height=bar_height, width=0.065, stroke_width=0,
+    accent_line = Rectangle(
+        height=0.04, width=1.6, stroke_width=0,
         fill_color=pal["accent"], fill_opacity=1,
     )
 
-    full = VGroup(left_bar, text_block).arrange(RIGHT, buff=0.54, aligned_edge=UP)
+    context_lines = []
+    seen = {_norm(statement_text)}
+    for cand in (scene_data.get("key_points") or []):
+        cand = str(cand or "").strip()
+        n = _norm(cand)
+        if cand and n not in seen and _is_distinct(cand, statement_text):
+            seen.add(n)
+            context_lines.append(cand)
+        if len(context_lines) >= 3:
+            break
+
+    sub_group = VGroup()
+    for line in context_lines:
+        sub_group.add(safe_centered_text(line, font_size=19, color=pal["muted"], width=9.5, wrap=56))
+    if len(sub_group):
+        sub_group.arrange(DOWN, buff=0.24)
+
+    parts = [eyebrow, big, accent_line] + ([sub_group] if len(sub_group) else [])
+    full = VGroup(*parts).arrange(DOWN, buff=0.34)
     full.move_to(ORIGIN + UP * 0.05)
+    for mob in parts:
+        mob.set_x(0)
 
     if full.width > 11.5:
         full.scale_to_fit_width(11.5)
     if full.height > 6.5:
         full.scale_to_fit_height(6.5)
 
-    scene_obj.play(GrowFromEdge(left_bar, UP), run_time=0.35)
     scene_obj.play(FadeIn(eyebrow, shift=DOWN * 0.08), run_time=0.28)
     scene_obj.play(Write(big, run_time=0.95))
-    if sub:
-        scene_obj.play(FadeIn(sub, shift=UP * 0.08), run_time=0.40)
-    _hold(scene_obj, scene_data.get("target_duration_seconds", 12.0), 2.1)
+    scene_obj.play(GrowFromCenter(accent_line), run_time=0.30)
+    if len(sub_group):
+        scene_obj.play(LaggedStart(*[FadeIn(s, shift=UP * 0.06) for s in sub_group], lag_ratio=0.15), run_time=0.6)
+    _hold(scene_obj, scene_data.get("target_duration_seconds", 12.0), 2.2)
 
 
 # ---- dispatcher ----
@@ -1342,12 +1249,9 @@ LAYOUT_RENDERERS = {
     "title_card": render_title_card,
     "summary": render_summary,
     "thanks": render_thanks,
-    "bullets": render_bullets,
     "statement": render_statement,
     "equation": render_equation,
     "step_derivation": render_step_derivation,
-    "distribution": render_distribution,
-    "axes_plot": render_axes_plot,
     "line_chart": render_line_chart,
     "comparison": render_comparison,
     "before_after": render_before_after,
@@ -1364,8 +1268,6 @@ def auto_layout(scene_data):
     head = ((scene_data.get("headline") or "") + " " + (scene_data.get("hook") or "") + " " + (scene_data.get("narration") or "")).lower()
     if scene_data.get("equations"):
         return "step_derivation" if len(scene_data.get("equations") or []) > 2 else "equation"
-    if any(w in head for w in ("p-value", "p value", "distribution", "bell curve", "gaussian", "normal distribution", "probability density")):
-        return "distribution"
     if any(w in head for w in ("timeline", "history", "milestone", "phase", "era", "lifecycle", "life cycle")):
         return "timeline"
     if any(w in head for w in ("before", "after", "misconception", "correct", "transform", "change from")):
@@ -1378,17 +1280,17 @@ def auto_layout(scene_data):
         return "proportional_chart"
     if scene_data.get("data_points") and any(w in head for w in ("trend", "over time", "line chart", "trajectory")):
         return "line_chart"
-    if any(w in head for w in ("vs ", " versus ", "compare", "comparison", "before vs after")):
+    if scene_data.get("data_points") and any(w in head for w in ("bar chart", "ranking", "share", "percentage", "magnitude")):
+        return "bar_chart"
+    if any(w in head for w in ("vs ", " versus ", "compare", "comparison")):
         return "comparison"
     if any(w in head for w in ("step", "process", "pipeline", "workflow", "stage", "first then")):
         return "flow"
-    if any(w in head for w in ("axis", "axes", "plot", "graph of", "function", "growth", "decay", "exponential", "wave", "sine", "oscill")):
-        return "axes_plot"
-    if any(w in head for w in ("bar chart", "ranking", "share", "percentage", "magnitude")):
+    if scene_data.get("data_points"):
         return "bar_chart"
-    if any(w in head for w in ("insight", "key principle", "fundamental", "remember", "rule of thumb", "in essence", "at its core")):
+    if any(w in head for w in ("insight", "key principle", "fundamental", "remember", "rule of thumb", "in essence", "at its core", "definition", "means that")):
         return "statement"
-    return "bullets"
+    return "statement"
 
 
 def render_scene_page(scene_obj, scene_data):
@@ -1396,7 +1298,7 @@ def render_scene_page(scene_obj, scene_data):
     layout = (scene_data.get("layout") or "auto").lower()
     if layout == "auto" or layout not in LAYOUT_RENDERERS:
         layout = auto_layout(scene_data)
-    LAYOUT_RENDERERS.get(layout, render_bullets)(scene_obj, scene_data, pal)
+    LAYOUT_RENDERERS.get(layout, render_statement)(scene_obj, scene_data, pal)
 
 
 __SCENE_CLASSES__
