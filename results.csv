@@ -8,3 +8,6 @@ timestamp,job_id,topic,research_area,category,length,explanation_level,color_the
 2026-05-04T01:13:33.806940+00:00,828331b57936,fft,cs,CS & ML,short,high_school,blue,1m 13s,1m 36s,3612,0.032467,,,,,,,,,,,,,,,0,0.0,0,0.0
 2026-05-04T01:14:49.079980+00:00,77c4c24e7353,fft,signal processing,CS & ML,short,high_school,blue,1m 15s,1m 42s,3582,0.031981,,,,,,,,,,,,,,,0,0.0,0,0.0
 2026-05-04T01:19:26.799559+00:00,31283b46fae8,sliding window,signal processing,CS & ML,short,high_school,slate,1m 21s,3m 12s,4802,0.03368,,,,,,,,,,,,,,,0,0.0,2,40.0
+2026-05-04T02:07:42.228217+00:00,a4fc3af41e02,multi arm bandit,rl,CS & ML,short,high_school,blue,1m 06s,1m 57s,4324,0.036361,,,,,,,,,,,,,,,0,0.0,1,20.0
+2026-05-04T02:11:46.818765+00:00,490799e89581,discrete wave transfor,digital signal processing,CS & ML,short,high_school,slate,1m 14s,1m 29s,3612,0.032418,,,,,,,,,,,,,,,0,0.0,0,0.0
+2026-05-04T02:37:31.917292+00:00,dfd1e25e925e,llms,cs,CS & ML,short,high_school,amber,1m 08s,1m 33s,3633,0.032777,,,,,,,,,,,,,,,0,0.0,2,40.0

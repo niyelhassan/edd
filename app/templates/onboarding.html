@@ -1,29 +1,23 @@
 {% extends "base.html" %} {% block site_header %}{% endblock %} {% block content %}
-<section class="fixed inset-0 z-50 overflow-hidden bg-white" id="obRoot">
+<section class="fixed inset-0 z-50 overflow-hidden bg-[#f7f8fb]" id="obRoot">
   <div class="onboarding-stage-bg"></div>
 
   <div class="ob-progress" aria-hidden="true"><span id="obProgress"></span></div>
 
   <a href="{{ url_for('main.home') }}" class="absolute left-6 top-6 z-20 text-lg font-semibold tracking-tight">lern</a>
   <form action="{{ url_for('main.hello_done') }}" method="post" class="absolute right-5 top-5 z-20">
-    <button class="rounded-full border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-500 transition hover:border-neutral-400 hover:text-neutral-950">
-      Skip intro
+    <button class="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-500 transition hover:border-neutral-400 hover:text-neutral-950">
+      Skip
     </button>
   </form>
-
-  <div class="ob-counter">
-    <span id="obIndex">01</span>
-    <span class="text-neutral-300"> / </span>
-    <span id="obTotal">05</span>
-  </div>
 
   <div class="onboarding-stage" id="obStage">
     <article class="onboarding-slide active" data-slide="0">
       <div>
-        <span class="eyebrow-pill">Step 1 · Topic</span>
-        <h1>Pick a topic.<br />Add a research area.</h1>
+        <span class="eyebrow-pill">Step 1</span>
+        <h1>Pick a topic.</h1>
         <p class="lead">
-          Type the concept you're trying to learn and the research area it belongs to, like computer science, biology, physics, or humanities. Pick a length and color, then hit generate.
+          Type what you want to learn — any concept, any field. Choose a length and theme, then hit generate.
         </p>
       </div>
       <div class="walkthrough-stage">
@@ -38,10 +32,10 @@
 
     <article class="onboarding-slide" data-slide="1">
       <div>
-        <span class="eyebrow-pill">Step 2 · Pre-quiz</span>
+        <span class="eyebrow-pill">Step 2</span>
         <h1>Take the<br />pre-quiz.</h1>
         <p class="lead">
-          Five short questions, generated specifically for the lesson. This is your baseline, so answer honestly so the after-score actually means something.
+          Five questions generated for your topic. Answer honestly — this is your baseline score.
         </p>
       </div>
       <div class="walkthrough-stage">
@@ -56,10 +50,10 @@
 
     <article class="onboarding-slide" data-slide="2">
       <div>
-        <span class="eyebrow-pill">Step 3 · Watch</span>
+        <span class="eyebrow-pill">Step 3</span>
         <h1>Watch the<br />lesson.</h1>
         <p class="lead">
-          A short, narrated, animated explainer built only for your topic. Roughly a minute. No filler, no tangents. Just the idea, shown clearly.
+          A short animated explainer, narrated and built just for your topic. No filler, no tangents.
         </p>
       </div>
       <div class="walkthrough-stage">
@@ -74,10 +68,10 @@
 
     <article class="onboarding-slide" data-slide="3">
       <div>
-        <span class="eyebrow-pill">Step 4 · Post-quiz</span>
+        <span class="eyebrow-pill">Step 4</span>
         <h1>Re-take.<br />See the lift.</h1>
         <p class="lead">
-          The same five questions, after the lesson. Your post-score and the change from before show, in real numbers, how much the video moved the needle.
+          Same questions, after the lesson. Your score change shows what stuck.
         </p>
       </div>
       <div class="walkthrough-stage">
@@ -92,10 +86,10 @@
 
     <article class="onboarding-slide" data-slide="4">
       <div>
-        <span class="eyebrow-pill">Step 5 · Feedback</span>
+        <span class="eyebrow-pill">Step 5</span>
         <h1>Tell us<br />how it went.</h1>
         <p class="lead">
-          A short survey at the end with twelve quick questions about the lesson, the tool, and what to improve. Your answers shape what gets built next.
+          A short survey at the end. Your answers shape what gets built next.
         </p>
         <form action="{{ url_for('main.hello_done') }}" method="post" class="mt-7">
           <button class="btn-primary text-base">Get started →</button>
@@ -126,12 +120,8 @@
     const prevBtn = document.getElementById("prevSlide");
     const nextBtn = document.getElementById("nextSlide");
     const progress = document.getElementById("obProgress");
-    const indexEl = document.getElementById("obIndex");
-    const totalEl = document.getElementById("obTotal");
     const root = document.getElementById("obRoot");
     let active = 0;
-
-    totalEl.textContent = String(slides.length).padStart(2, "0");
 
     slides.forEach((_, i) => {
       const dot = document.createElement("button");
@@ -151,7 +141,6 @@
       dots.forEach((dot, di) => dot.classList.toggle("active", di === i));
       active = i;
       progress.style.width = ((i + 1) / slides.length) * 100 + "%";
-      indexEl.textContent = String(i + 1).padStart(2, "0");
       prevBtn.style.visibility = i === 0 ? "hidden" : "visible";
       nextBtn.textContent = i === slides.length - 1 ? "Start" : "Next →";
     }

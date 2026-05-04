@@ -2,26 +2,26 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.css" />
 <script src="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.polyfilled.js"></script>
 {% endblock %} {% block content %}
-<section class="space-y-6">
-  <div class="flex flex-wrap items-end justify-between gap-3 border-b border-neutral-200 pb-4">
+<section class="space-y-5">
+  <div class="flex flex-wrap items-end justify-between gap-3">
     <div class="min-w-0">
       <p class="eyebrow">Watch</p>
-      <h1 id="job-title" class="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">
+      <h1 id="job-title" class="mt-1 text-2xl font-semibold tracking-tight md:text-3xl">
         {{ job.title or job.concept }}
       </h1>
-    </div>
-    <div class="flex flex-wrap items-center justify-end gap-2">
-      {% if job.is_active %}
-      <span class="status-badge status-{{ job.status }}">{{ job.status }}</span>
-      {% endif %}
-      {% if job.topic_category %}
-      <span class="watch-topic-pill" style="--topic-hue: {{ job.topic_hue }}">{{ job.topic_category }}</span>
-      {% endif %}
-      {% if job.video_runtime.seconds %}
-      <span class="rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-600">
-        {{ job.video_runtime.label }}
-      </span>
-      {% endif %}
+      <div class="mt-2 flex flex-wrap items-center gap-2">
+        {% if job.topic_category %}
+        <span class="watch-topic-pill" style="--topic-hue: {{ job.topic_hue }}">{{ job.topic_category }}</span>
+        {% endif %}
+        {% if job.video_runtime.seconds %}
+        <span class="rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-500">
+          {{ job.video_runtime.label }}
+        </span>
+        {% endif %}
+        {% if job.is_active %}
+        <span class="status-badge status-{{ job.status }}">{{ job.status }}</span>
+        {% endif %}
+      </div>
     </div>
   </div>
 
@@ -79,13 +79,13 @@
     {% if job.post_score is none %}
     <a id="post-link" href="{{ url_for('main.post_quiz', job_id=job.id) }}"
       class="btn-primary pointer-events-none opacity-40">Take post-quiz →</a>
+    <p id="post-hint" class="text-xs text-neutral-400">Watch the video first to unlock</p>
     {% endif %}
     {% if job.video_url %}
-    <a id="download-link" href="{{ job.video_url }}" download class="btn-secondary">Download</a>
+    <a id="download-link" href="{{ job.video_url }}" download class="btn-secondary ml-auto">Download</a>
     {% else %}
-    <a id="download-link" href="#" download class="btn-secondary hidden">Download</a>
+    <a id="download-link" href="#" download class="btn-secondary ml-auto hidden">Download</a>
     {% endif %}
-    <a href="{{ url_for('main.debug_job', job_id=job.id) }}" class="ml-auto text-xs text-neutral-400 hover:text-neutral-700">Dev details</a>
   </div>
 
   {% if job.error_message %}
@@ -96,6 +96,9 @@
   <div id="error-box" class="hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"></div>
   {% endif %}
 
+  <div class="pt-2">
+    <a href="{{ url_for('main.debug_job', job_id=job.id) }}" class="text-xs text-neutral-400 transition hover:text-neutral-600">Debug mode</a>
+  </div>
 </section>
 
 <script>
@@ -107,6 +110,8 @@ function enablePost() {
     const link = document.getElementById("post-link");
     if (!link) return;
     link.classList.remove("pointer-events-none", "opacity-40");
+    const hint = document.getElementById("post-hint");
+    if (hint) hint.remove();
 }
 
 function setupPlayer() {

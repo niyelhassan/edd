@@ -6,7 +6,7 @@
       Tell us how it went
     </h1>
     <p class="mt-2 text-sm text-neutral-500">
-      A few quick questions. Your answers shape what gets built next.
+      A few quick questions — takes about 2 minutes. Your answers shape what gets built next.
     </p>
   </div>
 
@@ -15,15 +15,11 @@
     action="{{ url_for('main.submit_survey', job_id=job.id) }}"
     class="survey-form"
   >
-    <fieldset class="trial-fieldset">
-      <legend>Trial session</legend>
-      <label class="trial-checkbox">
+    <fieldset>
+      <legend>Session type</legend>
+      <label>
         <input type="checkbox" name="is_trial" />
-        <span class="trial-box" aria-hidden="true"></span>
-        <span class="trial-label">
-          <span class="trial-title">This is a trial session</span>
-          <span class="trial-help">Check this if you're testing the tool, not using it for real coursework.</span>
-        </span>
+        This is a trial session (testing the tool, not real coursework)
       </label>
     </fieldset>
 

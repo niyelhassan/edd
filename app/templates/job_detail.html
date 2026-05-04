@@ -4,7 +4,7 @@
     <div class="min-w-0">
       <a href="{{ url_for('main.video_page', job_id=job.id) }}"
         class="inline-flex items-center gap-1 text-sm text-neutral-500 transition hover:text-neutral-950">← Back to video</a>
-      <p class="eyebrow mt-3">Dev · Job {{ job.id }}</p>
+      <p class="eyebrow mt-3">Debug · Job {{ job.id }}</p>
       <h1 class="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">{{ job.title or job.concept }}</h1>
       <p class="mt-2 text-sm text-neutral-600">{{ job.current_step }}</p>
     </div>
