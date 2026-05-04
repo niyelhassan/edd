@@ -105,10 +105,6 @@
   {% set group_key = job.topic_category or 'Other' %} {% if group_key not in
   groups.items %}{% set _ = groups.items.update({group_key: []}) %}{% endif %}
   {% set _ = groups.items[group_key].append(job) %} {% endfor %}
-  {% set topic_hues = namespace(items={}) %} {% for group_key, group_jobs in groups.items.items() %}
-  {% set _ = topic_hues.items.update({group_key: (loop.index0 * 53) % 360}) %}
-  {% endfor %}
-
   <div class="library-header">
     <div>
       <h2 class="text-xl font-semibold tracking-tight">Library</h2>
@@ -155,7 +151,7 @@
     <button
       type="button"
       class="library-topic-chip"
-      style="--topic-hue: {{ topic_hues.items[group_key] }}"
+      style="--topic-hue: {{ topic_hues.get(group_key, topic_hues.get('Other', 300)) }}"
       data-topic-filter="{{ group_key | lower }}"
     >
       {{ group_key }} <span>{{ group_jobs | length }}</span>
@@ -166,13 +162,12 @@
   <div id="video-grid-root" class="library-grid">
     {% for job in jobs %}
     {% set group_key = job.topic_category or 'Other' %}
-    {% set hue = topic_hues.items[group_key] %}
+    {% set hue = job.topic_hue %}
     <a
       href="{{ url_for('main.video_page', job_id=job.id) }}"
       class="video-card group flex flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-neutral-400 hover:shadow-md"
       style="--topic-hue: {{ hue }}"
       data-topic="{{ group_key | lower }}"
-      data-status="{{ job.status }}"
       data-hidden-by-default="{{ 'true' if job.status in ['failed', 'canceled'] else 'false' }}"
       data-search="{{ ((job.title or '') ~ ' ' ~ (job.concept or '') ~ ' ' ~ (job.research or '') ~ ' ' ~ (job.status or '') ~ ' ' ~ group_key) | lower }}"
     >
@@ -199,7 +194,7 @@
           <span class="lern-loading-dot h-3 w-3 rounded-full bg-current"></span>
         </div>
         {% endif %}
-        <span class="library-card-topic" data-topic-label>{{ group_key }}</span>
+        <span class="library-card-topic">{{ group_key }}</span>
         {% if job.video_runtime.seconds %}
         <span
           class="absolute bottom-2 right-2 rounded bg-black/65 px-1.5 py-0.5 text-[0.65rem] font-medium tabular-nums text-white"

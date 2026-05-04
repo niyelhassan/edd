@@ -11,7 +11,7 @@ from .captions import write_captions
 from .claude_code import ClaudeCodeError, run_claude_json
 from .deepgram_tts import DeepgramError, DeepgramTTSClient
 from .manim_builder import build_manim_module
-from .media import MediaError, concat_clips, extract_thumbnail, mux_video_with_audio, probe_duration, render_scene
+from .media import MediaError, concat_clips, extract_thumbnail, mux_video_with_audio, render_scene
 from .question_generation import VIDEO_CATEGORIES, _normalize_category, _normalize_quiz
 from .repository import add_log, get_job, update_job
 from .template_registry import VALID_LAYOUTS, content_layout_prompt
@@ -610,10 +610,7 @@ class VideoWorkflow:
                 audio_path=Path(scene["audio_path"]),
                 output_path=clip_path,
             )
-            try:
-                clip_durations.append(probe_duration(clip_path))
-            except MediaError:
-                clip_durations.append(float(scene.get("target_duration_seconds") or 0) or 6.0)
+            clip_durations.append(float(scene.get("target_duration_seconds") or 0) or 6.0)
             clip_paths.append(clip_path)
             add_log(job["id"], f"Scene {index} clip assembled.")
             self._check_canceled(job["id"])

@@ -24,6 +24,7 @@ from .services.captions import write_captions
 from .services.claude_code import extract_json_text
 from .services.google_sheets import sync_csv_to_google_sheet
 from .services.media import MediaError, extract_thumbnail, probe_duration
+from .services.question_generation import VIDEO_CATEGORIES
 from .services.repository import add_log, clone_job, create_job, get_job, get_job_logs, list_jobs, update_job
 from .services.workflow import VALID_COLOR_THEMES, VALID_EXPLANATION_LEVELS
 
@@ -203,6 +204,13 @@ def _save_quiz_results_to_csv(job_id: str, job: dict) -> None:
 
 
 bp = Blueprint("main", __name__)
+
+
+TOPIC_HUE_PALETTE = (210, 158, 34, 348, 265, 188, 15, 300)
+TOPIC_HUES = {
+    category: TOPIC_HUE_PALETTE[index % len(TOPIC_HUE_PALETTE)]
+    for index, category in enumerate(VIDEO_CATEGORIES)
+}
 
 
 PIPELINE = [
@@ -453,6 +461,7 @@ def _artifact_url(job_id: str, file_path: Path) -> str | None:
 
 def _build_job_payload(job: dict, include_logs: bool = False) -> dict:
     payload = dict(job)
+    payload["topic_hue"] = TOPIC_HUES.get(payload.get("topic_category") or "Other", TOPIC_HUES["Other"])
     payload["video_url"] = None
     payload["thumbnail_url"] = None
     payload["captions_url"] = None
@@ -545,6 +554,7 @@ def home():
     return render_template(
         "index.html",
         jobs=jobs,
+        topic_hues=TOPIC_HUES,
     )
 
 
@@ -748,6 +758,25 @@ def submit_survey(job_id: str):
     easy_without_guidance = request.form.get("easy_without_guidance", "").strip()
     use_again = request.form.get("use_again", "").strip()
     improvement = request.form.get("improvement", "").strip()
+
+    required_values = [
+        name,
+        grade,
+        enrollment,
+        difficulty_frequency,
+        first_resource,
+        resource_satisfaction,
+        first_video_time,
+        understanding_change,
+        video_quality,
+        appropriate_length,
+        easy_without_guidance,
+        use_again,
+        improvement,
+    ]
+    if any(not value for value in required_values) or first_resource == "Other":
+        flash("Please answer every feedback question before submitting.")
+        return redirect(url_for("main.survey", job_id=job_id))
 
     question_count = _quiz_question_count(job)
     pre_score = job.get("pre_score")

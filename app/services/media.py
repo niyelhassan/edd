@@ -77,9 +77,15 @@ def mux_video_with_audio(*, video_path: Path, audio_path: Path, output_path: Pat
         "1:a:0",
         "-c:v",
         "libx264",
+        "-preset",
+        "ultrafast",
+        "-tune",
+        "stillimage",
         "-c:a",
         "aac",
         "-shortest",
+        "-movflags",
+        "+faststart",
         str(output_path),
     ]
     completed = subprocess.run(command, capture_output=True, text=True)
@@ -142,12 +148,8 @@ def concat_clips(*, clip_paths: list[Path], output_path: Path, workdir: Path) ->
         "0",
         "-i",
         str(concat_file),
-        "-c:v",
-        "libx264",
-        "-c:a",
-        "aac",
-        "-pix_fmt",
-        "yuv420p",
+        "-c",
+        "copy",
         str(output_path),
     ]
     completed = subprocess.run(command, capture_output=True, text=True)

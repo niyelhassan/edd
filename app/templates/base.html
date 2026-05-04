@@ -47,7 +47,20 @@
         {% endfor %}
       </section>
       {% endif %} {% endwith %}
-      <main class="space-y-6">{% block content %}{% endblock %}</main>
+      <main class="page-shell space-y-6">{% block content %}{% endblock %}</main>
     </div>
+    <script>
+      (() => {
+        const shell = document.querySelector(".page-shell");
+        if (!shell || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+        document.addEventListener("click", (event) => {
+          const link = event.target.closest("a[href]");
+          if (!link || link.target || link.hasAttribute("download")) return;
+          const url = new URL(link.href, window.location.href);
+          if (url.origin !== window.location.origin || url.pathname === window.location.pathname && url.hash) return;
+          shell.classList.add("page-shell-leaving");
+        });
+      })();
+    </script>
   </body>
 </html>

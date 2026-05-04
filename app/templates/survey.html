@@ -51,7 +51,7 @@
     <fieldset>
       <legend>2. Are you currently enrolled in any of the following?</legend>
       <label
-        ><input type="checkbox" name="enrollment" value="Research Practicum" />
+        ><input type="checkbox" name="enrollment" value="Research Practicum" required />
         Research Practicum</label
       >
       <label><input type="checkbox" name="enrollment" value="ITR" /> ITR</label>
@@ -231,4 +231,30 @@
     </div>
   </form>
 </section>
+<script>
+  (function () {
+    const enrollment = Array.from(document.querySelectorAll('input[name="enrollment"]'));
+    if (!enrollment.length) return;
+    function syncEnrollmentRequired() {
+      const hasSelection = enrollment.some((input) => input.checked);
+      enrollment.forEach((input) => {
+        input.required = !hasSelection;
+      });
+    }
+    enrollment.forEach((input) => input.addEventListener("change", syncEnrollmentRequired));
+    syncEnrollmentRequired();
+  })();
+
+  (function () {
+    const otherRadio = document.querySelector('input[name="first_resource"][value="Other"]');
+    const otherText = document.querySelector('input[name="first_resource_other"]');
+    if (!otherRadio || !otherText) return;
+    const radios = Array.from(document.querySelectorAll('input[name="first_resource"]'));
+    function syncOtherRequired() {
+      otherText.required = otherRadio.checked;
+    }
+    radios.forEach((input) => input.addEventListener("change", syncOtherRequired));
+    syncOtherRequired();
+  })();
+</script>
 {% endblock %}
