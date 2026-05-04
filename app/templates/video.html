@@ -49,6 +49,30 @@
       </div>
     </div>
     {% endif %}
+
+    <section id="chapter-drawer" class="chapter-drawer" aria-label="Video chapters">
+      <button type="button" id="chapter-toggle" class="chapter-toggle" aria-expanded="false">
+        <span>Chapters</span>
+        <span id="chapter-count">{{ job.chapters | length }}</span>
+      </button>
+      <div class="chapter-drawer-panel">
+        <div id="chapter-list" class="chapter-list">
+          {% for chapter in job.chapters %}
+          <button
+            type="button"
+            class="chapter-item"
+            data-chapter-start="{{ chapter.start }}"
+            {% if not job.video_url %}disabled{% endif %}
+          >
+            <span class="chapter-time">{{ chapter.time }}</span>
+            <span class="chapter-title">{{ chapter.title }}</span>
+          </button>
+          {% else %}
+          <p class="chapter-empty">Chapters appear when the lesson plan is ready.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
   </div>
 
   <div class="flex flex-wrap items-center gap-3">
@@ -76,6 +100,7 @@
 
 <script>
 const jobId = "{{ job.id }}";
+let chapters = {{ job.chapters | tojson }};
 let playerInstance = null;
 
 function enablePost() {
@@ -98,25 +123,134 @@ function setupPlayer() {
             invertTime: false,
             tooltips: { controls: true, seek: true }
         });
+        playerInstance.on("ready", renderChapterMarkers);
     }
     player.addEventListener("ended", enablePost, { once: true });
+    player.addEventListener("timeupdate", updateActiveChapter);
+    player.addEventListener("loadedmetadata", renderChapterMarkers);
+    renderChapters(chapters, true);
+    renderChapterMarkers();
+}
+
+function setupChapterDrawer() {
+    const drawer = document.getElementById("chapter-drawer");
+    const toggle = document.getElementById("chapter-toggle");
+    if (!drawer || !toggle || toggle.dataset.ready === "1") return;
+    toggle.dataset.ready = "1";
+    toggle.addEventListener("click", () => {
+        const open = drawer.classList.toggle("open");
+        toggle.setAttribute("aria-expanded", String(open));
+    });
+    document.addEventListener("click", (event) => {
+        if (!drawer.classList.contains("open") || drawer.contains(event.target)) return;
+        drawer.classList.remove("open");
+        toggle.setAttribute("aria-expanded", "false");
+    });
+    document.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape") return;
+        drawer.classList.remove("open");
+        toggle.setAttribute("aria-expanded", "false");
+    });
+}
+
+function renderChapters(nextChapters, canSeek = Boolean(document.getElementById("video-player"))) {
+    chapters = Array.isArray(nextChapters) ? nextChapters : [];
+    const list = document.getElementById("chapter-list");
+    const count = document.getElementById("chapter-count");
+    if (!list || !count) return;
+    count.textContent = String(chapters.length);
+    if (!chapters.length) {
+        list.innerHTML = '<p class="chapter-empty">Chapters appear when the lesson plan is ready.</p>';
+        return;
+    }
+    list.replaceChildren();
+    chapters.forEach((chapter, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "chapter-item";
+        button.dataset.chapterStart = String(chapter.start || 0);
+        button.dataset.chapterIndex = String(index);
+        button.disabled = !canSeek;
+
+        const time = document.createElement("span");
+        time.className = "chapter-time";
+        time.textContent = chapter.time || "0:00";
+
+        const title = document.createElement("span");
+        title.className = "chapter-title";
+        title.textContent = chapter.title || "Chapter";
+
+        button.append(time, title);
+        list.appendChild(button);
+    });
+    list.querySelectorAll(".chapter-item").forEach((button) => {
+        button.addEventListener("click", () => {
+            const player = document.getElementById("video-player");
+            if (!player) return;
+            player.currentTime = Number(button.dataset.chapterStart || 0);
+            player.play().catch(() => {});
+            document.getElementById("chapter-drawer")?.classList.remove("open");
+            document.getElementById("chapter-toggle")?.setAttribute("aria-expanded", "false");
+            updateActiveChapter();
+        });
+    });
+    updateActiveChapter();
+    renderChapterMarkers();
+}
+
+function updateActiveChapter() {
+    const player = document.getElementById("video-player");
+    const items = Array.from(document.querySelectorAll(".chapter-item"));
+    if (!player || !items.length || !chapters.length) return;
+    const time = player.currentTime || 0;
+    let active = 0;
+    chapters.forEach((chapter, index) => {
+        if (time >= Number(chapter.start || 0)) active = index;
+    });
+    items.forEach((item, index) => item.classList.toggle("active", index === active));
+}
+
+function renderChapterMarkers() {
+    const player = document.getElementById("video-player");
+    const progress = document.querySelector(".plyr__progress");
+    if (!player || !progress || !chapters.length) return;
+    progress.querySelector(".chapter-markers")?.remove();
+    const duration = player.duration || Math.max(...chapters.map((chapter) => Number(chapter.end || 0)), 0);
+    if (!duration) return;
+
+    const rail = document.createElement("div");
+    rail.className = "chapter-markers";
+    chapters.slice(1).forEach((chapter) => {
+        const start = Number(chapter.start || 0);
+        if (start <= 0 || start >= duration) return;
+        const marker = document.createElement("span");
+        marker.className = "chapter-marker";
+        marker.style.left = `${(start / duration) * 100}%`;
+        marker.title = `${chapter.time || ""} ${chapter.title || "Chapter"}`.trim();
+        rail.appendChild(marker);
+    });
+    progress.appendChild(rail);
 }
 
 function renderVideo(job) {
     if (!job.video_url) return;
     const shell = document.getElementById("video-shell");
     if (!document.getElementById("video-player")) {
+        const drawer = document.getElementById("chapter-drawer");
         shell.className = "video-shell aspect-video";
         const trackTag = job.captions_url
             ? `<track kind="captions" label="English" srclang="en" src="${job.captions_url}" default />`
             : "";
         const poster = job.thumbnail_url ? ` poster="${job.thumbnail_url}"` : "";
         shell.innerHTML = `<video id="video-player" class="plyr-video" playsinline controls crossorigin="anonymous" preload="metadata"${poster}><source src="${job.video_url}" type="video/mp4" />${trackTag}</video>`;
+        if (drawer) shell.appendChild(drawer);
         setupPlayer();
+        setupChapterDrawer();
     }
     const download = document.getElementById("download-link");
     download.href = job.video_url;
     download.classList.remove("hidden");
+    renderChapters(job.chapters || chapters, true);
 }
 
 async function pollJob() {
@@ -130,6 +264,7 @@ async function pollJob() {
     if (percent) percent.textContent = `${job.progress_percent}%`;
     const meta = document.getElementById("waiting-meta");
     if (meta) meta.textContent = job.progress_detail || job.current_step || "";
+    renderChapters(job.chapters || [], Boolean(job.video_url));
     renderVideo(job);
 
     const errorBox = document.getElementById("error-box");
@@ -141,6 +276,8 @@ async function pollJob() {
 }
 
 setupPlayer();
+setupChapterDrawer();
+renderChapters(chapters, Boolean(document.getElementById("video-player")));
 if ({{ "true" if job.is_active else "false" }}) pollJob();
 </script>
 {% endblock %}

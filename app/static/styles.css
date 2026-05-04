@@ -1123,6 +1123,171 @@ body {
   font-weight: 700;
 }
 
+.chapter-drawer {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 8;
+  display: grid;
+  justify-items: end;
+  pointer-events: none;
+}
+
+.chapter-toggle,
+.chapter-drawer-panel {
+  pointer-events: auto;
+}
+
+.chapter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(10, 10, 10, 0.68);
+  padding: 0 12px;
+  color: white;
+  font-size: 0.78rem;
+  font-weight: 750;
+  backdrop-filter: blur(12px);
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.chapter-toggle:hover,
+.chapter-drawer.open .chapter-toggle {
+  border-color: rgba(255, 255, 255, 0.32);
+  background: rgba(10, 10, 10, 0.82);
+}
+
+#chapter-count {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.chapter-drawer-panel {
+  width: min(310px, calc(100vw - 48px));
+  max-height: min(58vh, 360px);
+  margin-top: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 14px;
+  background: rgba(10, 10, 10, 0.76);
+  box-shadow: 0 22px 48px rgba(0, 0, 0, 0.26);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-6px) scale(0.98);
+  transform-origin: top right;
+  transition: opacity 180ms ease, transform 180ms ease;
+  backdrop-filter: blur(18px);
+}
+
+.chapter-drawer.open .chapter-drawer-panel {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.chapter-list {
+  display: grid;
+  gap: 4px;
+  max-height: inherit;
+  overflow: auto;
+  padding: 8px;
+}
+
+.chapter-item {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 9px;
+  align-items: start;
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  padding: 8px;
+  text-align: left;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.chapter-item:not(:disabled) {
+  cursor: pointer;
+}
+
+.chapter-item:not(:disabled):hover,
+.chapter-item.active {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.chapter-item:disabled {
+  opacity: 0.55;
+}
+
+.chapter-time {
+  color: rgba(255, 255, 255, 0.56);
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.chapter-title {
+  min-width: 0;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.84rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.chapter-item.active .chapter-title {
+  color: white;
+}
+
+.chapter-empty {
+  padding: 10px;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.video-shell .plyr__progress {
+  position: relative;
+}
+
+.chapter-markers {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.chapter-marker {
+  position: absolute;
+  width: 2px;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.22);
+  transform: translate(-1px, -6px);
+}
+
+@media (max-width: 640px) {
+  .chapter-drawer {
+    top: 8px;
+    right: 8px;
+  }
+
+  .chapter-drawer-panel {
+    width: calc(100vw - 32px);
+    max-height: 48vh;
+  }
+}
+
 @keyframes library-card-in {
   from {
     opacity: 0;

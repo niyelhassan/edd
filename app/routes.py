@@ -365,6 +365,38 @@ def _format_duration(seconds: float | None) -> str:
     return f"{hours}h {mins:02d}m"
 
 
+def _format_timestamp(seconds: float | None) -> str:
+    seconds = int(max(seconds or 0, 0))
+    minutes, secs = divmod(seconds, 60)
+    hours, mins = divmod(minutes, 60)
+    if hours:
+        return f"{hours}:{mins:02d}:{secs:02d}"
+    return f"{mins}:{secs:02d}"
+
+
+def _build_chapters(storyboard: dict | None) -> list[dict]:
+    scenes = (storyboard or {}).get("scenes") or []
+    chapters = []
+    cursor = 0.0
+    for scene in scenes:
+        duration = float(scene.get("target_duration_seconds") or 0) or 6.0
+        layout = str(scene.get("layout") or "").strip().lower()
+        title = str(scene.get("headline") or scene.get("title") or "Chapter").strip()
+        if layout != "thanks" and title:
+            chapters.append(
+                {
+                    "index": len(chapters) + 1,
+                    "title": title,
+                    "start": round(cursor, 2),
+                    "end": round(cursor + duration, 2),
+                    "duration": round(duration, 2),
+                    "time": _format_timestamp(cursor),
+                }
+            )
+        cursor += duration
+    return chapters
+
+
 def _video_runtime(video_path: Path, fallback_seconds: float | None = None) -> dict:
     try:
         seconds = probe_duration(video_path) if video_path.exists() else fallback_seconds
@@ -522,6 +554,7 @@ def _build_job_payload(job: dict, include_logs: bool = False) -> dict:
             payload["captions_url"] = _artifact_url(payload["id"], captions_path)
 
     payload["scene_count"] = len(payload["storyboard"]["scenes"]) if payload["storyboard"] else 0
+    payload["chapters"] = _build_chapters(payload["storyboard"])
     payload["question_count"] = _quiz_question_count(payload)
     logs = get_job_logs(payload["id"])
     payload["progress_percent"], payload["pipeline"], payload["progress_detail"] = _progress_from_job(
