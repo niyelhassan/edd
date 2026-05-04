@@ -63,7 +63,7 @@ def create_job(
             color_theme,
             explanation_level,
             "queued",
-            "Waiting for worker",
+            "Queued",
             now,
             now,
         ),

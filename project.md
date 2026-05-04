@@ -15,7 +15,7 @@ EDD Video Generator is a web app that creates short STEM explainer videos for st
 
 ## User experience flow
 
-1. First visit shows onboarding, then the home library.
+1. First visit shows `/hello`, then the home library.
 2. Student enters a topic, research area, length, and color theme.
 3. Pre-quiz appears once questions are ready; progress is visible while the video renders.
 4. Watch page shows the video or a live progress state until the video is ready.
@@ -47,7 +47,7 @@ EDD Video Generator is a web app that creates short STEM explainer videos for st
 
 ## Job management and observability
 
-- Jobs are queued and processed in the background with a small worker pool.
+- Jobs are queued and processed by one local background renderer.
 - Pending jobs resume automatically on startup.
 - Progress is computed from job logs and surfaced in the UI.
 - A debug page shows storyboard data, logs, and model usage.
@@ -61,5 +61,5 @@ EDD Video Generator is a web app that creates short STEM explainer videos for st
 
 ## Configuration surface
 
-- Models, voice, worker count, and polling interval are configurable.
+- Models, voice, and polling interval are configurable.
 - The library view can be limited to completed jobs or expanded to all jobs.

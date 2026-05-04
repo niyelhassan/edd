@@ -26,7 +26,6 @@ def create_app() -> Flask:
         GOOGLE_RESULTS_WORKSHEET_NAME=os.getenv("GOOGLE_RESULTS_WORKSHEET_NAME", app.config["GOOGLE_RESULTS_WORKSHEET_NAME"]),
         GOOGLE_SERVICE_ACCOUNT_FILE=os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE", app.config["GOOGLE_SERVICE_ACCOUNT_FILE"]),
         GOOGLE_SERVICE_ACCOUNT_JSON=os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", app.config["GOOGLE_SERVICE_ACCOUNT_JSON"]),
-        MAX_WORKERS=int(os.getenv("MAX_WORKERS", str(app.config["MAX_WORKERS"]))),
         POLL_INTERVAL_MS=int(os.getenv("POLL_INTERVAL_MS", str(app.config["POLL_INTERVAL_MS"]))),
     )
     app.config["BASE_DIR"] = str(base_dir)

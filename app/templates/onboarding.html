@@ -5,7 +5,7 @@
   <div class="ob-progress" aria-hidden="true"><span id="obProgress"></span></div>
 
   <a href="{{ url_for('main.home') }}" class="absolute left-6 top-6 z-20 text-lg font-semibold tracking-tight">lern</a>
-  <form action="{{ url_for('main.onboarding_done') }}" method="post" class="absolute right-5 top-5 z-20">
+  <form action="{{ url_for('main.hello_done') }}" method="post" class="absolute right-5 top-5 z-20">
     <button class="rounded-full border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-500 transition hover:border-neutral-400 hover:text-neutral-950">
       Skip intro
     </button>
@@ -97,7 +97,7 @@
         <p class="lead">
           A short survey at the end with twelve quick questions about the lesson, the tool, and what to improve. Your answers shape what gets built next.
         </p>
-        <form action="{{ url_for('main.onboarding_done') }}" method="post" class="mt-7">
+        <form action="{{ url_for('main.hello_done') }}" method="post" class="mt-7">
           <button class="btn-primary text-base">Get started →</button>
         </form>
       </div>
@@ -159,7 +159,7 @@
     prevBtn.addEventListener("click", () => go(active - 1));
     nextBtn.addEventListener("click", () => {
       if (active === slides.length - 1) {
-        document.querySelector("form[action$='/onboarding/done']").submit();
+        document.querySelector("form[action$='/hello/done']").submit();
       } else {
         go(active + 1);
       }
@@ -173,7 +173,7 @@
         event.preventDefault();
         if (prevBtn.style.visibility !== "hidden") prevBtn.click();
       } else if (event.key === "Escape") {
-        document.querySelector("form[action$='/onboarding/done']")?.submit();
+        document.querySelector("form[action$='/hello/done']")?.submit();
       }
     });
 

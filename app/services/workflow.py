@@ -339,7 +339,7 @@ class VideoWorkflow:
             self._check_canceled(job_id)
 
             update_job(job_id, status="running", current_step="Starting job", error_message=None)
-            add_log(job_id, "Worker started.")
+            add_log(job_id, "Renderer started.")
 
             self._set_state(job_id, status="running", current_step="Planning storyboard")
             storyboard = self._generate_storyboard(job, agent_dir)
@@ -369,7 +369,7 @@ class VideoWorkflow:
             latest = get_job(job_id)
             if latest and latest.get("status") == "canceled":
                 update_job(job_id, current_step="Canceled", error_message="Stopped by user.")
-                add_log(job_id, "Worker stopped after cancellation.", level="warning")
+                add_log(job_id, "Renderer stopped after cancellation.", level="warning")
                 return
             update_job(job_id, status="failed", current_step="Failed", error_message=str(exc))
             add_log(job_id, f"Job failed: {exc}", level="error")

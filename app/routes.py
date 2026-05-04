@@ -266,7 +266,10 @@ def _parse_token_usage(raw: str | None) -> dict | None:
 
 def _progress_metrics(job: dict, logs: list[dict], scene_count: int) -> tuple[int, str, str]:
     messages = [entry["message"] for entry in logs]
-    worker_started = any("Worker started." in m or "Worker accepted job." in m for m in messages)
+    renderer_started = any(
+        "Renderer started." in m or "Renderer accepted job." in m
+        for m in messages
+    )
     storyboard_done = any("Storyboard ready" in m or "Storyboard created with" in m for m in messages)
     prepared = any("Scene module prepared." in m for m in messages)
     finalizing = any("Finalizing video" == m for m in messages) or job.get("current_step") == "Finalizing video"
@@ -286,8 +289,8 @@ def _progress_metrics(job: dict, logs: list[dict], scene_count: int) -> tuple[in
     total_scenes = max(scene_count, audio_total, 1)
     progress, detail, active_label = 0, "Queued", "Queued"
 
-    if worker_started or job.get("status") in {"running", "completed", "failed"}:
-        progress, detail, active_label = max(progress, 5), "Worker started", "Planning storyboard"
+    if renderer_started or job.get("status") in {"running", "completed", "failed"}:
+        progress, detail, active_label = max(progress, 5), "Renderer started", "Planning storyboard"
     if storyboard_done:
         progress, detail, active_label = max(progress, 20), f"Storyboard ready, {total_scenes} scenes", "Synthesizing narration"
     if audio_done:
@@ -395,17 +398,19 @@ def _compute_timing(job: dict, logs: list[dict]) -> dict:
     end_time = completed or (updated if job.get("status") in {"completed", "failed"} else now)
     total_seconds = (end_time - created).total_seconds() if created else None
 
-    worker_started_ts, worker_finished_ts = None, None
+    renderer_started_ts, renderer_finished_ts = None, None
     for entry in logs:
         message = entry.get("message", "")
-        if worker_started_ts is None and ("Worker started." in message or "Worker accepted job." in message):
-            worker_started_ts = _parse_iso(entry.get("timestamp"))
+        if renderer_started_ts is None and (
+            "Renderer started." in message or "Renderer accepted job." in message
+        ):
+            renderer_started_ts = _parse_iso(entry.get("timestamp"))
         if message.startswith("Final video ready:"):
-            worker_finished_ts = _parse_iso(entry.get("timestamp"))
+            renderer_finished_ts = _parse_iso(entry.get("timestamp"))
 
-    if worker_started_ts is not None:
-        agent_end = worker_finished_ts or completed or now
-        agent_seconds = (agent_end - worker_started_ts).total_seconds()
+    if renderer_started_ts is not None:
+        agent_end = renderer_finished_ts or completed or now
+        agent_seconds = (agent_end - renderer_started_ts).total_seconds()
     else:
         agent_seconds = None
 
@@ -524,7 +529,7 @@ def _build_job_payload(job: dict, include_logs: bool = False) -> dict:
 @bp.get("/")
 def index():
     if request.cookies.get("onboarded") != "1":
-        return redirect(url_for("main.onboarding"))
+        return redirect(url_for("main.hello"))
     return redirect(url_for("main.home"))
 
 
@@ -543,13 +548,13 @@ def home():
     )
 
 
-@bp.get("/onboarding")
-def onboarding():
+@bp.get("/hello")
+def hello():
     return render_template("onboarding.html")
 
 
-@bp.post("/onboarding/done")
-def onboarding_done():
+@bp.post("/hello/done")
+def hello_done():
     response = make_response(redirect(url_for("main.home")))
     response.set_cookie("onboarded", "1", max_age=60 * 60 * 24 * 365, samesite="Lax")
     return response

@@ -20,7 +20,7 @@ THEME_ACCENTS = {
     "green":  {"accent": "#10B981", "accent_2": "#059669", "accent_soft": "#D1FAE5", "accent_mid": "#A7F3D0"},
     "amber":  {"accent": "#F59E0B", "accent_2": "#D97706", "accent_soft": "#FEF3C7", "accent_mid": "#FDE68A"},
     "rose":   {"accent": "#F43F5E", "accent_2": "#E11D48", "accent_soft": "#FFE4E6", "accent_mid": "#FECDD3"},
-    "slate":  {"accent": "#38BDF8", "accent_2": "#64748B", "accent_soft": "#E0F2FE", "accent_mid": "#CBD5E1"},
+    "slate":  {"accent": "#64748B", "accent_2": "#475569", "accent_soft": "#F1F5F9", "accent_mid": "#CBD5E1"},
 }
 
 

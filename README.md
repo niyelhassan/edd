@@ -13,12 +13,12 @@ A Flask app that turns a STEM topic into a short narrated lesson video with pre/
 
 ## User flow
 
-1. Onboarding (first visit only) -> Home (completed library + new lesson).
+1. Hello walkthrough (first visit only) -> Home (completed library + new lesson).
 2. Create lesson plan + quiz -> Pre-quiz.
 3. Watch video (live progress while rendering).
 4. Post-quiz -> Results -> Feedback survey -> Thanks.
 
-## Generation pipeline (background workers)
+## Generation pipeline (local background renderer)
 
 - Queue job and log state changes.
 - Plan a storyboard (Claude Agent SDK).
@@ -69,7 +69,6 @@ The app reads `.env` automatically. Common variables:
 - `GOOGLE_RESULTS_WORKSHEET_NAME`
 - `GOOGLE_SERVICE_ACCOUNT_FILE`
 - `GOOGLE_SERVICE_ACCOUNT_JSON`
-- `MAX_WORKERS`
 - `POLL_INTERVAL_MS`
 
 ### Google Sheets results sync

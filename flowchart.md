@@ -11,7 +11,7 @@ graph TD
     Home --> Input[/Topic + research area + length + theme/]
     Input --> Submit[Create job]
     Submit --> JobRow[Persist job + log]
-    JobRow --> Queue[Queue for worker pool]
+    JobRow --> Queue[Queue for local renderer]
 
     Submit --> PreQuiz[Pre-quiz page]
     PreQuiz --> QuizReady{Quiz ready?}
