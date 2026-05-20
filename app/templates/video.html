@@ -13,14 +13,8 @@
         {% if job.topic_category %}
         <span class="watch-topic-pill" style="--topic-hue: {{ job.topic_hue }}">{{ job.topic_category }}</span>
         {% endif %}
-        {% if job.video_runtime.seconds %}
-        <span class="rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-500">
-          {{ job.video_runtime.label }}
-        </span>
-        {% endif %}
-        {% if job.is_active %}
-        <span class="status-badge status-{{ job.status }}">{{ job.status }}</span>
-        {% endif %}
+        <span id="duration-badge" class="rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-500{% if not job.video_runtime.seconds %} hidden{% endif %}">{{ job.video_runtime.label }}</span>
+        <span id="status-badge" class="status-badge status-{{ job.status }}{% if not job.is_active %} hidden{% endif %}">{{ job.status }}</span>
       </div>
     </div>
   </div>
@@ -106,6 +100,12 @@ const jobId = "{{ job.id }}";
 let chapters = {{ job.chapters | tojson }};
 let playerInstance = null;
 
+function resetPlaybackSpeed(player) {
+    if (!player) return;
+    player.defaultPlaybackRate = 1;
+    player.playbackRate = 1;
+}
+
 function enablePost() {
     const link = document.getElementById("post-link");
     if (!link) return;
@@ -118,6 +118,7 @@ function setupPlayer() {
     const player = document.getElementById("video-player");
     if (!player || player.dataset.ready === "1") return;
     player.dataset.ready = "1";
+    resetPlaybackSpeed(player);
     if (window.Plyr) {
         playerInstance = new Plyr(player, {
             controls: ["play-large","play","progress","current-time","duration","mute","volume","captions","settings","fullscreen"],
@@ -125,12 +126,19 @@ function setupPlayer() {
             speed: { selected: 1, options: [0.75, 1, 1.25, 1.5, 1.75, 2] },
             captions: { active: true, language: "en", update: true },
             ratio: "16:9",
+            storage: { enabled: false },
             invertTime: false,
             tooltips: { controls: true, seek: true }
         });
-        playerInstance.on("ready", renderChapterMarkers);
+        playerInstance.on("ready", () => {
+            resetPlaybackSpeed(player);
+            playerInstance.speed = 1;
+            renderChapterMarkers();
+        });
     }
     player.addEventListener("ended", enablePost, { once: true });
+    player.addEventListener("loadedmetadata", () => resetPlaybackSpeed(player));
+    player.addEventListener("play", () => resetPlaybackSpeed(player));
     player.addEventListener("timeupdate", updateActiveChapter);
     player.addEventListener("loadedmetadata", renderChapterMarkers);
     renderChapters(chapters, true);
@@ -271,6 +279,22 @@ async function pollJob() {
     if (meta) meta.textContent = job.progress_detail || job.current_step || "";
     renderChapters(job.chapters || [], Boolean(job.video_url));
     renderVideo(job);
+
+    const durationBadge = document.getElementById("duration-badge");
+    if (durationBadge && job.video_runtime && job.video_runtime.label) {
+        durationBadge.textContent = job.video_runtime.label;
+        durationBadge.classList.remove("hidden");
+    }
+    const statusBadge = document.getElementById("status-badge");
+    if (statusBadge) {
+        if (job.is_active) {
+            statusBadge.textContent = job.status;
+            statusBadge.className = `status-badge status-${job.status}`;
+            statusBadge.classList.remove("hidden");
+        } else {
+            statusBadge.classList.add("hidden");
+        }
+    }
 
     const errorBox = document.getElementById("error-box");
     if (job.error_message) {

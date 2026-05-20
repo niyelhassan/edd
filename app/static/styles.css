@@ -45,7 +45,8 @@ body {
 }
 
 @keyframes pulse-glow {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 0 0 rgba(23, 23, 23, 0.15);
   }
   50% {
@@ -106,9 +107,15 @@ body {
   animation: drift-in 500ms var(--ease-out) both;
 }
 
-.drift-in-delay-1 { animation-delay: 60ms; }
-.drift-in-delay-2 { animation-delay: 120ms; }
-.drift-in-delay-3 { animation-delay: 180ms; }
+.drift-in-delay-1 {
+  animation-delay: 60ms;
+}
+.drift-in-delay-2 {
+  animation-delay: 120ms;
+}
+.drift-in-delay-3 {
+  animation-delay: 180ms;
+}
 
 .field {
   width: 100%;
@@ -158,18 +165,24 @@ body {
 .btn-primary {
   background: rgb(23 23 23);
   color: white;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset, 0 8px 18px -10px rgba(15, 23, 42, 0.6);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 8px 18px -10px rgba(15, 23, 42, 0.6);
 }
 
 .btn-primary:hover {
   background: rgb(38 38 38);
   transform: translateY(-1px);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset, 0 12px 24px -10px rgba(15, 23, 42, 0.5);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 12px 24px -10px rgba(15, 23, 42, 0.5);
 }
 
 .btn-primary:active {
   transform: translateY(0) scale(0.97);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset, 0 4px 8px -4px rgba(15, 23, 42, 0.5);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 4px 8px -4px rgba(15, 23, 42, 0.5);
 }
 
 .btn-secondary {
@@ -211,7 +224,9 @@ body {
 
 .page-shell {
   animation: page-enter 400ms var(--ease-out) both;
-  transition: opacity 200ms ease, transform 200ms ease;
+  transition:
+    opacity 200ms ease,
+    transform 200ms ease;
 }
 
 .page-shell-leaving {
@@ -310,7 +325,11 @@ body {
   pointer-events: none;
   background:
     radial-gradient(60% 50% at 80% 0%, rgba(10, 10, 10, 0.07), transparent 70%),
-    radial-gradient(50% 50% at 0% 100%, rgba(10, 10, 10, 0.055), transparent 65%);
+    radial-gradient(
+      50% 50% at 0% 100%,
+      rgba(10, 10, 10, 0.055),
+      transparent 65%
+    );
 }
 
 /* Stagger entrance for slide content */
@@ -375,7 +394,6 @@ body {
   display: flex;
   flex-direction: column;
   width: 100%;
-  min-height: min(540px, 60vh);
   border-radius: 20px;
   background: white;
   border: 1px solid rgb(220 220 220);
@@ -412,19 +430,20 @@ body {
   display: grid;
   place-items: center;
   padding: 0;
+  aspect-ratio: 4 /3;
+  flex: 0 0 auto;
 }
 
-.demo-window-placeholder {
-  display: grid;
-  place-items: center;
+.demo-window-video {
   width: 100%;
   height: 100%;
+  display: block;
+  object-fit: cover;
+  background: rgb(10 10 10);
 }
 
-.demo-window-placeholder span {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: rgb(115 115 115);
+.demo-window-video::-webkit-media-controls {
+  display: none !important;
 }
 
 /* Slide 1 — hero glyph */
@@ -639,8 +658,16 @@ body {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse at 30% 30%, rgba(255, 255, 255, 0.08), transparent 50%),
-    radial-gradient(ellipse at 70% 70%, rgba(255, 255, 255, 0.06), transparent 50%),
+    radial-gradient(
+      ellipse at 30% 30%,
+      rgba(255, 255, 255, 0.08),
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 70% 70%,
+      rgba(255, 255, 255, 0.06),
+      transparent 50%
+    ),
     rgb(10 10 10);
 }
 .demo-player-canvas svg {
@@ -1250,7 +1277,9 @@ body {
   font-size: 0.78rem;
   font-weight: 750;
   backdrop-filter: blur(12px);
-  transition: background 160ms ease, border-color 160ms ease;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease;
 }
 
 .chapter-toggle:hover,
@@ -1278,7 +1307,9 @@ body {
   pointer-events: none;
   transform: translateY(-6px) scale(0.98);
   transform-origin: top right;
-  transition: opacity 180ms ease, transform 180ms ease;
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
   backdrop-filter: blur(18px);
 }
 
@@ -1308,7 +1339,9 @@ body {
   background: transparent;
   padding: 8px;
   text-align: left;
-  transition: background 160ms ease, color 160ms ease;
+  transition:
+    background 160ms ease,
+    color 160ms ease;
 }
 
 .chapter-item:not(:disabled) {

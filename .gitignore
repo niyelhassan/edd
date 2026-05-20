@@ -6,3 +6,6 @@ media/
 temps/
 .prettierignore
 testing_videos/
+dummy/
+dummy.zip
+*.mp4

@@ -1,12 +1,39 @@
-{% extends "base.html" %} {% block site_header %}{% endblock %} {% block content %}
+{% extends "base.html" %} {% block site_header %}{% endblock %} {% block content
+%} {% macro demo_video(segment) -%}
+<video
+  class="demo-window-video"
+  muted
+  playsinline
+  preload="metadata"
+  data-demo-segment="{{ segment }}"
+  aria-label="Step {{ segment + 1 }} demo"
+>
+  <source
+    src="{{ url_for('static', filename='lern_demo.mp4') }}"
+    type="video/mp4"
+  />
+</video>
+{%- endmacro %}
 <section class="fixed inset-0 z-50 overflow-hidden bg-[#f7f8fb]" id="obRoot">
   <div class="onboarding-stage-bg"></div>
 
-  <div class="ob-progress" aria-hidden="true"><span id="obProgress"></span></div>
+  <div class="ob-progress" aria-hidden="true">
+    <span id="obProgress"></span>
+  </div>
 
-  <a href="{{ url_for('main.home') }}" class="absolute left-6 top-6 z-20 text-lg font-semibold tracking-tight">lern</a>
-  <form action="{{ url_for('main.hello_done') }}" method="post" class="absolute right-5 top-5 z-20">
-    <button class="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-500 transition hover:border-neutral-400 hover:text-neutral-950">
+  <a
+    href="{{ url_for('main.home') }}"
+    class="absolute left-6 top-6 z-20 text-lg font-semibold tracking-tight"
+    >lern</a
+  >
+  <form
+    action="{{ url_for('main.hello_done') }}"
+    method="post"
+    class="absolute right-5 top-5 z-20"
+  >
+    <button
+      class="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-500 transition hover:border-neutral-400 hover:text-neutral-950"
+    >
       Skip
     </button>
   </form>
@@ -17,15 +44,16 @@
         <span class="eyebrow-pill">Step 1</span>
         <h1>Pick a topic.</h1>
         <p class="lead">
-          Type what you want to learn — any concept, any field. Choose a length and theme, then hit generate.
+          Type what you want to learn — any concept, any field. Choose a length
+          and theme, then hit generate.
         </p>
       </div>
       <div class="walkthrough-stage">
-        <div class="walkthrough-toolbar"><span></span><span></span><span></span></div>
+        <div class="walkthrough-toolbar">
+          <span></span><span></span><span></span>
+        </div>
         <div class="walkthrough-body walkthrough-body-simple">
-          <div class="demo-window-placeholder">
-            <span>Video</span>
-          </div>
+          {{ demo_video(0) }}
         </div>
       </div>
     </article>
@@ -35,15 +63,16 @@
         <span class="eyebrow-pill">Step 2</span>
         <h1>Take the<br />pre-quiz.</h1>
         <p class="lead">
-          Five questions generated for your topic. Answer honestly — this is your baseline score.
+          Five questions generated for your topic. Answer honestly — this is
+          your baseline score.
         </p>
       </div>
       <div class="walkthrough-stage">
-        <div class="walkthrough-toolbar"><span></span><span></span><span></span></div>
+        <div class="walkthrough-toolbar">
+          <span></span><span></span><span></span>
+        </div>
         <div class="walkthrough-body walkthrough-body-simple">
-          <div class="demo-window-placeholder">
-            <span>Video</span>
-          </div>
+          {{ demo_video(1) }}
         </div>
       </div>
     </article>
@@ -53,15 +82,16 @@
         <span class="eyebrow-pill">Step 3</span>
         <h1>Watch the<br />lesson.</h1>
         <p class="lead">
-          A short animated explainer, narrated and built just for your topic. No filler, no tangents.
+          A short animated explainer, narrated and built just for your topic. No
+          filler, no tangents.
         </p>
       </div>
       <div class="walkthrough-stage">
-        <div class="walkthrough-toolbar"><span></span><span></span><span></span></div>
+        <div class="walkthrough-toolbar">
+          <span></span><span></span><span></span>
+        </div>
         <div class="walkthrough-body walkthrough-body-simple">
-          <div class="demo-window-placeholder">
-            <span>Video</span>
-          </div>
+          {{ demo_video(2) }}
         </div>
       </div>
     </article>
@@ -75,11 +105,11 @@
         </p>
       </div>
       <div class="walkthrough-stage">
-        <div class="walkthrough-toolbar"><span></span><span></span><span></span></div>
+        <div class="walkthrough-toolbar">
+          <span></span><span></span><span></span>
+        </div>
         <div class="walkthrough-body walkthrough-body-simple">
-          <div class="demo-window-placeholder">
-            <span>Video</span>
-          </div>
+          {{ demo_video(3) }}
         </div>
       </div>
     </article>
@@ -91,16 +121,20 @@
         <p class="lead">
           A short survey at the end. Your answers shape what gets built next.
         </p>
-        <form action="{{ url_for('main.hello_done') }}" method="post" class="mt-7">
+        <form
+          action="{{ url_for('main.hello_done') }}"
+          method="post"
+          class="mt-7"
+        >
           <button class="btn-primary text-base">Get started →</button>
         </form>
       </div>
       <div class="walkthrough-stage">
-        <div class="walkthrough-toolbar"><span></span><span></span><span></span></div>
+        <div class="walkthrough-toolbar">
+          <span></span><span></span><span></span>
+        </div>
         <div class="walkthrough-body walkthrough-body-simple">
-          <div class="demo-window-placeholder">
-            <span>Video</span>
-          </div>
+          {{ demo_video(4) }}
         </div>
       </div>
     </article>
@@ -121,6 +155,15 @@
     const nextBtn = document.getElementById("nextSlide");
     const progress = document.getElementById("obProgress");
     const root = document.getElementById("obRoot");
+    const demos = Array.from(document.querySelectorAll(".demo-window-video"));
+    const demoSegments = [
+      { start: 0, end: 15 },
+      { start: 16, end: 29 },
+      { start: 30, end: 106 },
+      { start: 107, end: 115 },
+      { start: 116, end: 156 },
+    ];
+    let demoDuration = 0;
     let active = 0;
 
     slides.forEach((_, i) => {
@@ -143,6 +186,7 @@
       progress.style.width = ((i + 1) / slides.length) * 100 + "%";
       prevBtn.style.visibility = i === 0 ? "hidden" : "visible";
       nextBtn.textContent = i === slides.length - 1 ? "Start" : "Next →";
+      playActiveDemo();
     }
 
     prevBtn.addEventListener("click", () => go(active - 1));
@@ -167,16 +211,22 @@
     });
 
     let wheelLock = false;
-    root.addEventListener("wheel", (event) => {
-      if (Math.abs(event.deltaY) < 24 || wheelLock) return;
-      wheelLock = true;
-      if (event.deltaY > 0) go(active + 1);
-      else go(active - 1);
-      setTimeout(() => (wheelLock = false), 720);
-    }, { passive: true });
+    root.addEventListener(
+      "wheel",
+      (event) => {
+        if (Math.abs(event.deltaY) < 24 || wheelLock) return;
+        wheelLock = true;
+        if (event.deltaY > 0) go(active + 1);
+        else go(active - 1);
+        setTimeout(() => (wheelLock = false), 720);
+      },
+      { passive: true },
+    );
 
     let touchY = null;
-    root.addEventListener("touchstart", (event) => { touchY = event.touches[0].clientY; });
+    root.addEventListener("touchstart", (event) => {
+      touchY = event.touches[0].clientY;
+    });
     root.addEventListener("touchend", (event) => {
       if (touchY == null) return;
       const dy = touchY - event.changedTouches[0].clientY;
@@ -185,6 +235,62 @@
         else go(active - 1);
       }
       touchY = null;
+    });
+
+    function segmentBounds(video) {
+      const duration = demoDuration || video.duration || 0;
+      const segment = Number(video.dataset.demoSegment || 0);
+      const bounds = demoSegments[segment];
+      if (!bounds) return { start: 0, end: 0 };
+      return {
+        start: Math.min(bounds.start, duration),
+        end: Math.min(bounds.end, duration),
+      };
+    }
+
+    function restartSegment(video) {
+      const bounds = segmentBounds(video);
+      if (bounds.end <= bounds.start) return;
+      resetPlaybackSpeed(video);
+      video.currentTime = bounds.start;
+      video.play().catch(() => {});
+    }
+
+    function resetPlaybackSpeed(video) {
+      video.defaultPlaybackRate = 1;
+      video.playbackRate = 1;
+    }
+
+    function playActiveDemo() {
+      demos.forEach((video, i) => {
+        if (i === active) {
+          restartSegment(video);
+        } else {
+          video.pause();
+        }
+      });
+    }
+
+    demos.forEach((video) => {
+      resetPlaybackSpeed(video);
+      video.addEventListener("loadedmetadata", () => {
+        resetPlaybackSpeed(video);
+        demoDuration = video.duration || demoDuration;
+        if (Number(video.dataset.demoSegment || 0) === active) {
+          restartSegment(video);
+        }
+      });
+      video.addEventListener("play", () => resetPlaybackSpeed(video));
+      video.addEventListener("timeupdate", () => {
+        const bounds = segmentBounds(video);
+        if (
+          bounds.end > bounds.start &&
+          video.currentTime >= bounds.end - 0.08
+        ) {
+          video.currentTime = bounds.start;
+          video.play().catch(() => {});
+        }
+      });
     });
 
     go(0);

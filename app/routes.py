@@ -47,14 +47,15 @@ RESULTS_CSV_FIELDNAMES = [
     "grade",
     "enrollment",
     "difficulty_frequency",
-    "first_resource",
-    "resource_satisfaction",
-    "first_video_time",
-    "understanding_change",
-    "video_quality",
-    "appropriate_length",
+    "overall_satisfaction",
+    "understanding_improvement",
+    "vs_normal_resources",
     "easy_without_guidance",
-    "use_again",
+    "had_difficulties",
+    "difficulties_detail",
+    "practicality",
+    "fair_price",
+    "recommend_likelihood",
     "improvement",
     "pre_score",
     "pre_percentage",
@@ -743,8 +744,6 @@ def submit_post_quiz(job_id: str):
         return redirect(url_for("main.post_quiz", job_id=job_id))
     post_score = _score_quiz(request.form, quiz)
     update_job(job_id, post_score=post_score)
-    updated_job = get_job(job_id) or {**job, "post_score": post_score}
-    _save_quiz_results_to_csv(job_id, updated_job)
     return redirect(url_for("main.results", job_id=job_id))
 
 
@@ -774,42 +773,21 @@ def submit_survey(job_id: str):
     if job is None:
         abort(404)
 
-    is_trial = "yes" if request.form.get("is_trial") == "on" else "no"
+    is_trial = request.form.get("is_trial", "yes").strip()
     name = request.form.get("name", "").strip()
     grade = request.form.get("grade", "").strip()
-    enrollment = "; ".join(request.form.getlist("enrollment"))
+    enrollment = request.form.get("enrollment", "").strip()
     difficulty_frequency = request.form.get("difficulty_frequency", "").strip()
-    first_resource = request.form.get("first_resource", "").strip()
-    first_resource_other = request.form.get("first_resource_other", "").strip()
-    if first_resource == "Other" and first_resource_other:
-        first_resource = f"Other: {first_resource_other}"
-    resource_satisfaction = request.form.get("resource_satisfaction", "").strip()
-    first_video_time = request.form.get("first_video_time", "").strip()
-    understanding_change = request.form.get("understanding_change", "").strip()
-    video_quality = request.form.get("video_quality", "").strip()
-    appropriate_length = request.form.get("appropriate_length", "").strip()
+    overall_satisfaction = request.form.get("overall_satisfaction", "").strip()
+    understanding_improvement = request.form.get("understanding_improvement", "").strip()
+    vs_normal_resources = request.form.get("vs_normal_resources", "").strip()
     easy_without_guidance = request.form.get("easy_without_guidance", "").strip()
-    use_again = request.form.get("use_again", "").strip()
+    had_difficulties = request.form.get("had_difficulties", "").strip()
+    difficulties_detail = request.form.get("difficulties_detail", "").strip()
+    practicality = request.form.get("practicality", "").strip()
+    fair_price = request.form.get("fair_price", "").strip()
+    recommend_likelihood = request.form.get("recommend_likelihood", "").strip()
     improvement = request.form.get("improvement", "").strip()
-
-    required_values = [
-        name,
-        grade,
-        enrollment,
-        difficulty_frequency,
-        first_resource,
-        resource_satisfaction,
-        first_video_time,
-        understanding_change,
-        video_quality,
-        appropriate_length,
-        easy_without_guidance,
-        use_again,
-        improvement,
-    ]
-    if any(not value for value in required_values) or first_resource == "Other":
-        flash("Please answer every feedback question before submitting.")
-        return redirect(url_for("main.survey", job_id=job_id))
 
     question_count = _quiz_question_count(job)
     pre_score = job.get("pre_score")
@@ -820,14 +798,15 @@ def submit_survey(job_id: str):
         "grade": grade,
         "enrollment": enrollment,
         "difficulty_frequency": difficulty_frequency,
-        "first_resource": first_resource,
-        "resource_satisfaction": resource_satisfaction,
-        "first_video_time": first_video_time,
-        "understanding_change": understanding_change,
-        "video_quality": video_quality,
-        "appropriate_length": appropriate_length,
+        "overall_satisfaction": overall_satisfaction,
+        "understanding_improvement": understanding_improvement,
+        "vs_normal_resources": vs_normal_resources,
         "easy_without_guidance": easy_without_guidance,
-        "use_again": use_again,
+        "had_difficulties": had_difficulties,
+        "difficulties_detail": difficulties_detail,
+        "practicality": practicality,
+        "fair_price": fair_price,
+        "recommend_likelihood": recommend_likelihood,
         "improvement": improvement,
     }
 

@@ -1,5 +1,5 @@
 {% extends "base.html" %} {% block site_header %}{% endblock %} {% block content %}
-<section class="grid min-h-[70vh] place-items-center">
+<section class="grid min-h-[calc(100vh-3rem)] place-items-center">
   <div class="max-w-md text-center">
     <div
       class="results-celebration mx-auto mb-5 grid h-14 w-14 place-items-center rounded-full bg-emerald-100 text-emerald-700"
@@ -27,7 +27,7 @@
       Your quiz results and feedback were saved. You can generate another lesson anytime.
     </p>
     <div class="mt-6 flex flex-wrap justify-center gap-3">
-      <a href="{{ url_for('main.home') }}" class="btn-primary">New lesson</a>
+      <a href="{{ url_for('main.home') }}" class="btn-primary">Return home</a>
     </div>
   </div>
 </section>
