@@ -34,7 +34,7 @@ def load_local_env(base_dir: Path) -> None:
 
 
 class Config:
-    SECRET_KEY = "dev-secret-change-me"
+    SECRET_KEY = ""
     CLAUDE_CODE_MODEL = "claude-sonnet-4-6"
     CLAUDE_CODE_MAX_TURNS = None
     DEEPGRAM_API_KEY = ""

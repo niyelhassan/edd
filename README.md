@@ -42,7 +42,11 @@ Chart templates can use optional `data_points` objects shaped like `{"label": "A
 ## Run
 
 ```bash
+python -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
+cp .env.example .env
+# Set SECRET_KEY and the service credentials needed by your workflow.
 python app.py
 ```
 
@@ -71,6 +75,11 @@ The app reads `.env` automatically. Common variables:
 - `GOOGLE_SERVICE_ACCOUNT_JSON`
 - `POLL_INTERVAL_MS`
 
+`SECRET_KEY` is required; the app intentionally refuses to start without one.
+Set `FLASK_DEBUG=1` only for local debugging. Prefer
+`GOOGLE_SERVICE_ACCOUNT_FILE` over embedding service-account JSON directly in
+an environment variable.
+
 ### Google Sheets results sync
 
 `results.csv` can be mirrored into a Google Sheet whenever quiz or survey results are saved.
@@ -87,6 +96,20 @@ GOOGLE_SERVICE_ACCOUNT_FILE=/absolute/path/to/service-account.json
 ```
 
 Instead of `GOOGLE_SERVICE_ACCOUNT_FILE`, you can set `GOOGLE_SERVICE_ACCOUNT_JSON` to the full JSON object if your deployment stores secrets as environment variables.
+
+## Local-only data
+
+Generated jobs and the SQLite database live under `instance/`. Trial recordings
+live under `testing_videos/`. Both paths are intentionally ignored because they
+may contain participant or research data and are not part of a normal Git
+backup. Back them up separately before deleting a working copy. Likewise,
+`results.csv`, `old_results.csv`, and `.env` stay local and must never be
+committed.
+
+The onboarding demo at `app/static/lern_demo.mp4` is an application asset and is
+tracked so that a private fresh clone remains functional. Template-preview
+source files under `temps/` are tracked, while their generated renders remain
+ignored.
 
 ## Outputs
 

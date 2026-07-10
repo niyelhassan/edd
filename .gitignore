@@ -3,9 +3,15 @@ __pycache__/
 *.pyc
 instance/
 media/
-temps/
+temps/*
+!temps/.gitignore
+!temps/README.md
+!temps/make_template_videos.py
 .prettierignore
 testing_videos/
 dummy/
 dummy.zip
+results.csv
+old_results.csv
 *.mp4
+!app/static/lern_demo.mp4

@@ -14,10 +14,17 @@ def create_app() -> Flask:
     load_local_env(base_dir)
 
     claude_max_turns_raw = os.getenv("CLAUDE_CODE_MAX_TURNS", "")
+    secret_key = os.getenv("SECRET_KEY", "").strip()
+    if not secret_key:
+        raise RuntimeError(
+            "SECRET_KEY is required. Copy .env.example to .env and set a long, "
+            "random value before starting the app."
+        )
+
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object(Config)
     app.config.update(
-        SECRET_KEY=os.getenv("SECRET_KEY", app.config["SECRET_KEY"]),
+        SECRET_KEY=secret_key,
         CLAUDE_CODE_MODEL=os.getenv("CLAUDE_CODE_MODEL", app.config["CLAUDE_CODE_MODEL"]),
         CLAUDE_CODE_MAX_TURNS=int(claude_max_turns_raw) if claude_max_turns_raw.strip() else None,
         DEEPGRAM_API_KEY=os.getenv("DEEPGRAM_API_KEY", app.config["DEEPGRAM_API_KEY"]),

@@ -1,0 +1,8 @@
+__pycache__/
+_generated_template_scenes.py
+_media/
+template_storyboard.json
+videos/
+.DS_Store
+
+# Preview source and documentation are tracked; everything above is regenerated.
